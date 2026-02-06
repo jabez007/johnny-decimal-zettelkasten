@@ -6,7 +6,7 @@ This vault combines **Johnny Decimal** for structural organization with **Zettel
 
 ---
 
-## Required Tools
+## Baseline Setup: Obsidian Notes
 
 ### Obsidian
 
@@ -126,7 +126,11 @@ Reference: [Obsidian Web Clipper Documentation](https://help.obsidian.md/web-cli
 
 ---
 
-### VSCode + GitHub Copilot
+## AI-Assisted Vault Maintenance
+
+This vault leverages AI agents to assist with maintenance, organization, and knowledge development. These agents propose actions and insights based on the vault's structure and content, but **never modify files without explicit user approval.**
+
+### GitHub Copilot Librarian Agent
 
 VSCode with GitHub Copilot provides AI-assisted vault maintenance through the Librarian agent.
 
@@ -138,6 +142,79 @@ VSCode with GitHub Copilot provides AI-assisted vault maintenance through the Li
 4. Open the vault folder in VSCode
 
 No additional configuration is required. Copilot automatically detects agent files in `.github/agents/` and prompt files in `.github/prompts/`.
+
+### Gemini CLI Librarian Agent
+
+The Gemini CLI Librarian Agent extends AI-assisted vault maintenance to your command line. It provides similar functionalities to the Copilot agent, focusing on structural integrity and knowledge development within your Johnny Decimal and Zettelkasten vault.
+
+#### **Installation:**
+
+1. Ensure you have [Gemini CLI](https://github.com/google/gemini-cli) installed and configured.
+2. The `librarian-vault-manager.skill` file has been generated in your project root. Install it with workspace scope:
+
+    ```bash
+    gemini skills install ./librarian-vault-manager.skill --scope workspace
+    ```
+
+3. **Important:** After installation, you must reload your Gemini CLI session by running `/skills reload` in your interactive Gemini CLI. You can verify installation with `/skills list`.
+
+#### **Usage:**
+
+Once installed and reloaded, invoke the Librarian Agent directly in your Gemini CLI session. The agent will respond to various queries related to vault management.
+
+**Invoke the Librarian in Gemini CLI with prompts like:**
+
+- "organize my vault"
+- "check my index"
+- "review daily notes"
+- "audit links"
+- "cleanup notes"
+- "create new vault section"
+- "generate flashcards"
+
+### Available Prompts (for both Copilot and Gemini CLI)
+
+The underlying prompts are shared and facilitate various maintenance tasks:
+
+#### `/construct-vault`
+
+Scaffolds a new vault structure through guided conversation. Use when setting up a new system or restructuring an existing one.
+
+```text
+/construct-vault Help me create a new system for my research projects
+```
+
+#### `/daily-review`
+
+Extracts durable knowledge from transient daily notes. Identifies concepts mentioned 3+ times across recent entries and proposes evergreen notes.
+
+```text
+/daily-review Scan this week's journal entries
+```
+
+#### `/audit-links`
+
+Analyzes link health across the vault. Identifies orphaned notes, broken references, and opportunities for meaningful connections.
+
+```text
+/audit-links Check connection health in TECH system
+```
+
+#### `/cleanup`
+
+Detects duplicates, naming inconsistencies, and misplaced notes. All cleanup preserves information through consolidation, never deletion.
+
+```text
+/cleanup Scan for duplicate concepts
+```
+
+#### `/flashcards`
+
+Generates spaced repetition flashcards from note content. Appends cards to a `# Questions` section for export to Anki.
+
+```text
+/flashcards Generate for TECH.12.01
+```
 
 ---
 
@@ -437,9 +514,9 @@ Run `/audit-links` to identify orphaned notes and connection opportunities. Run 
         - Property: `file.name` | Operator: `ends with` | Value: `.00.00`
     - Click the view name → Configure as Cards view
 
-8. **(Optional) Open vault in VSCode** for AI-assisted maintenance
+8. **(Optional) Set up an AI Librarian Agent**: Refer to the "AI-Assisted Vault Maintenance" section for details on setting up either the GitHub Copilot or Gemini CLI Librarian Agent.
 
-9. **Invoke `/construct-vault`** to scaffold your first system through guided conversation
+9. **Invoke the Librarian Agent's `/construct-vault` prompt** to scaffold your first system through guided conversation
 
 ---
 
