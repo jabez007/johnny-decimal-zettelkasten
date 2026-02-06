@@ -1,0 +1,23 @@
+services:
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:latest
+    container_name: obsidian
+    environment:
+      # PUID and PGID should match your host user's UID and GID to avoid permission issues.
+      # You can find these by running 'id -u' and 'id -g' in your terminal.
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC # Example: America/New_York
+      - UMASK_SET=022 # Optional: Set file creation mask
+    volumes:
+      # Map your host 'config' directory to the container's '/config'
+      # This stores Obsidian's application settings.
+      - ./config:/config
+      # Map your host 'vaults' directory to the container's '/vaults'
+      # Place your Obsidian vault(s) as subdirectories inside './vaults' on your host.
+      - ./vaults:/vaults
+    ports:
+      - 3000:3000 # Web UI HTTP port
+      - 3001:3001 # Web UI HTTPS port
+    shm_size: "1gb" # Recommended for Electron applications
+    restart: unless-stopped

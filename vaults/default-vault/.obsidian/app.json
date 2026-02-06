@@ -1,0 +1,7 @@
+{
+  "enabledCorePlugins": [
+    "backlinks",
+    "obsidian-bases",
+    "daily-notes"
+  ]
+}
