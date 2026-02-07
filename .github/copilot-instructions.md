@@ -10,6 +10,35 @@ This vault implements a knowledge management system combining Johnny Decimal str
 
 ---
 
+## Multi-Vault Architecture
+
+This project contains multiple Obsidian vaults in the `vaults/` directory. When working within VS Code:
+
+### Vault Context
+- The current workspace opened in VS Code determines the vault context
+- If the workspace root is `vaults/[vault-name]/`, that is the active vault
+- All operations are scoped to the selected vault
+
+### Path Resolution
+- All `SYS.AC.ID` references and file paths are vault-relative
+- File paths should be relative to the vault root (e.g., `LIFE/00-IDX/LIFE.00.00.md`)
+- Never propose paths outside the vault's directory boundaries
+- Example: If working in `vaults/my-vault/`, propose `LIFE/12-Category/LIFE.12.01 Note.md` not `vaults/my-vault/LIFE/...`
+
+### Reference Documents
+- General methodologies are documented in `.github/reference/`
+
+---
+
+## Determining Vault Context
+
+### For Copilot (VS Code)
+- The vault context is the workspace root currently open in VS Code
+- Confirm the vault name if you're unsure by checking the workspace folder name
+- Example: If `vaults/my-personal-vault/` is open, that is the active context
+
+---
+
 ## Identity Format
 
 - All evergreen notes use AC.ID notation: `SYS.AC.ID`

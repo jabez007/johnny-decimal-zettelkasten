@@ -34,8 +34,7 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 - Never propose paths outside the selected vault's boundaries
 
 ### Reference Document Lookup
-- Vault guidelines exist at: `vaults/[vault-name]/references/copilot-instructions.md`
-- If a vault doesn't have its own guidelines, defer to this project's master instructions
+- Vault guidelines exist at: `references/copilot-instructions.md`
 - Always check the target vault's configuration before proposing changes
 
 ## Multi-Vault Guardrails

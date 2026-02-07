@@ -4,9 +4,33 @@ This vault implements a knowledge management system combining Johnny Decimal str
 
 ## Reference Documents
 
-- [Johnny Decimal Structure](reference/johnny-decimal.md)
-- [Zettelkasten Method](reference/zettelkasten.md)
-- [Vault Philosophy](reference/philosophy.md)
+- [Johnny Decimal Structure](references/johnny-decimal.md)
+- [Zettelkasten Method](references/zettelkasten.md)
+- [Vault Philosophy](references/philosophy.md)
+
+---
+
+## Multi-Vault Architecture
+
+This project contains multiple Obsidian vaults in the `vaults/` directory.
+
+### Path Resolution
+- All `SYS.AC.ID` references and file paths are vault-relative
+- File paths should be relative to the vault root (e.g., `LIFE/00-IDX/LIFE.00.00.md`)
+- Never propose paths outside the vault's directory boundaries
+- Example: If working in `vaults/my-vault/`, propose `LIFE/12-Category/LIFE.12.01 Note.md` not `vaults/my-vault/LIFE/...`
+
+### Reference Documents
+- General methodologies are documented in `references/`
+
+---
+
+## Determining Vault Context
+
+### For Gemini CLI
+- Always ask the user which vault to work with when context is unclear
+- Accept vault names as the directory name: `[vault-name]` from `vaults/[vault-name]/`
+- Confirm the selection before performing any operations
 
 ---
 
