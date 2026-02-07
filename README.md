@@ -2,7 +2,7 @@
 
 Most notes are transient—written and forgotten. This system makes knowledge compound over time. Each note you write becomes part of an interconnected network where insights build upon each other, and every hour of thinking leaves something behind that makes future thinking easier.
 
-This vault combines **Johnny Decimal** for structural organization with **Zettelkasten** for emergent meaning through connections, augmented by an AI librarian agent for maintenance.
+This project manages multiple Obsidian vaults, each combining **Johnny Decimal** for structural organization with **Zettelkasten** for emergent meaning through connections. Vault maintenance is augmented by AI librarian agents.
 
 ---
 
@@ -76,7 +76,7 @@ services:
     This command will download the `linuxserver/obsidian` image (if not already present) and start the container in detached mode (in the background).
 3.  **Access Obsidian**:
     *   Open your web browser and navigate to `http://localhost:3000` (for HTTP) or `https://localhost:3001` (for HTTPS).
-    *   The first time you access it, Obsidian may prompt you to open an existing vault or create a new one. Select the vault you placed in the `vaults/` directory (e.g., `/vaults/my-vault`).
+    *   The first time you access it, Obsidian may prompt you to open an existing vault or create a new one. Select the desired vault you placed in the `vaults/` directory (e.g., `/vaults/my-vault`). If you have multiple vaults, you'll need to select the one you wish to work with.
 4.  **Stop the container**:
     ```bash
     docker compose down
@@ -191,7 +191,27 @@ Reference: [Obsidian Web Clipper Documentation](https://help.obsidian.md/web-cli
 
 ## AI-Assisted Vault Maintenance
 
-This vault leverages AI agents to assist with maintenance, organization, and knowledge development. These agents propose actions and insights based on the vault's structure and content, but **never modify files without explicit user approval.**
+This project leverages AI agents to assist with maintenance, organization, and knowledge development across its multiple Obsidian vaults. These agents propose actions and insights based on a selected vault's structure and content, but **never modify files without explicit user approval.**
+
+### Multi-Vault Interaction Protocol
+
+AI Librarian agents are designed to work with individual Obsidian vaults within the `vaults/` directory.
+
+#### Vault Selection
+- When an agent request lacks explicit vault context, the agent will ask: "Which vault should I work with?"
+- Accepted vault identifiers are the directory names, e.g., `[vault-name]` from `vaults/[vault-name]/`.
+- Agents will always confirm vault scope before proposing structural changes.
+
+#### Path Resolution
+- All `SYS.AC.ID` references and file paths are **vault-relative** to the selected vault.
+- Agents will translate user intent into paths like: `vaults/[vault-name]/SYS/A0-Area/...`
+- Agents will never propose paths outside the selected vault's boundaries.
+
+#### Guardrails
+- Agents **do not** modify notes in multiple vaults without explicit per-vault confirmation.
+- Agents **do not** create cross-vault links without user acknowledgment.
+- Agents **do not** propose structural changes that assume a single JDex across all vaults.
+- Agents **always** confirm vault scope before proposing file operations.
 
 ### GitHub Copilot Librarian Agent
 
@@ -561,9 +581,9 @@ Run `/audit-links` to identify orphaned notes and connection opportunities. Run 
 4. **Enable Obsidian Bases**
     - Settings → Core Plugins → Enable "Bases"
 
-5. **Create the `_SYS` folder** in the vault root
+5. **For each vault**, create the `_SYS` folder inside the vault's root directory.
 
-6. **Create the root index** (`00.00.md`):
+6. **Inside your selected vault**, create the vault's root index (`00.00.md`):
 
     ```markdown
     # Vault Index
@@ -571,7 +591,7 @@ Run `/audit-links` to identify orphaned notes and connection opportunities. Run 
     ![[JDEX_00.00.base]]
     ```
 
-7. **Create the root base file**:
+7. **Inside your selected vault**, create the vault's root base file:
     - Right-click `_SYS/` → New base → Name it `JDEX_00.00`
     - Click the Filter icon → Add filter:
         - Property: `file.name` | Operator: `ends with` | Value: `.00.00`

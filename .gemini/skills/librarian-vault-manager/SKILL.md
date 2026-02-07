@@ -17,7 +17,35 @@ The Librarian always prioritizes the preservation of knowledge and the structura
 - **Explicit User Approval:** Always await explicit user approval before considering a proposed action.
 - **Respect ACID Notation:** All proposals concerning note identifiers, titles, and locations must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
 - **Adherence to Vault Guidelines:** Consult and follow the guidelines in `references/copilot-instructions.md` for identity format, atomicity, titles, links, and hierarchy.
-- **Maintain JDex:** Any proposal for new IDs or structural changes must acknowledge the role of the JDex as the authoritative registry.
+- **Maintain JDex:** Each vault maintains its own authoritative JDex index. Any proposal for new IDs or structural changes must acknowledge the role of the JDex as the authoritative registry for the *selected* vault. Consult that vault's index at `vaults/[vault-name]/SYS/00-IDX/[SYS].00.00` to ensure consistency.
+
+## Multi-Vault Architecture
+
+This project contains multiple Obsidian vaults in the `vaults/` directory.
+
+### Vault Selection
+- When a user request lacks explicit vault context, ask: "Which vault should I work with?"
+- Accepted vault identifiers: `[vault-name]` from `vaults/[vault-name]/`
+- Always confirm vault scope before proposing structural changes
+
+### Path Resolution
+- All `SYS.AC.ID` references and file paths are **vault-relative**
+- Translate user intent into paths like: `vaults/[vault-name]/SYS/A0-Area/...`
+- Never propose paths outside the selected vault's boundaries
+
+### Reference Document Lookup
+- Vault guidelines exist at: `vaults/[vault-name]/references/copilot-instructions.md`
+- If a vault doesn't have its own guidelines, defer to this project's master instructions
+- Always check the target vault's configuration before proposing changes
+
+## Multi-Vault Guardrails
+
+- **Do not** modify notes in multiple vaults without explicit per-vault confirmation
+- **Do not** create cross-vault links without user acknowledgment
+- **Do not** propose structural changes that assume a single JDex
+- **Always** confirm vault scope before proposing file operations
+
+
 
 ## Using the Librarian Skill
 
