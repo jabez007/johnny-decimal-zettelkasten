@@ -34,8 +34,9 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 - Never propose paths outside the selected vault's boundaries
 
 ### Reference Document Lookup
-- Vault guidelines exist at: `references/copilot-instructions.md`
-- Always check the target vault's configuration before proposing changes
+- All workflow and reference documents are located at the project root: `.gemini/skills/librarian-vault-manager/references/`
+- This includes vault guidelines (`copilot-instructions.md`), workflows (`audit-links.md`, `cleanup.md`, etc.), and methodologies (Johnny Decimal, Zettelkasten, Philosophy)
+- Vault-specific note content is managed at `vaults/[vault-name]/`, but reference materials are always project-level
 
 ## Multi-Vault Guardrails
 
