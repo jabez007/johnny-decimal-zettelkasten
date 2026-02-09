@@ -1,0 +1,6 @@
+filters:
+  and:
+    - file.name.endsWith(".00.00")
+views:
+  - type: cards
+    name: Cards

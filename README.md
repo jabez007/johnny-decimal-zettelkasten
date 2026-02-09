@@ -371,19 +371,6 @@ SYS.AC.ID
 
 ```text
 VAULT/
-├── .github/
-│   ├── agents/
-│   │   └── librarian.agent.md
-│   ├── prompts/
-│   │   ├── audit-links.prompt.md
-│   │   ├── cleanup.prompt.md
-│   │   ├── construct-vault.prompt.md
-│   │   ├── daily-review.prompt.md
-│   │   └── flashcards.prompt.md
-│   └── reference/
-│       ├── johnny-decimal.md
-│       ├── philosophy.md
-│       └── zettelkasten.md
 ├── _SYS/
 │   ├── JDEX_00.00.base
 │   ├── JDEX_LIFE.base
