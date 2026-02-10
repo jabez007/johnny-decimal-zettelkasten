@@ -187,6 +187,18 @@ This workflow ensures web captures flow through the same refinement pipeline as 
 
 Reference: [Obsidian Web Clipper Documentation](https://help.obsidian.md/web-clipper)
 
+##### **Docker Integration and Configuration:**
+
+For users running Obsidian via Docker, two additional files are provided to enhance the Web Clipper experience:
+
+1.  **`setup-obsidian-uri.sh`**: This script creates a custom URI handler on your host system, allowing the Web Clipper browser extension to communicate directly with your Dockerized Obsidian instance.
+    *   **Usage**: Run this script once on your host machine to set up the `obsidian://` URI scheme. Ensure your Obsidian Docker container is named `obsidian` as per the `docker-compose.yml` or update the `CONTAINER_NAME` variable within the script if you've changed it.
+    ```bash
+    ./setup-obsidian-uri.sh
+    ```
+2.  **`obsidian-web-clipper-settings.json`**: This file contains recommended settings for the Obsidian Web Clipper extension, ensuring consistent behavior and integration with this vault setup (e.g., appending to daily notes, specific templates).
+    *   **Usage**: After installing the Web Clipper extension in your browser, you can import these settings to quickly configure it. The exact method for importing settings varies by browser and extension version, but typically involves a "settings import" or "load configuration" option within the extension's settings interface. Alternatively, you can manually copy relevant sections into your extension's settings.
+
 ---
 
 ## AI-Assisted Vault Maintenance
