@@ -1,3 +1,4 @@
 {
-  "folder": "JRNL"
+  "folder": "JRNL",
+  "format": "YYYY/MM/YYYY-MM-DD"
 }
