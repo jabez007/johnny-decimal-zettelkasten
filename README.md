@@ -110,9 +110,9 @@ Every evergreen note uses Area, Category, and ID (ACID) notation with a system p
 
 ```
 VAULT/  
-├── \_SYS/  
-│   ├── JDEX\_00.00.base  
-│   ├── JDEX\_LIFE.base  
+├── _SYS/  
+│   ├── JDEX_00.00.base  
+│   ├── JDEX_LIFE.base  
 │   └── TMPL/  
 │       └── Daily.md  
 ├── LIFE/  
