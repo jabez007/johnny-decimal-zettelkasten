@@ -86,13 +86,13 @@ This project contains multiple Obsidian vaults in the `vaults/` directory. When 
 ## Hierarchy
 
 - Areas:
-    - maximum 16 per system (10-F0 in hex)
+    - maximum 15 per system (10-F0 in hex)
     - `00` area reserved for system meta-information
 - Categories:
-    - maximum 16 per area
+    - maximum 15 per area
     - `X0` categories do not exist; categories run X1-XF
 - IDs:
-    - maximum 256 per category
+    - maximum 255 per category
     - `AC.00` is invalid; IDs run `AC.01` to `AC.FF`
 
 - Always verify existing structure before creating new areas, categories, or IDs

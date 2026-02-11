@@ -4,9 +4,9 @@ This vault implements a knowledge management system combining Johnny Decimal str
 
 ## **Reference Documents**
 
-* [Johnny Decimal Structure](references/johnny-decimal.md)  
-* [Zettelkasten Method](references/zettelkasten.md)  
-* [Vault Philosophy](references/philosophy.md)
+* [Johnny Decimal Structure](johnny-decimal.md)
+* [Zettelkasten Method](zettelkasten.md)
+* [Vault Philosophy](philosophy.md)
 
 ## **Multi-Vault Architecture**
 
@@ -67,16 +67,32 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 * Never use "see also" lists at note end.  
 * Prefer explicit manual links over inferred associations.
 
-## **Hierarchy**
+## **Hierarchy & Naming Conventions**
+
+### Folder Naming Rules (Strict)
+
+When creating folders, you must strictly follow these patterns:
+
+1. System Folder: `SYS/` (e.g., `LIFE/`).
+2. Area Folder: `A0-Name/`
+   * Structure: `[Area Hex][0]-[Name]`
+   * Correct: `10-Finance`, `20-Health`, `A0-Physics`.
+   * Incorrect: `01-Finance`, `0A-Physics`, `1-Finance`.
+3. Category Folder: `AC-Name/`
+   * Structure: `[Area Hex][Category Hex]-[Name]`
+   * Correct: `11-Bank`, `A5-Quantum_Mechanics`.
+   * Incorrect: `01-Bank`, `05-Quantum`.
+
+### Structure Constraints
 
 * **Areas**:  
-  * Maximum 16 per system (10-F0 in hex).  
+  * Maximum 15 per system (10-F0 in hex).  
   * `00` area reserved for system meta-information.  
 * **Categories**:  
-  * Maximum 16 per area.  
+  * Maximum 15 per area.  
   * `X0` categories do not exist; categories run X1-XF.  
 * **IDs**:  
-  * Maximum 256 per category.  
+  * Maximum 255 per category.  
   * `AC.00` is invalid; IDs run `AC.01` to `AC.FF`.  
 * Always verify existing structure before creating new areas, categories, or IDs.  
 * Never place notes outside the hierarchy.

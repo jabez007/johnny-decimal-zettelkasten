@@ -33,7 +33,7 @@ Question text here::Answer text here
 Example:
 
 ```
-What is the maximum number of areas per system in Johnny Decimal?::16 (hex digits 1-F, with 0 reserved for meta)
+What is the maximum number of areas per system in Johnny Decimal?::15 (hex digits 1-F, with 0 reserved for meta)
 ```
 
 **Simplified Cloze** — Use for fill-in-the-blank recall with optional hints:

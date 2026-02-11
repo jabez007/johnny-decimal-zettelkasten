@@ -96,7 +96,7 @@ Every evergreen note uses Area, Category, and ID (ACID) notation with a system p
 
 ### **Deviations From Canonical Johnny Decimal**
 
-* **Hexadecimal**: We use 1-F (16 slots) instead of 0-9 (10 slots) to maximize density.  
+* **Hexadecimal**: We use 0-F (16 slots) instead of 0-9 (10 slots) to maximize density.  
 * **System Prefixes**: Allows multiple separate JD systems within one vault.  
 * **Automated Indexes**: Using the **Bases** plugin to replace manual index maintenance.
 
@@ -123,7 +123,7 @@ VAULT/
 │   │       └── LIFE.11.01-Title.md  
 ├── JRNL/  
 │   └── YYYY/MM/YYYY-MM-DD.md    ← Daily notes  
-└── 00.00.md                      ← Root index
+└── 00.00.md                     ← Root index
 ```
 
 ### **Naming Conventions**

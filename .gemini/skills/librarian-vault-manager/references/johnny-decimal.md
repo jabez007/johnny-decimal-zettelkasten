@@ -20,7 +20,7 @@ Systems are identified by a short 3-4 letter code (e.g., `HOME`, `JOB`, `LIFE`).
 
 ### Areas
 
-Areas are the broadest groupings within a system. Each area spans a range of hexadecimal numbers (e.g., 10-1F). A system may have at most **16 areas** (10 through F0). Areas represent major system domains.
+Areas are the broadest groupings within a system. Each area spans a range of hexadecimal numbers (e.g., 10-1F). A system may have at most **15 areas** (10 through F0). Areas represent major system domains.
 
 **Standard Zero**: The `00` area is reserved for meta-information about the containing system.
 
@@ -79,8 +79,8 @@ Adopt the mindset of a librarian: every item must be catalogued before it enters
 ## Building Your System
 
 1. **Audit existing files.** Identify what you have.
-2. **Define areas.** Group major domains (limit: 16).
-3. **Define categories.** Subdivide areas into logical groupings (limit: 16 per area).
+2. **Define areas.** Group major domains (limit: 15).
+3. **Define categories.** Subdivide areas into logical groupings (limit: 15 per area).
 4. **Assign IDs.** Create IDs as needed; do not pre-allocate.
 5. **Create the index.** Document every ID.
 6. **Migrate files.** Move existing items into the new structure.
@@ -90,8 +90,8 @@ Adopt the mindset of a librarian: every item must be catalogued before it enters
 
 | Element             | Maximum Count |
 | ------------------- | ------------- |
-| Areas               | 16            |
-| Categories per Area | 16            |
-| IDs per Category    | 256           |
+| Areas               | 15            |
+| Categories per Area | 15            |
+| IDs per Category    | 255           |
 
 These limits enforce thoughtful organization and prevent unbounded complexity.

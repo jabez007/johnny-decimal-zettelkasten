@@ -8,8 +8,8 @@ Scaffold a new Johnny.Decimal vault structure through guided conversation. Query
 
 <workflow>
 1. **Discover systems**: Ask about distinct life/work domains requiring separate namespaces
-2. **Define areas**: For each system, identify major groupings (max 16 per system, hex 1-F)
-3. **Define categories**: Within each area, identify subdivisions (max 16 per area, hex 0-F)
+2. **Define areas**: For each system, identify major groupings (max 15 per system, hex 1-F)
+3. **Define categories**: Within each area, identify subdivisions (max 15 per area, hex 1-F)
 4. **Generate proposal**: Present complete structure as ASCII directory diagram
 5. **Iterate**: Refine based on user feedback until structure is approved
 6. **Await explicit approval**: Only proceed to file creation after user confirms
@@ -41,7 +41,7 @@ Areas are broad categories like:
 - Health (medical, fitness, nutrition)
 - Home (maintenance, projects, inventory)
 
-Remember: Maximum 16 areas per system.
+Remember: Maximum 15 areas per system.
 What major domains exist in [SYSTEM]?
 ```
 
@@ -56,7 +56,7 @@ For example, if the area is "Finance":
 - Investments
 - Insurance
 
-Maximum 16 categories per area.
+Maximum 15 categories per area.
 What categories belong in [AREA]?
 ```
 
@@ -150,8 +150,8 @@ Continue iterating until user approves.
 - Use ACID notation with hex digits (0-9, A-F)
 - Reserve `SYS.00.00` for system index and metadata
 - Reserve `00-IDX` for system index and metadata
-- Maximum 16 areas per system (1-F in first hex digit)
-- Maximum 16 categories per area (0-F in second hex digit)
+- Maximum 15 areas per system (1-F in first hex digit)
+- Maximum 15 categories per area (1-F in second hex digit)
 - Create all folders and index files in a single operation after approval
 - Do not create obsidian bases. Only write the wikilinks as shown in the index file template
 </constraints>
