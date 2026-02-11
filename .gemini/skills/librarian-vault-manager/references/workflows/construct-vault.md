@@ -11,10 +11,10 @@ Scaffold a new Johnny.Decimal vault structure through guided conversation. Query
 2. **Discover systems**: Ask about distinct life/work domains requiring separate namespaces.  
 3. **Define areas**: For each system, identify major groupings (max 16 per system, hex 1-F).  
 4. **Define categories**: Within each area, identify subdivisions (max 16 per area, hex 0-F).  
-5. **Generate proposal**: Present complete structure as ASCII directory diagram including \_SYS and index files.  
+5. **Generate proposal**: Present complete structure as ASCII directory diagram including `_SYS` and index files.  
 6. **Iterate**: Refine based on user feedback until structure is approved.  
 7. **Await explicit approval**: Only proceed to file creation after user confirms.  
-8. **Create structure**: Generate folders, index files (00.00.md, {SYS}.00.00.md), and initial .base files.
+8. **Create structure**: Generate folders, index files (`00.00.md`, `{SYS}.00.00.md`), and initial `.base` files.
 \</workflow\>
 
 \<discovery\_questions\>
@@ -58,7 +58,7 @@ What categories belong in {AREA}?
 \</discovery\_questions\>  
 
 \<ascii\_diagram\_format\>
-Present the proposed structure using this format. Ensure \_SYS and 00.00.md are included if missing.  
+Present the proposed structure using this format. Ensure `_SYS` and `00.00.md` are included if missing.  
 ```
 VAULT_ROOT/
 ├── _SYS/  
@@ -146,10 +146,10 @@ Only proceed after receiving explicit approval (e.g., "approve", "yes, create it
 \<constraints\>
 * **Never create files without explicit user approval**  
 * Use ACID notation with hex digits (0-9, A-F)  
-* Reserve SYS.00.00 for system index and metadata  
-* Reserve 00-IDX for system index and metadata  
-* Root index 00.00.md must strictly contain \!\[\[JDEX\_00.00.base\]\]  
-* System index must link to root \[\[00.00\]\] on the first line  
+* Reserve `{SYS}.00.00` for system index and metadata  
+* Reserve `00-IDX/` for system index and metadata  
+* Root index `00.00.md` must strictly contain `![[JDEX_00.00.base]]`  
+* System index must link to root `[[00.00]]` on the first line  
 * Maximum 16 areas per system (1-F in first hex digit)  
 * Maximum 16 categories per area (0-F in second hex digit)  
 * Create all folders and index files in a single operation after approval
