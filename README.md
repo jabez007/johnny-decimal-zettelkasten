@@ -34,15 +34,15 @@ Follow these steps to initialize your first vault:
 3. **Enable Core Plugins**:  
    * Go to Settings → Core Plugins.  
    * Enable **Bases** (for dynamic indexes) and **Backlinks** (for Zettelkasten connections).  
-4. **Create System Folders**: Create a \_SYS folder in your vault root to hold configuration files.  
-5. **Initialize Root Index**: Create 00.00.md in the root and add the following:  
+4. **Create System Folders**: Create a `_SYS` folder in your vault root to hold configuration files.  
+5. **Initialize Root Index**: Create `00.00.md` in the root and add the following:  
    >\# Vault Index
    >
    >\!\[\[JDEX\_00.00.base\]\]
 
 6. **Configure your first Base**:  
-   * Right-click \_SYS/ → **New base** → Name it JDEX\_00.00.  
-   * Open the file, click the **Filter** icon, and add: Property: file.name | Operator: ends with | Value: .00.00.  
+   * Right-click `_SYS/` → **New base** → Name it `JDEX_00.00`.  
+   * Open the file, click the **Filter** icon, and add: `Property: file.name | Operator: ends with | Value: .00.00`.  
    * Set the view to **Cards**.
 
 ## **AI-Assisted Vault Maintenance**
@@ -52,7 +52,7 @@ The **Librarian Agent** assists with organization and knowledge development. It 
 ### **Interaction Protocol**
 
 * **Vault Scope**: Agents work on one vault at a time. If context is missing, they will ask: *"Which vault should I work with?"*  
-* **Pathing**: All paths are relative to the selected vault (e.g., vaults/\[name\]/SYS/...).  
+* **Pathing**: All paths are relative to the selected vault (e.g., `vaults/[name]/SYS/...`).  
 * **Safety**: Agents require per-vault confirmation for structural changes.
 
 ### **Available Agents**
@@ -61,12 +61,12 @@ The **Librarian Agent** assists with organization and knowledge development. It 
 
 1. Open your vault folder in VSCode.  
 2. Ensure the GitHub Copilot extension is installed.  
-3. Use the chat interface; it automatically detects definitions in .github/agents/.
+3. Use the chat interface; it automatically detects definitions in `.github/agents/`.
 
 #### **Option B: Gemini CLI**
 
 1. Install [Gemini CLI](https://github.com/google/gemini-cli).  
-2. Install the provided skill: gemini skills install ./librarian-vault-manager.skill \--scope workspace.  
+2. Install the provided skill: `gemini skills install ./librarian-vault-manager.skill --scope workspace`.  
 3. Reload your session with /skills reload.
 
 ### **Librarian Commands**
@@ -92,7 +92,7 @@ Every evergreen note uses Area, Category, and ID (ACID) notation with a system p
 | C | Category | 1-F (Hexadecimal) |
 | ID | Unique ID | 01-FF (Hexadecimal) |
 
-**Example:** LIFE.3A.07 (LIFE system, Area 3, Category A, ID 07).
+**Example:** `LIFE.3A.07` (LIFE system, Area 3, Category A, ID 07).
 
 ### **Deviations From Canonical Johnny Decimal**
 
@@ -102,9 +102,9 @@ Every evergreen note uses Area, Category, and ID (ACID) notation with a system p
 
 ### **Standard Zeros**
 
-* The 00 area is reserved for system meta-information (indexes).  
-* SYS.00.00 denotes the index file for a system.  
-* 00.00 in the vault root is the master index.
+* The `00` area is reserved for system meta-information (indexes).  
+* `SYS.00.00` denotes the index file for a system.  
+* `00.00` in the vault root is the master index.
 
 ### **Folder Structure**
 
@@ -137,7 +137,7 @@ VAULT/
 
 ### **System Index Template**
 
-The system index file (SYS.00.00.md) acts as the entry point for a specific system. It links back to the master index and embeds the relevant Base file:  
+The system index file (`SYS.00.00.md`) acts as the entry point for a specific system. It links back to the master index and embeds the relevant Base file:  
 >\[\[00.00\]\]
 >
 >\# LIFE System Index
@@ -159,10 +159,10 @@ Every evergreen note begins with a link to its system index to ground it in the 
 
 ## **Workflow**
 
-1. **Daily Capture**: Record raw thoughts in JRNL/YYYY/MM/YYYY-MM-DD.md. This is low-friction and transient.  
-2. **Review & Extract**: Run /daily-review. When an idea matures, extract it to an evergreen note with a claim-based title and ACID ID.  
-3. **Link & Connect**: Place \[\[links\]\] inline within sentences to explain context.  
-4. **Audit**: Weekly, run /audit-links and /cleanup to maintain the "garden."
+1. **Daily Capture**: Record raw thoughts in `JRNL/YYYY/MM/YYYY-MM-DD.md`. This is low-friction and transient.  
+2. **Review & Extract**: Run `/daily-review`. When an idea matures, extract it to an evergreen note with a claim-based title and ACID ID.  
+3. **Link & Connect**: Place `[[links]]` inline within sentences to explain context.  
+4. **Audit**: Weekly, run `/audit-links` and `/cleanup` to maintain the "garden."
 
 ## **Advanced Deployment & Integration**
 
@@ -170,8 +170,8 @@ Every evergreen note begins with a link to its system index to ground it in the 
 
 For a consistent environment, use the provided docker-compose.yml.
 
-1. **Set Permissions**: Run id \-u and id \-g and update the PUID/PGID in docker-compose.yml.  
-2. **Launch**: docker compose up \-d.  
+1. **Set Permissions**: Run `id -u` and `id -g` and update the `PUID`/`PGID` in docker-compose.yml.  
+2. **Launch**: `docker compose up -d`.  
 3. **Access**: Navigate to https://localhost:3001.
 
 ### **Web Clipper**
@@ -179,7 +179,7 @@ For a consistent environment, use the provided docker-compose.yml.
 Capture web content directly into your daily notes.
 
 1. Install the **Obsidian Web Clipper** browser extension.  
-2. **Docker Users**: Run ./setup-obsidian-uri.sh on your host.
+2. **Docker Users**: Run `./setup-obsidian-uri.sh` on your host.
 
 ### **Anki Integration**
 
