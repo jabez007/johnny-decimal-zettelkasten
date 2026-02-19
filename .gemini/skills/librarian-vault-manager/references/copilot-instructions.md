@@ -62,6 +62,7 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 
 ## **Links**
 
+* **Navigation Header (Mandatory)**: All notes MUST start with a link to their parent System Index (e.g., `[[LIFE.00.00]]`) on the first line. This creates a clear navigation path and ensures the note appears in the System Index's backlinks.
 * Place links at the exact sentence where the connection applies.  
 * Never use bare links without context.  
 * Never use "see also" lists at note end.  
@@ -104,7 +105,8 @@ When creating folders, you must strictly follow these patterns:
 * **Root Index**: `00.00.md` embeds `![[JDEX_00.00.base]]`.  
 * **System Index**: `SYS/00-IDX/SYS.00.00.md` embeds `![[JDEX_SYS.base]]`.  
 * **Base Definitions**: All `.base` configuration files reside in the `_SYS/` directory.  
-* **Creation Logic**: To "add" a note to the index, simply create the file in the correct folder hierarchy. The Base query will automatically detect and display it.
+* **Discovery Strategy**: To find existing entries or verify the index, **list the directory contents**. Because the index is a dynamic query based on folder and filename, the file system is the most reliable representation of the current index.
+* **Creation Logic**: To "add" a note to the index, simply create the file in the correct folder hierarchy. The Base query will automatically detect and display it. Ensure the filename and path match the filters in the relevant `.base` file.
 
 ## **Content Orientation**
 

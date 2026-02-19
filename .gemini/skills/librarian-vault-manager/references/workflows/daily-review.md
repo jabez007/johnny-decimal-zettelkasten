@@ -9,10 +9,11 @@ Extract durable knowledge from transient daily notes. Identify concepts that hav
 <workflow>
 1. **Scan recent daily notes**: Review `JRNL/YYYY/MM/YYYY-MM-DD.md` files from the past 7 days
 2. **Identify recurring concepts**: Flag keywords, themes, or ideas mentioned 3+ times across notes
-3. **Check existing entries**: Search the knowledge base for existing entries matching these concepts
-4. **Propose actions**:
-   - If concept exists: Suggest moving relevant excerpts to the existing note
-   - If concept is new: Propose a specific JDex entry with full ACID notation
+3. **Check existing entries**: Search the knowledge base. Leverage the JD structure: identify the likely Category (AC) and use `list_directory` on that folder. Since Obsidian Bases dynamically populate indexes, the directory content is the "source of truth" for the index.
+4. **Validate Indexability**: For new entries, ensure the proposed path and filename align with the filters in the relevant `.base` file (in `_SYS/`) so the note is automatically indexed.
+5. **Propose actions**:
+   - If concept exists: Suggest moving relevant excerpts to the existing note.
+   - If concept is new: Propose a specific JDex entry with full ACID notation and a navigation link to the system index.
 </workflow>
 
 <proposal_format>
@@ -26,6 +27,7 @@ When suggesting a new evergreen entry:
 **Proposed ID**: `SYS.AC.ID`
 **Proposed title**: "[Complete declarative phrase expressing a claim]"
 **Suggested location**: `SYS/A0-Area Name/AC-Category Name/SYS.AC.ID-Descriptive Positive Title.md`
+**Navigation Header**: `[[SYS.00.00]]` (Link to System Index)
 **Initial links**: [[related.note.1]], [[related.note.2]]
 
 Does this concept feel ready to crystallize, or would you prefer to let it develop further in your daily notes?
