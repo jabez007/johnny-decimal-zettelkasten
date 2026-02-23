@@ -44,29 +44,27 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 
 ## **Atomicity**
 
-* One concept per note.  
-* One claim per title.  
-* One idea per link context.  
-* Never merge distinct concepts into single notes.  
-* Never create overview notes that duplicate existing content.  
-* Split multi-concept drafts into separate atomic notes.
+* **One concept per note.** If you can identify two distinct claims, you MUST use two notes.
+* **One claim per title.** Titles MUST be complete declarative phrases (e.g., "Cognitive load slows learning").
+* **One idea per link context.** Links MUST explain WHY they exist in the sentence where they are placed.
+* **PROHIBITED**: Merging distinct concepts into single notes for the sake of "completeness".
+* **PROHIBITED**: Overview notes that merely list or duplicate existing content without adding a new, unique synthesis claim.
+* **MANDATORY**: Split multi-concept drafts or daily notes into separate atomic notes during processing.
 
 ## **Titles**
 
-* Titles must be complete declarative phrases.  
-* Titles must express a claim, not a label.  
-* Valid: "Writing Forces Sharper Understanding".  
-* Invalid: "Writing Benefits".  
-* The title must communicate meaning without opening the note.  
-* The Title must positively state concepts: avoid negations or vague terms.
+* Titles MUST be complete declarative phrases expressing a single claim.
+* Titles MUST communicate meaning without opening the note. The title IS the claim.
+* **VALID**: "Writing Forces Sharper Understanding", "Constraints Enable Creativity".
+* **INVALID**: "Writing Benefits", "Creativity and Constraints", "About Cognitive Load".
+* Avoid negations and vague labels. If you can't state it positively and clearly, the concept may not be mature enough for a durable note.
 
 ## **Links**
 
-* **Navigation Header (Mandatory)**: All notes MUST start with a link to their parent System Index (e.g., `[[LIFE.00.00]]`) on the first line. This creates a clear navigation path and ensures the note appears in the System Index's backlinks.
-* Place links at the exact sentence where the connection applies.  
-* Never use bare links without context.  
-* Never use "see also" lists at note end.  
-* Prefer explicit manual links over inferred associations.
+* **Navigation Header (Mandatory)**: All notes MUST start with a link to their parent System Index (e.g., `[[LIFE.00.00]]`) on the first line.
+* **Contextual Linking**: Place links at the exact point of relevance.
+* **Mandatory Context**: Every link MUST be accompanied by text explaining the relationship (e.g., "This contradicts [[SYS.AC.ID]] because...", "This provides the mechanism for [[SYS.AC.ID]]...").
+* **PROHIBITED**: Bare wiki-links or "See Also" lists at the end of a note.
 
 ## **Hierarchy & Naming Conventions**
 

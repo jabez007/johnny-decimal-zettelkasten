@@ -7,23 +7,22 @@ Maintain vault hygiene by identifying duplicates, misplaced notes, and naming in
 </purpose>
 
 <workflow>
-1. **Detect duplicates**: Scan for notes with similar titles or overlapping content (>60% semantic similarity)
-2. **Propose consolidation**: Recommend merging duplicates into a canonical note, preserving all unique content from each source
-3. **Suggest redirects**: For merged content, propose redirect notes at old locations to prevent broken links
-4. **Flag naming issues**: Identify files with generic names (e.g., "notes.md", "draft.md", "untitled.md") and suggest JDex-compliant renames
-5. **Detect misplacement**: Analyze note content against category definitions and flag notes that may belong elsewhere
+1. **Detect overlaps**: Scan for notes with similar titles or overlapping content (>60% semantic similarity).
+2. **Analyze for consolidation vs. factoring**: Determine if the notes are truly duplicates of the same core claim, OR if one note contains multiple sub-claims that should be factored out into their own atomic notes.
+3. **Propose consolidation or decomposition**:
+   - If they are truly duplicates, recommend merging into a canonical note.
+   - If a note has grown too broad (multiple claims), propose splitting it into separate atomic notes.
+4. **Suggest redirects**: For merged or moved content, propose redirect notes at old locations.
+5. **Flag naming issues**: Identify files with generic names and suggest JDex-compliant, claim-based renames.
 </workflow>
 
 <consolidation_principle>
-**No information is ever deleted during cleanup.**
+**Atomicity is the priority.**
 
-When consolidating duplicates:
-
-- All unique content from each source note is preserved in the canonical note
-- Overlapping content is deduplicated, keeping the most complete version
-- Source attribution is maintained where relevant
-- Original notes become redirect stubs pointing to the canonical location
-  </consolidation_principle>
+- **Do not merge distinct claims.** If two notes cover the same topic but make different assertions, they should remain separate and be linked instead.
+- **Factor before merging.** If one of the notes being consolidated contains unrelated insights, extract those into new atomic notes first.
+- **Prefer specific over broad.** When consolidating, the resulting canonical note must remain focused on a single concept. If merging would make it too broad, suggest creating multiple, more granular notes.
+</consolidation_principle>
 
 <redirect_note_structure>
 Redirect notes are temporary scaffolding. They prevent broken links while the vault transitions to the canonical location.
@@ -46,23 +45,28 @@ Flag redirect notes for eventual removal once links are updated.
 </redirect_note_structure>
 
 <proposal_format>
-**Duplicate consolidation:**
+**Consolidation / Decomposition Proposal:**
 
 ```
-## Consolidation Proposal
+## Consolidation or Decomposition Proposal
 
-**Duplicates detected**:
-- `path/to/note-a.md` (created YYYY-MM-DD)
-- `path/to/note-b.md` (created YYYY-MM-DD)
+**Notes analyzed**:
+- `path/to/note-a.md`
+- `path/to/note-b.md`
 
-**Overlap**: [Description of shared content]
-**Unique to A**: [Content only in A]
-**Unique to B**: [Content only in B]
+**Overlap / Multi-Concept detection**: [Identify shared claims OR identify multiple distinct claims in one note]
 
-**Recommended canonical location**: `SYS.AC.ID Title.md`
-**Redirect needed at**: [other location(s)]
+**Atomicity Evaluation**: [Is this one concept or many? Why should it be merged or split?]
 
-All content will be preserved. Does this consolidation plan look correct?
+**Recommended Action**: [e.g., 'Consolidate A into B', 'Split A into A1 and A2']
+**Recommended canonical/new locations**: 
+- `SYS.AC.ID Canonical Title.md`
+- `SYS.AC.ID New Split Note Title.md`
+
+**Linking context for new structure**:
+- [[SYS.AC.ID-A]] — [Explanation of why A and B are now separate but related]
+
+Does this reorganization preserve the atomicity of your knowledge graph?
 ```
 
 **Rename suggestion:**
