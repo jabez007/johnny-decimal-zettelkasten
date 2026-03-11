@@ -7,7 +7,7 @@ set -e
 
 echo "--- 1. Installing gemini-obsidian extension globally ---"
 # This allows the Gemini CLI to discover the extension's code.
-gemini extensions install https://github.com/thoreinstein/gemini-obsidian
+gemini extensions install https://github.com/jabez007/gemini-obsidian --consent
 
 echo "--- 2. Building extension & Installing native dependencies ---"
 # Since this extension uses LanceDB/ONNX, we must ensure binaries are built.
@@ -44,7 +44,35 @@ gemini extensions disable gemini-obsidian --scope=user
 # Enable specifically for this workspace.
 gemini extensions enable gemini-obsidian --scope=workspace
 
-echo "--- 4. Finalizing Environment ---"
+# Set workspace isolated storage path in the global config.
+# We use $HOME instead of ~ for better script portability and to allow for safe quoting.
+# We only set the workspace_path to allow the user to select their vault interactively.
+CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
+WORKSPACE_DIR="$(pwd)"
+if command -v jq >/dev/null 2>&1 && [ -f "$CONFIG_FILE" ]; then
+  echo "Updating $CONFIG_FILE with workspace_path..."
+  # Use a temporary file for safe redirection
+  jq --arg wp "$WORKSPACE_DIR" '.workspace_path = $wp' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+else
+  echo "{\"workspace_path\":\"$WORKSPACE_DIR\"}" > "$CONFIG_FILE"
+fi
+
+echo "--- 4. Configuring Git LFS for binary files ---"
+# Since LanceDB datasets contain binary files, Git LFS should be used to store them efficiently.
+# Check if git is available before running.
+if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+  if command -v git-lfs >/dev/null 2>&1; then
+    echo "Initializing Git LFS..."
+    git lfs install --local
+    git lfs track ".gemini-obsidian/**/*.lance"
+  else
+    echo "Warning: git-lfs not found. Binary files will not be tracked efficiently."
+  fi
+else
+  echo "Skipping Git LFS setup (not a git repository or git not found)."
+fi
+
+echo "--- 5. Finalizing Environment ---"
 # Confirm that the Librarian skill and Obsidian extension are ready.
 echo "Active Skills in this Workspace:"
 gemini skills list
