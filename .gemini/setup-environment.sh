@@ -37,24 +37,60 @@ echo "Running npm build..."
 npm run build --quiet
 popd >/dev/null
 
-echo "--- 3. Configuring Scoped Activation ---"
+echo "--- 3. Configuring Vault and Scoped Activation ---"
 # Disable globally so it doesn't interfere with other projects.
 gemini extensions disable gemini-obsidian --scope=user
 
 # Enable specifically for this workspace.
 gemini extensions enable gemini-obsidian --scope=workspace
 
-# Set workspace isolated storage path in the global config.
-# We use $HOME instead of ~ for better script portability and to allow for safe quoting.
-# We only set the workspace_path to allow the user to select their vault interactively.
-CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
+# Prompt for vault name
+VAULT_NAME_RAW=""
+if [ -t 0 ]; then
+  read -p "Enter Obsidian vault name [example]: " VAULT_NAME_RAW
+fi
+
+if [ -z "$VAULT_NAME_RAW" ]; then
+  VAULT_NAME_RAW="example"
+fi
+
+# Slugify: lowercase, replace non-alphanumeric with hyphens, collapse hyphens, trim ends
+VAULT_SLUG=$(echo "$VAULT_NAME_RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\{1,\}/-/g' | sed 's/^-//;s/-$//')
+
 WORKSPACE_DIR="$(pwd)"
-if command -v jq >/dev/null 2>&1 && [ -f "$CONFIG_FILE" ]; then
-  echo "Updating $CONFIG_FILE with workspace_path..."
-  # Use a temporary file for safe redirection
-  jq --arg wp "$WORKSPACE_DIR" '.workspace_path = $wp' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+VAULT_PATH="$WORKSPACE_DIR/vaults/$VAULT_SLUG"
+
+if [ ! -d "$VAULT_PATH" ]; then
+  echo "Creating new vault directory at $VAULT_PATH..."
+  mkdir -p "$VAULT_PATH"
 else
-  echo "{\"workspace_path\":\"$WORKSPACE_DIR\"}" > "$CONFIG_FILE"
+  echo "Using existing vault directory at $VAULT_PATH."
+fi
+
+# Derive vault_id from project directory and vault slug
+PWD_BASE=$(basename "$WORKSPACE_DIR")
+VAULT_ID="${PWD_BASE}_${VAULT_SLUG}"
+
+# Set configuration in the global config.
+# We use $HOME instead of ~ for better script portability and to allow for safe quoting.
+CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
+
+if command -v jq >/dev/null 2>&1; then
+  echo "Updating $CONFIG_FILE with workspace_path, vault_path, and vault_id..."
+  # Create config if it doesn't exist
+  if [ ! -f "$CONFIG_FILE" ]; then echo "{}" > "$CONFIG_FILE"; fi
+  
+  jq --arg wp "$WORKSPACE_DIR" --arg vp "$VAULT_PATH" --arg vid "$VAULT_ID" \
+    '.workspace_path = $wp | .vault_path = $vp | .vault_id = $vid' \
+    "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+else
+  if [ -f "$CONFIG_FILE" ]; then
+    echo "Warning: jq not found. To avoid destroying existing settings in $CONFIG_FILE, the update was skipped."
+    echo "Please manually add these values to your config file:"
+    printf '  "workspace_path": "%s",\n  "vault_path": "%s",\n  "vault_id": "%s"\n' "$WORKSPACE_DIR" "$VAULT_PATH" "$VAULT_ID"
+  else
+    printf '{\n  "workspace_path": "%s",\n  "vault_path": "%s",\n  "vault_id": "%s"\n}\n' "$WORKSPACE_DIR" "$VAULT_PATH" "$VAULT_ID" > "$CONFIG_FILE"
+  fi
 fi
 
 echo "--- 4. Configuring Git LFS for binary files ---"
