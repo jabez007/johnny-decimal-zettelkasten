@@ -101,6 +101,7 @@ if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
     echo "Initializing Git LFS..."
     git lfs install --local
     git lfs track ".gemini-obsidian/**/*.lance"
+    git lfs track ".gemini-obsidian/**/*.lance/**"
   else
     echo "Warning: git-lfs not found. Binary files will not be tracked efficiently."
   fi
