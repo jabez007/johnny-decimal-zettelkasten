@@ -7,10 +7,10 @@ Strengthen the knowledge graph by auditing link health. Identify orphaned notes,
 </purpose>
 
 <workflow>
-1. **Find weakly-connected notes**: Identify notes with 0–1 outgoing links and suggest 2–3 connection candidates based on content overlap
-2. **Detect orphaned notes**: Find notes with 0 incoming links (no other note references them) and propose backlink opportunities
-3. **Validate wiki-links**: Detect broken `[[wiki-links]]` or file path references and recommend corrections
-4. **Propose evergreen notes**: When 5+ related notes exist in a category without a unifying entry, suggest creating an evergreen note to organize them
+1. **Validate wiki-links**: Call `obsidian_get_broken_links`. Detect broken `[[wiki-links]]` or file path references and recommend corrections.
+2. **Find weakly-connected notes**: Call `obsidian_list_notes` and for each note, call `obsidian_get_links`. Identify notes with 0–1 outgoing links and suggest 2–3 connection candidates based on content overlap (using `obsidian_rag_query`).
+3. **Detect orphaned notes**: Call `obsidian_list_notes` and for candidate notes, call `obsidian_get_backlinks`. Find notes with 0 incoming links (no other note references them) and propose backlink opportunities.
+4. **Propose evergreen notes**: When 5+ related notes exist in a category without a unifying entry (detect using `obsidian_rag_query`), suggest creating an evergreen note to organize them.
 </workflow>
 
 <link_health_categories>

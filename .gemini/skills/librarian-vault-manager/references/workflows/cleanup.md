@@ -7,13 +7,13 @@ Maintain vault hygiene by identifying duplicates, misplaced notes, and naming in
 </purpose>
 
 <workflow>
-1. **Detect overlaps**: Scan for notes with similar titles or overlapping content (>60% semantic similarity).
-2. **Analyze for consolidation vs. factoring**: Determine if the notes are truly duplicates of the same core claim, OR if one note contains multiple sub-claims that should be factored out into their own atomic notes.
+1. **Detect overlaps**: Use `obsidian_rag_query` for each note in a category (or recently created) to find notes with similar titles or overlapping content (>60% semantic similarity).
+2. **Analyze for consolidation vs. factoring**: Use `obsidian_read_note` on candidates to determine if the notes are truly duplicates of the same core claim, OR if one note contains multiple sub-claims that should be factored out.
 3. **Propose consolidation or decomposition**:
-   - If they are truly duplicates, recommend merging into a canonical note.
-   - If a note has grown too broad (multiple claims), propose splitting it into separate atomic notes.
-4. **Suggest redirects**: For merged or moved content, propose redirect notes at old locations.
-5. **Flag naming issues**: Identify files with generic names and suggest JDex-compliant, claim-based renames.
+   - If duplicates, recommend merging into a canonical note using `obsidian_append_note` or `write_file`.
+   - If a note is too broad, propose splitting it into separate atomic notes using `obsidian_create_note`.
+4. **Suggest redirects**: For merged content, propose redirect notes using `obsidian_create_note`.
+5. **Flag naming issues**: Identify files with generic names and suggest JDex-compliant renames using `obsidian_move_note`.
 </workflow>
 
 <consolidation_principle>

@@ -7,7 +7,11 @@ set -e
 
 echo "--- 1. Installing gemini-obsidian extension globally ---"
 # This allows the Gemini CLI to discover the extension's code.
-gemini extensions install https://github.com/jabez007/gemini-obsidian --consent
+if ! gemini extension list 2>&1 | grep -q "gemini-obsidian"; then
+  gemini extensions install https://github.com/jabez007/gemini-obsidian --consent
+else
+  echo "Extension gemini-obsidian is already installed. Skipping installation."
+fi
 
 echo "--- 2. Building extension & Installing native dependencies ---"
 # Since this extension uses LanceDB/ONNX, we must ensure binaries are built.
@@ -47,7 +51,7 @@ gemini extensions enable gemini-obsidian --scope=workspace
 # Prompt for vault name
 VAULT_NAME_RAW=""
 if [ -t 0 ]; then
-  read -p "Enter Obsidian vault name [example]: " VAULT_NAME_RAW
+  read -rp "Enter Obsidian vault name [example]: " VAULT_NAME_RAW
 fi
 
 if [ -z "$VAULT_NAME_RAW" ]; then
@@ -71,29 +75,79 @@ fi
 PWD_BASE=$(basename "$WORKSPACE_DIR")
 VAULT_ID="${PWD_BASE}_${VAULT_SLUG}"
 
+# Johnny-Decimal Defaults & Interactive Prompts
+# We provide sensible defaults but allow user customization via interactive prompts.
+KNOWLEDGE_FOLDERS_JSON='["LIFE"]'
+MOC_FOLDERS_JSON='["_SYS", "LIFE"]'
+DAILY_NOTE_FOLDER='JRNL'
+IGNORED_FOLDERS_JSON='["JRNL", ".obsidian", ".trash"]'
+
+if [ -t 0 ]; then
+  echo "Configure your Johnny-Decimal structure (press Enter for defaults):"
+
+  read -rp "Enter Knowledge folders (comma-separated) [LIFE]: " KNOWLEDGE_INPUT
+  if [ ! -z "$KNOWLEDGE_INPUT" ]; then
+    KNOWLEDGE_FOLDERS_JSON=$(echo "$KNOWLEDGE_INPUT" | jq -Rc 'split(",") | map(gsub("^ +| +$"; ""))')
+  fi
+
+  read -rp "Enter MOC folders (comma-separated) [_SYS, LIFE]: " MOC_INPUT
+  if [ ! -z "$MOC_INPUT" ]; then
+    # Merge user input with the required "_SYS" folder, trim whitespace, and unique-ify the array
+    MOC_FOLDERS_JSON=$(echo "$MOC_INPUT" | jq -Rc 'split(",") | . + ["_SYS"] | map(gsub("^ +| +$"; "")) | unique')
+  else
+    MOC_FOLDERS_JSON='["_SYS", "LIFE"]'
+  fi
+
+  read -rp "Enter Daily Note folder [JRNL]: " DAILY_INPUT
+  [ ! -z "$DAILY_INPUT" ] && DAILY_NOTE_FOLDER=$DAILY_INPUT
+
+  read -rp "Enter Ignored folders (comma-separated) [JRNL, .obsidian, .trash]: " IGNORED_INPUT
+  if [ ! -z "$IGNORED_INPUT" ]; then
+    IGNORED_FOLDERS_JSON=$(echo "$IGNORED_INPUT" | jq -Rc 'split(",") | map(gsub("^ +| +$"; ""))')
+  fi
+fi
+
 # Set configuration in the global config.
 # We use $HOME instead of ~ for better script portability and to allow for safe quoting.
 CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
 
 if command -v jq >/dev/null 2>&1; then
-  echo "Updating $CONFIG_FILE with workspace_path, vault_path, and vault_id..."
+  echo "Updating $CONFIG_FILE with workspace_path, vault_path, and user-defined Johnny-Decimal folders..."
   # Create config if it doesn't exist
-  if [ ! -f "$CONFIG_FILE" ]; then echo "{}" > "$CONFIG_FILE"; fi
-  
-  jq --arg wp "$WORKSPACE_DIR" --arg vp "$VAULT_PATH" --arg vid "$VAULT_ID" \
-    '.workspace_path = $wp | .vault_path = $vp | .vault_id = $vid' \
-    "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+  if [ ! -f "$CONFIG_FILE" ]; then echo "{}" >"$CONFIG_FILE"; fi
+
+  jq --arg wp "$WORKSPACE_DIR" \
+    --arg vp "$VAULT_PATH" \
+    --arg vid "$VAULT_ID" \
+    --argjson kf "$KNOWLEDGE_FOLDERS_JSON" \
+    --argjson mf "$MOC_FOLDERS_JSON" \
+    --arg dnf "$DAILY_NOTE_FOLDER" \
+    --argjson igf "$IGNORED_FOLDERS_JSON" \
+    '.workspace_path = $wp | .vault_path = $vp | .vault_id = $vid | .knowledge_folders = $kf | .moc_folders = $mf | .daily_note_folder = $dnf | .ignored_folders = $igf' \
+    "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
 else
   if [ -f "$CONFIG_FILE" ]; then
     echo "Warning: jq not found. To avoid destroying existing settings in $CONFIG_FILE, the update was skipped."
     echo "Please manually add these values to your config file:"
     printf '  "workspace_path": "%s",\n  "vault_path": "%s",\n  "vault_id": "%s"\n' "$WORKSPACE_DIR" "$VAULT_PATH" "$VAULT_ID"
+    printf '  "knowledge_folders": %s,\n  "moc_folders": %s,\n  "daily_note_folder": "%s",\n  "ignored_folders": %s\n' "$KNOWLEDGE_FOLDERS_JSON" "$MOC_FOLDERS_JSON" "$DAILY_NOTE_FOLDER" "$IGNORED_FOLDERS_JSON"
   else
-    printf '{\n  "workspace_path": "%s",\n  "vault_path": "%s",\n  "vault_id": "%s"\n}\n' "$WORKSPACE_DIR" "$VAULT_PATH" "$VAULT_ID" > "$CONFIG_FILE"
+    printf '{\n  "workspace_path": "%s",\n  "vault_path": "%s",\n  "vault_id": "%s",\n' "$WORKSPACE_DIR" "$VAULT_PATH" "$VAULT_ID" >"$CONFIG_FILE"
+    printf '  "knowledge_folders": %s,\n  "moc_folders": %s,\n  "daily_note_folder": "%s",\n  "ignored_folders": %s\n}\n' "$KNOWLEDGE_FOLDERS_JSON" "$MOC_FOLDERS_JSON" "$DAILY_NOTE_FOLDER" "$IGNORED_FOLDERS_JSON" >>"$CONFIG_FILE"
   fi
 fi
 
-echo "--- 4. Configuring Git LFS for binary files ---"
+echo "--- 4. Indexing Vault (Initial RAG Setup) ---"
+# We trigger a background indexing task for the selected vault.
+# For large vaults, this may take a moment.
+if gemini help obsidian_rag_index >/dev/null 2>&1; then
+  echo "Triggering initial vault indexing..."
+  gemini --prompt "Index my vault at $VAULT_PATH" --approval-mode yolo
+else
+  echo "Warning: obsidian_rag_index tool not found. Skip indexing."
+fi
+
+echo "--- 5. Configuring Git LFS for binary files ---"
 # Since LanceDB datasets contain binary files, Git LFS should be used to store them efficiently.
 # Check if git is available before running.
 if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
@@ -102,6 +156,7 @@ if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
     git lfs install --local
     git lfs track ".gemini-obsidian/**/*.lance"
     git lfs track ".gemini-obsidian/**/*.lance/**"
+    git lfs track ".gemini-obsidian/**/*.onnx"
   else
     echo "Warning: git-lfs not found. Binary files will not be tracked efficiently."
   fi

@@ -7,14 +7,14 @@ Extract durable knowledge from transient daily notes. Identify concepts that hav
 </purpose>
 
 <workflow>
-1. **Scan recent daily notes**: Review `JRNL/YYYY/MM/YYYY-MM-DD.md` files from the past 7 days.
-2. **Extract distinct claims**: Identify specific observations, insights, or claims. Do not just flag general "topics" or "keywords"; find the underlying assertion (e.g., "Cognitive load slows learning" rather than just "learning").
-3. **Factor for atomicity**: If an observation contains multiple distinct ideas, split them. Each concept must be able to stand alone. Avoid "and" or "with" in titles; if a title needs them, it likely covers too many concepts.
-4. **Check existing entries**: Search the knowledge base. Leverage the JD structure: identify the likely Category (AC) and use `list_directory` on that folder. Check if the claim is already represented or if it's a new angle on an existing concept.
-5. **Validate Indexability**: For new entries, ensure the proposed path and filename align with the filters in the relevant `.base` file (in `_SYS/`) so the note is automatically indexed.
+1. **Scan recent daily notes**: Review `JRNL/YYYY/MM/YYYY-MM-DD.md` files from the past 7 days using `obsidian_read_note`.
+2. **Extract distinct claims**: Identify specific observations, insights, or claims.
+3. **Factor for atomicity**: Ensure each concept stands alone.
+4. **Check existing entries**: For each extracted claim, use `obsidian_rag_query` on the permanent knowledge folders (e.g., `LIFE`) to find related entries or overlaps.
+5. **Validate Indexability**: Ensure the proposed path and filename align with the filters in the relevant `.base` file (in `_SYS/`).
 6. **Propose actions**:
-   - If concept exists: Suggest moving relevant excerpts to the existing note *only if it maintains atomicity*. If the excerpt is a new distinct claim, propose a new linked note instead.
-   - If concept is new: Propose a specific JDex entry with full ACID notation, a navigation link to the system index, and contextual links to related notes.
+   - If concept exists: Suggest merging using `obsidian_insert_at_heading`.
+   - If concept is new: Propose a JDex entry using `obsidian_create_note`.
 </workflow>
 
 <proposal_format>

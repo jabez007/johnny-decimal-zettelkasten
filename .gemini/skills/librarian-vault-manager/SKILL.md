@@ -64,6 +64,13 @@ When a user's request matches one of the following, read the corresponding workf
 - **Daily Review / Extracting Durable Knowledge**: If the user asks to "review daily notes", "extract concepts from daily notes", or "identify recurring themes", read `references/workflows/daily-review.md`.
 - **Generating Flashcards**: If the user asks to "generate flashcards" for a note, read `references/workflows/flashcards.md`.
 
+### **Supplemental Skills**
+
+The `gemini-obsidian` extension also provides specialized skills that you can leverage:
+- `link-audit`: For deep graph health checks.
+- `moc-update`: For suggesting MOC/Index placements for new notes.
+- `knowledge`: For promoting project-level notes to the global JDex.
+
 ### **General Reference**
 
 For general understanding of the vault's underlying methodologies and specific rules, consult the following documents as needed:
@@ -75,22 +82,29 @@ For general understanding of the vault's underlying methodologies and specific r
 
 ## **Available Tools**
 
-If available, this skill should use the `gemini-obsidian` extension tools for all vault interactions. The `vault_path` argument must always be passed to these tools.
-If the `gemini-obsidian` extension is not availabe, this skill falls back to these tools: `read_file`, `list_directory`, `search_file_content` for analysis, and `write_file` (or `replace`) to execute changes after user confirmation.
+If available, this skill should use the `gemini-obsidian` extension tools for all vault interactions. The `vault_path` argument must always be passed to these tools if not automatically detected.
+
+If the `gemini-obsidian` extension is not available, this skill falls back to these tools: `read_file`, `list_directory`, `grep_search` for analysis, and `write_file` (or `replace`) to execute changes after user confirmation.
 
 ### Tool Usage Guidelines
 
-**1. Analysis $ Discovery**
+**1. Analysis & Discovery**
 
-- **Keyword Search:** Use `obsidian_search_notes` to find specific SYS.AC.IDs (e.g., "LIFE.12.01") or tags.
-- **Concept Discovery:** Use `obsidian_rag_query` when asked to "find similar ideas" or "check for existing knowledge." This can be used to enhance the keyword search for Zettelkasten management.
-- **Note Content:** Use `obsidian_read_note` to inspect both the Markdown and the YAML frontmatter.
+- **Concept Discovery (Extension):** Use `obsidian_rag_query` for semantic search (e.g., "find similar ideas" or "check for existing knowledge"). This is the primary tool for Zettelkasten discovery when the extension is active.
+- **Link Auditing (Extension):** Use `obsidian_get_broken_links` to find non-existent wikilink targets and `obsidian_get_backlinks` to identify orphaned notes.
+- **Link Auditing (Fallback):** Use `grep_search` with regex patterns to find `[[wikilinks]]` and identify potential broken links or orphans manually.
+- **Keyword Search (Extension):** Use `obsidian_search_notes` for specific SYS.AC.IDs or text strings.
+- **Keyword Search (Fallback):** Use `grep_search` to find specific SYS.AC.IDs or tags across the `vaults/` directory.
+- **Note Content:** Use `obsidian_read_note` (Extension) or `read_file` (Fallback) to inspect both the Markdown and the YAML frontmatter.
+- **Indexing (Extension):** If semantic search results are poor, call `obsidian_rag_index`.
 
 **2. Modification (REQUIRES PROPOSAL)**
 
-- **Metadata Updates:** Use `obsidian_update_frontmatter` for SYS.AC.ID changes, tag cleanup, or status updates.
-- **Creating Notes:** Use `obsidian_create_note`. You must determine the correct System and Johnny-Decimal folder before proposing.
-- **Note Relocation:** Use `obsidian_move_note` when a note's Johnny-Decimal category changes.
+- **Surgical Edits:** Use `obsidian_replace_in_note`, `obsidian_replace_section`, or `obsidian_insert_at_heading` (Extension) or `replace` (Fallback) for targeted changes without rewriting entire files.
+- **Metadata Updates:** Use `obsidian_update_frontmatter` (Extension) or `replace` (Fallback) for SYS.AC.ID changes, tag cleanup, or status updates.
+- **Creating Notes:** Use `obsidian_create_note` (Extension) or `write_file` (Fallback). You must determine the correct System and Johnny-Decimal folder before proposing.
+- **Note Relocation:** Use `obsidian_move_note` (Extension) or `run_shell_command("mv ...")` (Fallback) when a note's Johnny-Decimal category changes.
+
 
 ## **Example Scenario**
 
