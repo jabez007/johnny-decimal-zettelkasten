@@ -137,17 +137,11 @@ else
   fi
 fi
 
-echo "--- 4. Indexing Vault (Initial RAG Setup) ---"
-# We trigger a background indexing task for the selected vault.
-# For large vaults, this may take a moment.
-if gemini help obsidian_rag_index >/dev/null 2>&1; then
-  echo "Triggering initial vault indexing..."
-  gemini --prompt "Index my vault at $VAULT_PATH" --approval-mode yolo
-else
-  echo "Warning: obsidian_rag_index tool not found. Skip indexing."
-fi
+# Skip initial vault indexing
+# because it could take a long time
+# with no feedback for the user
 
-echo "--- 5. Configuring Git LFS for binary files ---"
+echo "--- 4. Configuring Git LFS for binary files ---"
 # Since LanceDB datasets contain binary files, Git LFS should be used to store them efficiently.
 # Check if git is available before running.
 if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
