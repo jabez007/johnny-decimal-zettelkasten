@@ -78,9 +78,9 @@ VAULT_ID="${PWD_BASE}_${VAULT_SLUG}"
 # Johnny-Decimal Defaults & Interactive Prompts
 # We provide sensible defaults but allow user customization via interactive prompts.
 KNOWLEDGE_FOLDERS_JSON='["LIFE"]'
-MOC_FOLDERS_JSON='["_SYS", "LIFE"]'
+MOC_FOLDERS_JSON='["_SYS"]'
 DAILY_NOTE_FOLDER='JRNL'
-IGNORED_FOLDERS_JSON='["JRNL", ".obsidian", ".trash"]'
+IGNORED_FOLDERS_JSON='[".obsidian", ".trash"]'
 
 if [ -t 0 ]; then
   echo "Configure your Johnny-Decimal structure (press Enter for defaults):"
@@ -90,18 +90,18 @@ if [ -t 0 ]; then
     KNOWLEDGE_FOLDERS_JSON=$(echo "$KNOWLEDGE_INPUT" | jq -Rc 'split(",") | map(gsub("^ +| +$"; ""))')
   fi
 
-  read -rp "Enter MOC folders (comma-separated) [_SYS, LIFE]: " MOC_INPUT
+  read -rp "Enter MOC folders (comma-separated) [_SYS]: " MOC_INPUT
   if [ ! -z "$MOC_INPUT" ]; then
     # Merge user input with the required "_SYS" folder, trim whitespace, and unique-ify the array
     MOC_FOLDERS_JSON=$(echo "$MOC_INPUT" | jq -Rc 'split(",") | . + ["_SYS"] | map(gsub("^ +| +$"; "")) | unique')
   else
-    MOC_FOLDERS_JSON='["_SYS", "LIFE"]'
+    MOC_FOLDERS_JSON='["_SYS"]'
   fi
 
   read -rp "Enter Daily Note folder [JRNL]: " DAILY_INPUT
   [ ! -z "$DAILY_INPUT" ] && DAILY_NOTE_FOLDER=$DAILY_INPUT
 
-  read -rp "Enter Ignored folders (comma-separated) [JRNL, .obsidian, .trash]: " IGNORED_INPUT
+  read -rp "Enter Ignored folders (comma-separated) [.obsidian, .trash]: " IGNORED_INPUT
   if [ ! -z "$IGNORED_INPUT" ]; then
     IGNORED_FOLDERS_JSON=$(echo "$IGNORED_INPUT" | jq -Rc 'split(",") | map(gsub("^ +| +$"; ""))')
   fi
