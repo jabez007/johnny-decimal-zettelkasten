@@ -41,13 +41,7 @@ echo "Running npm build..."
 npm run build --quiet
 popd >/dev/null
 
-echo "--- 3. Configuring Vault and Scoped Activation ---"
-# Disable globally so it doesn't interfere with other projects.
-gemini extensions disable gemini-obsidian --scope=user
-
-# Enable specifically for this workspace.
-gemini extensions enable gemini-obsidian --scope=workspace
-
+echo "--- 3. Configuring Vault ---"
 # Prompt for vault name
 VAULT_NAME_RAW=""
 if [ -t 0 ]; then

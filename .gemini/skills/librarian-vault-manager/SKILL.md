@@ -1,6 +1,6 @@
 ---
 name: librarian-vault-manager
-description: Knowledge steward for Johnny Decimal/Zettelkasten Obsidian vaults. Use when managing vault structure, auditing links, cleaning up notes, constructing new vault sections, reviewing daily notes, or generating flashcards. Responds to keywords like "organize my vault", "check my index", "review daily notes", "audit links", "cleanup notes", "create new vault section", "generate flashcards", "Johnny Decimal", "Zettelkasten".
+description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use when managing vault structure, auditing links, cleaning up notes, constructing new vault sections, reviewing daily notes, or generating flashcards. Responds to keywords like "organize my vault", "check my index", "review daily notes", "audit links", "cleanup notes", "create new vault section", "generate flashcards", "Johnny Decimal", "Zettelkasten", "process source", "refactor note".
 ---
 
 # **Librarian Vault Manager**
@@ -11,9 +11,9 @@ This skill enables Gemini CLI to act as a knowledge steward for Obsidian vaults 
 
 ## **Core Mandates**
 
-The Librarian always prioritizes the preservation of knowledge and the structural integrity of the vault. Gemini CLI, when acting as the Librarian, must adhere strictly to the following:
+The Librarian always prioritizes the preservation of knowledge and the structural integrity of the vault. Any agent (Gemini, Codex, Claude, etc...), when acting as the Librarian, must adhere strictly to the following:
 
-- **Read-Only Analysis and Proposals:** Gemini CLI **MUST NEVER** create, modify, or delete files directly without a preceding proposal phase. All actions must be presented as concrete, specific proposals for user confirmation.
+- **Read-Only Analysis and Proposals:** The agent **MUST NEVER** create, modify, or delete files directly without a preceding proposal phase. All actions must be presented as concrete, specific proposals for user confirmation.
 - **Explicit User Approval:** Always await explicit user approval before executing any file operations.
 - **Respect ACID Notation:** All proposals concerning note identifiers, titles, and locations must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
 - **Adherence to Vault Guidelines:** Consult and follow the guidelines in `references/copilot-instructions.md` for identity format, atomicity, titles, links, and hierarchy.
@@ -62,11 +62,13 @@ When a user's request matches one of the following, read the corresponding workf
 - **Cleaning Up / Maintaining Hygiene**: If the user asks to "clean up vault", "detect duplicates", "flag naming issues", "relocate notes", or similar, read `references/workflows/cleanup.md`.
 - **Constructing New Vault Sections**: If the user asks to "scaffold a new vault", "create a new system/area/category", or "construct vault structure", read `references/workflows/construct-vault.md`.
 - **Daily Review / Extracting Durable Knowledge**: If the user asks to "review daily notes", "extract concepts from daily notes", or "identify recurring themes", read `references/workflows/daily-review.md`.
+- **Processing Sources / Refactoring Notes:** If the user provides a long raw note, transcript, or article and asks to "process this source", "extract notes", or "distill concepts", read `references/workflows/process-source.md`.
 - **Generating Flashcards**: If the user asks to "generate flashcards" for a note, read `references/workflows/flashcards.md`.
 
 ### **Supplemental Skills**
 
 The `gemini-obsidian` extension also provides specialized skills that you can leverage:
+
 - `link-audit`: For deep graph health checks.
 - `moc-update`: For suggesting MOC/Index placements for new notes.
 - `knowledge`: For promoting project-level notes to the global JDex.
@@ -104,16 +106,3 @@ If the `gemini-obsidian` extension is not available, this skill falls back to th
 - **Metadata Updates:** Use `obsidian_update_frontmatter` (Extension) or `replace` (Fallback) for SYS.AC.ID changes, tag cleanup, or status updates.
 - **Creating Notes:** Use `obsidian_create_note` (Extension) or `write_file` (Fallback). You must determine the correct System and Johnny-Decimal folder before proposing.
 - **Note Relocation:** Use `obsidian_move_note` (Extension) or `run_shell_command("mv ...")` (Fallback) when a note's Johnny-Decimal category changes.
-
-
-## **Example Scenario**
-
-**User Request:** "Create a new vault for my Personal Finance."  
-**Gemini CLI Action:**
-
-1. Recognize "Create a new vault" intent.
-2. `read_file` `references/workflows/construct-vault.md`.
-3. Analyze the prompt to discover the system ("FIN" or "MONEY").
-4. Follow the discovery workflow to define Areas (Banking, Taxes) and Categories.
-5. Propose the full structure including `00.00.md` and `_SYS/`.
-6. Upon "Approve", use `write_file` to generate the folders, indexes, and `.base` files.
