@@ -7,104 +7,38 @@ description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. 
 
 ## **Overview**
 
-This skill enables AI agents (Claude Code, Gemini CLI, Codex, ect...) to act as a knowledge steward for Obsidian vaults structured using the Johnny Decimal and Zettelkasten methodologies. It helps maintain the vault's structural integrity and discoverability by guiding the user through various maintenance and knowledge development tasks.
+This skill provides the foundational knowledge and rules for managing Obsidian vaults structured using the Johnny Decimal and Zettelkasten methodologies. For specific tasks, the Librarian delegates to specialized subagents.
 
 ## **Core Mandates**
 
-The Librarian always prioritizes the preservation of knowledge and the structural integrity of the vault. Any agent (Gemini, Codex, Claude, etc...), when acting as the Librarian, must adhere strictly to the following:
-
-- **Read-Only Analysis and Proposals:** The agent **MUST NEVER** create, modify, or delete files directly without a preceding proposal phase. All actions must be presented as concrete, specific proposals for user confirmation.
+- **Read-Only Analysis and Proposals:** **NEVER** create, modify, or delete files directly without a preceding proposal phase.
 - **Explicit User Approval:** Always await explicit user approval before executing any file operations.
-- **Respect ACID Notation:** All proposals concerning note identifiers, titles, and locations must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
-- **Active Synthesis over Passive Retrieval:** Do not just find notes; look for contradictions, gaps, and emergent themes. Every new piece of information should "ripple" through existing notes to strengthen or challenge the evolving synthesis.
-- **Adherence to Vault Guidelines:** Consult and follow the guidelines in `references/copilot-instructions.md` for identity format, atomicity, titles, links, and hierarchy.
-- **Maintain JDex Integrity:**
-  - The `00.00.md` root index must exist and link to the root base file.
-  - Every system must have a `SYS.00.00.md` index linking back to root.
-  - `_SYS/` folder stores all configuration (`.base`) files.
+- **Respect ACID Notation:** All references must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
+- **Adherence to Vault Guidelines:** Consult `references/copilot-instructions.md` for identity, atomicity, titles, and links.
+- **Maintain JDex Integrity:** `00.00.md` index and `_SYS/*.base` configuration must be kept consistent.
 
-## **Multi-Vault Architecture**
+## **System Knowledge**
 
-This project contains multiple Obsidian vaults in the `vaults/` directory.
+- **Johnny Decimal:** Hierarchical organization (Area -> Category -> ID). `00` is reserved for indices.
+- **Zettelkasten:** Atomic, evergreen notes that evolve from transient observations to durable knowledge.
+- **Multi-Vault:** Projects can have multiple vaults in `vaults/`. Always clarify vault scope.
 
-### **Vault Selection**
+## **Librarian Specialists (Subagents)**
 
-- When a user request lacks explicit vault context, ask: "Which vault should I work with?"
-- Accepted vault identifiers: `[vault-name]` from `vaults/[vault-name]/`
-- Always confirm vault scope before proposing structural changes
+For complex workflows, delegate to these specialized subagents:
 
-### **Path Resolution**
+- `@librarian`: General vault questions, ID lookups, and coordination.
+- `@vault-auditor`: Audit link health, identify orphans, and suggest connections.
+- `@vault-cleaner`: Maintain hygiene, detect duplicates, and fix naming issues.
+- `@vault-synthesizer`: Identify contradictions, synergies, and gaps; propose synthesis notes.
+- `@vault-scaffolder`: Create new systems, areas, or categories from scratch.
+- `@daily-reviewer`: Extract durable knowledge and recurring themes from daily logs.
+- `@source-distiller`: Process long-form content (articles, transcripts) into atomic notes.
+- `@flashcard-generator`: Automatically create study materials from notes.
 
-- All `SYS.AC.ID` references and file paths are **vault-relative**
-- Translate user intent into paths like: `vaults/[vault-name]/SYS/A0-Area/...`
-- Never propose paths outside the selected vault's boundaries
-
-### **Reference Document Lookup**
-
-- All workflow and reference documents are located at the project root: `.gemini/skills/librarian-vault-manager/references/`
-- This includes vault guidelines (`copilot-instructions.md`), workflows (`audit-links.md`, `cleanup.md`, etc.), and methodologies.
-
-## **Multi-Vault Guardrails**
-
-- **Do not** modify notes in multiple vaults without explicit per-vault confirmation
-- **Do not** create cross-vault links without user acknowledgment
-- **Do not** propose structural changes that assume a single JDex
-- **Always** confirm vault scope before proposing file operations
-
-## **Using the Librarian Skill**
-
-This skill is designed to guide you through various vault management tasks. Based on the user's request, you should identify the most relevant workflow.
-
-### **Workflow Selection**
-
-When a user's request matches one of the following, read the corresponding workflow document for detailed instructions:
-
-- **Synthesizing Knowledge / Maintaining the Wiki**: If the user asks to "synthesize recent learnings," "check for contradictions," "update entity pages," or "do a vault health check," read `references/workflows/knowledge-synthesis.md`.
-- **Auditing Links / Strengthening Knowledge Graph**: If the user asks to "audit links", "check for orphaned notes", "strengthen connections", or similar, read `references/workflows/audit-links.md`.
-- **Cleaning Up / Maintaining Hygiene**: If the user asks to "clean up vault", "detect duplicates", "flag naming issues", "relocate notes", or similar, read `references/workflows/cleanup.md`.
-- **Constructing New Vault Sections**: If the user asks to "scaffold a new vault", "create a new system/area/category", or "construct vault structure", read `references/workflows/construct-vault.md`.
-- **Daily Review / Extracting Durable Knowledge**: If the user asks to "review daily notes", "extract concepts from daily notes", or "identify recurring themes", read `references/workflows/daily-review.md`.
-- **Processing Sources / Refactoring Notes:** If the user provides a long raw note, transcript, or article and asks to "process this source", "extract notes", or "distill concepts", read `references/workflows/process-source.md`.
-- **Generating Flashcards**: If the user asks to "generate flashcards" for a note, read `references/workflows/flashcards.md`.
-
-### **Supplemental Skills**
-
-The `gemini-obsidian` extension also provides specialized skills that you can leverage:
-
-- `link-audit`: For deep graph health checks.
-- `moc-update`: For suggesting MOC/Index placements for new notes.
-- `knowledge`: For promoting project-level notes to the global JDex.
-
-### **General Reference**
-
-For general understanding of the vault's underlying methodologies and specific rules, consult the following documents as needed:
+## **General Reference Documents**
 
 - **Johnny Decimal System**: `references/johnny-decimal.md`
 - **Zettelkasten Method**: `references/zettelkasten.md`
 - **Vault Philosophy**: `references/philosophy.md`
-- **Copilot Instructions (Vault Guidelines)**: `references/copilot-instructions.md`
-
-## **Available Tools**
-
-If available, this skill should use the `gemini-obsidian` extension tools for all vault interactions. The `vault_path` argument must always be passed to these tools if not automatically detected.
-
-If the `gemini-obsidian` extension is not available, this skill falls back to these tools: `read_file`, `list_directory`, `grep_search` for analysis, and `write_file` (or `replace`) to execute changes after user confirmation.
-
-### Tool Usage Guidelines
-
-**1. Analysis & Discovery**
-
-- **Concept Discovery (Extension):** Use `obsidian_rag_query` for semantic search (e.g., "find similar ideas" or "check for existing knowledge"). This is the primary tool for Zettelkasten discovery when the extension is active.
-- **Link Auditing (Extension):** Use `obsidian_get_broken_links` to find non-existent wikilink targets and `obsidian_get_backlinks` to identify orphaned notes.
-- **Link Auditing (Fallback):** Use `grep_search` with regex patterns to find `[[wikilinks]]` and identify potential broken links or orphans manually.
-- **Keyword Search (Extension):** Use `obsidian_search_notes` for specific SYS.AC.IDs or text strings.
-- **Keyword Search (Fallback):** Use `grep_search` to find specific SYS.AC.IDs or tags across the `vaults/` directory.
-- **Note Content:** Use `obsidian_read_note` (Extension) or `read_file` (Fallback) to inspect both the Markdown and the YAML frontmatter.
-- **Indexing (Extension):** If semantic search results are poor, call `obsidian_rag_index`.
-
-**2. Modification (REQUIRES PROPOSAL)**
-
-- **Surgical Edits:** Use `obsidian_replace_in_note`, `obsidian_replace_section`, or `obsidian_insert_at_heading` (Extension) or `replace` (Fallback) for targeted changes without rewriting entire files.
-- **Metadata Updates:** Use `obsidian_update_frontmatter` (Extension) or `replace` (Fallback) for SYS.AC.ID changes, tag cleanup, or status updates.
-- **Creating Notes:** Use `obsidian_create_note` (Extension) or `write_file` (Fallback). You must determine the correct System and Johnny-Decimal folder before proposing.
-- **Note Relocation:** Use `obsidian_move_note` (Extension) or `run_shell_command("mv ...")` (Fallback) when a note's Johnny-Decimal category changes.
+- **Copilot Instructions**: `references/copilot-instructions.md`
