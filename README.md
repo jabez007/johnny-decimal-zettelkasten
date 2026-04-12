@@ -47,37 +47,27 @@ Follow these steps to initialize your first vault:
 
 ## **AI-Assisted Vault Maintenance**
 
-The **Librarian Agent** assists with organization and knowledge development. It proposes actions but **never modifies files without explicit approval.**
+The **Librarian** system uses Gemini CLI subagents to assist with organization and knowledge development. These agents follow a **Proposal-First** mandate: they analyze and suggest actions but **never modify files without explicit approval.**
 
-### **Interaction Protocol**
+### **Core Skill: `librarian-vault-manager`**
+This is the foundational skill that provides the Johnny-Decimal and Zettelkasten "Constitution" to all agents. It ensures that every action respects ACID notation, atomicity, and structural integrity.
 
-* **Vault Scope**: Agents work on one vault at a time. If context is missing, they will ask: *"Which vault should I work with?"*  
-* **Pathing**: All paths are relative to the selected vault (e.g., `vaults/[name]/SYS/...`).  
-* **Safety**: Agents require per-vault confirmation for structural changes.
+### **Specialized Subagents**
+For complex tasks, the Librarian delegates to specialized experts. You can invoke them directly using the `@` syntax in Gemini CLI:
 
-### **Available Agents**
+| Agent | Purpose | Key Commands |
+| :--- | :--- | :--- |
+| **@librarian** | General coordination and ID lookups. | *"Where should I put this note?"*, *"Find ID for X"* |
+| **@vault-auditor** | Link health and graph connections. | *"Audit links in the example vault"*, *"Find orphans"* |
+| **@vault-cleaner** | Hygiene, duplicates, and renames. | *"Clean up my inbox"*, *"Check for duplicate notes"* |
+| **@vault-scaffolder** | Building new JD systems/areas. | *"Create a new WORK system"*, *"Scaffold Area 20"* |
+| **@daily-reviewer** | Journal-to-Evergreen crystallization. | *"Review my daily notes from this week"* |
+| **@vault-synthesizer** | Knowledge compounding & bridge notes. | *"Synthesize my notes on Topic X"*, *"Any contradictions?"* |
+| **@source-distiller** | Processing articles/transcripts. | *"Process this article into atomic notes"* |
+| **@flashcard-generator** | Spaced-repetition card creation. | *"Generate flashcards for this note"* |
 
-#### **Option A: GitHub Copilot (VSCode)**
-
-1. Open your vault folder in VSCode.  
-2. Ensure the GitHub Copilot extension is installed.  
-3. Use the chat interface; it automatically detects definitions in `.github/agents/`.
-
-#### **Option B: Gemini CLI**
-
-1. Install [Gemini CLI](https://github.com/google/gemini-cli).  
-2. Install the provided skill: `gemini skills install ./librarian-vault-manager.skill --scope workspace`.  
-3. Reload your session with /skills reload.
-
-### **Librarian Commands**
-
-| Command | Purpose |
-| :---- | :---- |
-| /construct-vault | Scaffolds a new system/structure through guided chat. |
-| /daily-review | Identifies concepts mentioned 3+ times in journals for evergreen extraction. |
-| /audit-links | Checks for orphaned notes and broken references. |
-| /cleanup | Detects duplicates and naming inconsistencies. |
-| /flashcards | Generates Anki-ready spaced repetition cards from your notes. |
+### **The Crystallization Principle**
+Following the **"LLM Wiki"** philosophy, the `@librarian` proactively identifies valuable insights during your CLI sessions and suggests "filing them back" into your vault. This ensures that transient chat context becomes durable, searchable knowledge.
 
 ## **System Architecture**
 
@@ -159,12 +149,18 @@ Every evergreen note begins with a link to its system index to ground it in the 
 
 ## **Workflow**
 
-1. **Daily Capture**: Record raw thoughts in `JRNL/YYYY/MM/YYYY-MM-DD.md`. This is low-friction and transient.  
-2. **Review & Extract**: Run `/daily-review`. When an idea matures, extract it to an evergreen note with a claim-based title and ACID ID.  
-3. **Link & Connect**: Place `[[links]]` inline within sentences to explain context.  
-4. **Audit**: Weekly, run `/audit-links` and `/cleanup` to maintain the "garden."
+1. **Daily Capture**: Record raw thoughts in `JRNL/YYYY/MM/YYYY-MM-DD.md`.
+2. **Review & Extract**: Run `@daily-reviewer`. When an idea matures, extract it to an evergreen note using the transclusion/embed method (`![[links]]`) to maintain context without duplication.
+3. **Compound & Synthesize**: Use `@vault-synthesizer` to find tensions between notes and create "Bridge Notes" that explore emergent themes.
+4. **Audit & Maintain**: Regularly run `@vault-auditor` and `@vault-cleaner` to keep the "knowledge garden" healthy.
 
 ## **Advanced Deployment & Integration**
+
+### **Gemini CLI Setup**
+
+1. Install [Gemini CLI](https://github.com/google/gemini-cli).
+2. Run the project setup script: `./.gemini/setup-environment.sh`.
+3. The specialized subagents in `.gemini/agents/` will be automatically discovered.
 
 ### **Dockerized Obsidian**
 
