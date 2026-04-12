@@ -103,6 +103,27 @@ When creating folders, you must strictly follow these patterns:
 - Always verify existing structure before creating new areas, categories, or IDs.
 - Never place notes outside the hierarchy.
 
+## **The Compounding Synthesis Principle**
+
+This vault is not just a repository; it is a compiled wiki.
+
+- **Incremental Integration:** When adding a source, do not just create new notes. You must search for and update existing related notes.
+- **The "Ripple" Effect:** A single new insight should "ripple" through the vault, potentially triggering updates to entity pages, indexes, and synthesis notes.
+- **Flagging Paradoxes:** If a new insight contradicts a previous one, you are responsible for flagging this tension to the user.
+
+## **The Knowledge Log (`_SYS/log.md`)**
+
+The Librarian maintains an append-only log of all significant knowledge operations. This helps the AI and the user track the evolution of the "Second Brain."
+
+- **Location:** `_SYS/log.md`
+- **Format:**
+  ```
+  ## [YYYY-MM-DD] Type | Title
+  - **Action**: [Ingested source X / Synthesized Y and Z / Linted Area 30]
+  - **Result**: Created [[SYS.AC.ID]], Updated [[SYS.AC.ID]]
+  - **Context**: [1-sentence summary of the knowledge gain]
+  ```
+
 ## **The JDex Index**
 
 - **Do NOT manually edit index lists.**

@@ -1,13 +1,13 @@
 ---
 name: librarian-vault-manager
-description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use when managing vault structure, auditing links, cleaning up notes, constructing new vault sections, reviewing daily notes, or generating flashcards. Responds to keywords like "organize my vault", "check my index", "review daily notes", "audit links", "cleanup notes", "create new vault section", "generate flashcards", "Johnny Decimal", "Zettelkasten", "process source", "refactor note".
+description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use when managing vault structure, auditing links, cleaning up notes, constructing new vault sections, reviewing daily notes, generating flashcards, or performing active knowledge synthesis. Responds to keywords like "organize my vault", "check my index", "review daily notes", "audit links", "cleanup notes", "create new vault section", "generate flashcards", "Johnny Decimal", "Zettelkasten", "process source", "refactor note", "synthesize vault", "vault health check".
 ---
 
 # **Librarian Vault Manager**
 
 ## **Overview**
 
-This skill enables Gemini CLI to act as a knowledge steward for Obsidian vaults structured using the Johnny Decimal and Zettelkasten methodologies. It helps maintain the vault's structural integrity and discoverability by guiding the user through various maintenance and knowledge development tasks.
+This skill enables AI agents (Claude Code, Gemini CLI, Codex, ect...) to act as a knowledge steward for Obsidian vaults structured using the Johnny Decimal and Zettelkasten methodologies. It helps maintain the vault's structural integrity and discoverability by guiding the user through various maintenance and knowledge development tasks.
 
 ## **Core Mandates**
 
@@ -16,6 +16,7 @@ The Librarian always prioritizes the preservation of knowledge and the structura
 - **Read-Only Analysis and Proposals:** The agent **MUST NEVER** create, modify, or delete files directly without a preceding proposal phase. All actions must be presented as concrete, specific proposals for user confirmation.
 - **Explicit User Approval:** Always await explicit user approval before executing any file operations.
 - **Respect ACID Notation:** All proposals concerning note identifiers, titles, and locations must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
+- **Active Synthesis over Passive Retrieval:** Do not just find notes; look for contradictions, gaps, and emergent themes. Every new piece of information should "ripple" through existing notes to strengthen or challenge the evolving synthesis.
 - **Adherence to Vault Guidelines:** Consult and follow the guidelines in `references/copilot-instructions.md` for identity format, atomicity, titles, links, and hierarchy.
 - **Maintain JDex Integrity:**
   - The `00.00.md` root index must exist and link to the root base file.
@@ -58,6 +59,7 @@ This skill is designed to guide you through various vault management tasks. Base
 
 When a user's request matches one of the following, read the corresponding workflow document for detailed instructions:
 
+- **Synthesizing Knowledge / Maintaining the Wiki**: If the user asks to "synthesize recent learnings," "check for contradictions," "update entity pages," or "do a vault health check," read `references/workflows/knowledge-synthesis.md`.
 - **Auditing Links / Strengthening Knowledge Graph**: If the user asks to "audit links", "check for orphaned notes", "strengthen connections", or similar, read `references/workflows/audit-links.md`.
 - **Cleaning Up / Maintaining Hygiene**: If the user asks to "clean up vault", "detect duplicates", "flag naming issues", "relocate notes", or similar, read `references/workflows/cleanup.md`.
 - **Constructing New Vault Sections**: If the user asks to "scaffold a new vault", "create a new system/area/category", or "construct vault structure", read `references/workflows/construct-vault.md`.
