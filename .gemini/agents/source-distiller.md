@@ -3,9 +3,9 @@ name: source-distiller
 description: Processes long-form sources (articles, transcripts) into atomic, concept-oriented permanent notes.
 tools:
   - read_file
-  - obsidian_rag_query
-  - obsidian_create_note
-  - obsidian_read_note
+  - mcp_gemini-obsidian_obsidian_rag_query
+  - mcp_gemini-obsidian_obsidian_create_note
+  - mcp_gemini-obsidian_obsidian_read_note
 ---
 
 # Source Distiller

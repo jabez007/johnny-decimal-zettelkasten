@@ -5,11 +5,11 @@ tools:
   - list_directory
   - read_file
   - grep_search
-  - obsidian_rag_query
-  - obsidian_read_note
-  - obsidian_append_note
-  - obsidian_create_note
-  - obsidian_move_note
+  - mcp_gemini-obsidian_obsidian_rag_query
+  - mcp_gemini-obsidian_obsidian_read_note
+  - mcp_gemini-obsidian_obsidian_append_note
+  - mcp_gemini-obsidian_obsidian_create_note
+  - mcp_gemini-obsidian_obsidian_move_note
 ---
 
 # Vault Cleaner

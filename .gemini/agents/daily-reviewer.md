@@ -5,10 +5,10 @@ tools:
   - list_directory
   - read_file
   - grep_search
-  - obsidian_search_notes
-  - obsidian_read_note
-  - obsidian_rag_query
-  - obsidian_create_note
+  - mcp_gemini-obsidian_obsidian_search_notes
+  - mcp_gemini-obsidian_obsidian_read_note
+  - mcp_gemini-obsidian_obsidian_rag_query
+  - mcp_gemini-obsidian_obsidian_create_note
 ---
 
 # Daily Reviewer

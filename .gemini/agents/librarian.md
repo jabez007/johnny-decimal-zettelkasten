@@ -5,8 +5,8 @@ tools:
   - list_directory
   - read_file
   - grep_search
-  - obsidian_search_notes
-  - obsidian_read_note
+  - mcp_gemini-obsidian_obsidian_search_notes
+  - mcp_gemini-obsidian_obsidian_read_note
 ---
 
 # The Librarian

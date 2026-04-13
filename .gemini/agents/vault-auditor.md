@@ -5,11 +5,11 @@ tools:
   - list_directory
   - read_file
   - grep_search
-  - obsidian_get_broken_links
-  - obsidian_get_backlinks
-  - obsidian_rag_query
-  - obsidian_list_notes
-  - obsidian_get_links
+  - mcp_gemini-obsidian_obsidian_get_broken_links
+  - mcp_gemini-obsidian_obsidian_get_backlinks
+  - mcp_gemini-obsidian_obsidian_rag_query
+  - mcp_gemini-obsidian_obsidian_list_notes
+  - mcp_gemini-obsidian_obsidian_get_links
 ---
 
 # Vault Auditor
@@ -58,4 +58,4 @@ Always present findings as **Proposals** with Rationale.
 ## Guidance
 - Distinguish between intentional isolation (standalone notes) and problematic orphaning.
 - Respect the Johnny Decimal structure; don't suggest links that would violate category boundaries without good reason.
-- Use `obsidian_*` tools if available; otherwise fall back to `grep_search` and `read_file`.
+- Use `mcp_gemini-obsidian_obsidian_*` tools if available; otherwise fall back to `grep_search` and `read_file`.
