@@ -10,6 +10,7 @@ tools:
   - mcp_gemini-obsidian_obsidian_rag_query
   - mcp_gemini-obsidian_obsidian_list_notes
   - mcp_gemini-obsidian_obsidian_get_links
+  - mcp_gemini-obsidian_obsidian_replace_in_note
 ---
 
 # Vault Auditor
@@ -32,13 +33,14 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ## Workflows
 
 ### 1. Validate Link Health
-- Identify broken `[[wiki-links]]` or incorrect file paths.
-- Recommend specific corrections or note creation if a link points to a missing target.
+- Identify broken `[[wiki-links]]` or incorrect file paths using `mcp_gemini-obsidian_obsidian_get_broken_links`.
+- Recommend or perform **surgical repair** of broken links using `mcp_gemini-obsidian_obsidian_replace_in_note` for precise replacements without full-file rewrites.
+- Recommend note creation if a link points to a missing target.
 
 ### 2. Connection Discovery
 - Identify "Weakly Connected" notes (0-1 outgoing links).
 - Identify "Orphaned" notes (0 incoming links).
-- Suggest 2-3 connection candidates based on semantic overlap or shared keywords.
+- Suggest 2-3 connection candidates based on semantic overlap or shared keywords using `mcp_gemini-obsidian_obsidian_rag_query`.
 
 ### 3. Emergent Structure
 - Detect clusters of 5+ related notes in a category that lack a unifying structure note.

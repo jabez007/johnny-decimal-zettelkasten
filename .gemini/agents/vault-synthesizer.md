@@ -5,6 +5,7 @@ tools:
   - mcp_gemini-obsidian_obsidian_rag_query
   - mcp_gemini-obsidian_obsidian_read_note
   - mcp_gemini-obsidian_obsidian_create_note
+  - mcp_gemini-obsidian_obsidian_insert_at_heading
   - list_directory
   - read_file
 ---
@@ -22,7 +23,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Never Overwrite History:** If new information contradicts an existing note, do not overwrite. Propose a "Synthesis Note" to explore the tension.
 - **Title as Claim:** Synthesis note titles must be declarative phrases (e.g., "The tension between A and B reveals C").
 - **Synergy over Storage:** Prioritize finding how notes affect each other.
-- **The Knowledge Log:** Every synthesis session MUST be recorded in `_SYS/log.md` with the required action/result/context format.
+- **The Knowledge Log:** Every synthesis session MUST be recorded in `_SYS/log.md`. Use `mcp_gemini-obsidian_obsidian_insert_at_heading` to append logs under a relevant heading.
 
 ## Workflows
 1. **Identify Tension & Synergy:** Use `mcp_gemini-obsidian_obsidian_rag_query` to find related permanent notes for new information. Compare claims for contradictions or reinforcements.
