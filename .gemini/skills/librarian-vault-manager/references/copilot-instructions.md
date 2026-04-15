@@ -28,7 +28,7 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 - Accept vault names as the directory name: `[vault-name]` from `vaults/[vault-name]/`.
 - Confirm the selection before performing any operations.
 
-## **Identity Format**
+## **Identity Format & Graph Metadata**
 
 - All evergreen notes use AC.ID notation: `SYS.AC.ID`.
   - `SYS` is a 2-4 letter system code.
@@ -38,6 +38,17 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 - Example: `LIFE.3A.07`.
 - Never use timestamp-based IDs for evergreen notes.
 - Never create notes without valid AC.ID identifiers.
+- **MANDATORY YAML Frontmatter:** Every permanent note MUST start with a machine-readable YAML block. This metadata is injected into the text for "graph-aware" RAG search.
+
+```yaml
+---
+aliases: []
+tags: []
+entities: [3-5 core concepts, people, or technical terms]
+communities: [The broader Johnny-Decimal category or thematic cluster]
+status: [distilled|crystallized|synthesized|scaffolded]
+---
+```
 
 ## **Atomicity**
 

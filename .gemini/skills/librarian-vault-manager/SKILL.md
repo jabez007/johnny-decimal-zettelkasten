@@ -7,10 +7,11 @@ description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. 
 
 ## **Overview**
 
-This skill provides the foundational knowledge and rules for managing Obsidian vaults structured using the Johnny Decimal and Zettelkasten methodologies. For specific tasks, the Librarian delegates to specialized subagents.
+This skill provides the foundational knowledge and rules for managing Obsidian vaults structured using the Johnny-Decimal and Zettelkasten methodologies, enhanced with graph-aware metadata for advanced RAG systems.
 
 ## **Core Mandates**
 
+- **Graph-Aware Metadata:** **CRITICAL.** Every permanent note MUST adhere to the mandatory YAML frontmatter schema (entities, communities, related_to, status).
 - **Read-Only Analysis and Proposals:** **NEVER** create, modify, or delete files directly without a preceding proposal phase.
 - **Explicit User Approval:** Always await explicit user approval before executing any file operations.
 - **Respect ACID Notation:** All references must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
@@ -19,9 +20,23 @@ This skill provides the foundational knowledge and rules for managing Obsidian v
 
 ## **System Knowledge**
 
+- **Graph-RAG Hybrid:** A methodology where structured frontmatter (entities, communities) is injected into the text for embedding, enabling "graph-aware" semantic search.
 - **Johnny Decimal:** Hierarchical organization (Area -> Category -> ID). `00` is reserved for indices.
 - **Zettelkasten:** Atomic, evergreen notes that evolve from transient observations to durable knowledge.
-- **Multi-Vault:** Projects can have multiple vaults in `vaults/`. Always clarify vault scope.
+
+## **Mandatory YAML Schema**
+
+Every note must start with:
+
+```yaml
+---
+aliases: []
+tags: []
+entities: [3-5 core concepts/terms]
+communities: [JD category or thematic cluster]
+status: [distilled|crystallized|synthesized|scaffolded]
+---
+```
 
 ## **Librarian Specialists (Subagents)**
 
