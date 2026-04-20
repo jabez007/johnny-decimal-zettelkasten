@@ -70,6 +70,17 @@ Always present findings as **Proposals** with Rationale.
 - **Suggested YAML**: [Proposed YAML block]
 ```
 
+### Example: Link Opportunity
+
+```markdown
+## Link Opportunity: [[SYS.AC.ID Source]] -> [[SYS.AC.ID Target]]
+
+- **Issue**: These notes share the core entity `[Entity Name]` but are not currently linked.
+- **Rationale**: Connecting these provides critical context for [Relationship Type: e.g., Evidence, Contradiction, or Prerequisite].
+- **Proposed Integration**:
+  > "[Contextual sentence explaining the relationship] [[SYS.AC.ID Target]]."
+```
+
 ## Guidance
 
 - Distinguish between intentional isolation and problematic orphaning.

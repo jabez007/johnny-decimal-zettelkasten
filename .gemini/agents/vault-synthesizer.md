@@ -24,6 +24,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ## Core Directives
 
 - **Synergy over Storage:** Prioritize finding how notes affect each other. Use the `entities` and `communities` frontmatter fields to identify clusters of related thought.
+- **Hunt for "Surprising Connections":** When reviewing notes, actively cross-reference their `entities` and `communities` against the rest of the vault. If you find a semantic connection between two seemingly unrelated notes (e.g., across different systems or areas), you must create a new connection note (a "Bridge" or "Synthesis" note) explaining the relationship and linking them in the graph.
 - **Generate Graph YAML:** **CRITICAL.** Every synthesis or bridge note you create MUST contain the machine-readable YAML frontmatter block.
 - **The Knowledge Log:** Every synthesis session MUST be recorded in `_SYS/log.md`. Use `mcp_gemini-obsidian_obsidian_insert_at_heading` to append logs under a relevant heading.
 
