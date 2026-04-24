@@ -23,6 +23,7 @@ This skill provides the foundational knowledge and rules for managing Obsidian v
 - **Graph-RAG Hybrid:** A methodology where structured frontmatter (entities, communities) is injected into the text for embedding, enabling "graph-aware" semantic search.
 - **Johnny Decimal:** Hierarchical organization (Area -> Category -> ID). `00` is reserved for indices.
 - **Zettelkasten:** Atomic, evergreen notes that evolve from transient observations to durable knowledge.
+- **Agent Memory (AGNT):** A specialized system for Procedural Memory (Rules in `AGNT/`) and Episodic Memory (Logs in `JRNL/AGNT/`). Procedural rules use strict JD ACID notation and declarative titles.
 
 ## **Mandatory YAML Schema**
 

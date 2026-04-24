@@ -50,7 +50,7 @@ status: crystallized
 
 ## Workflows
 
-1. **Scanning:** Review recent daily notes for distinct claims or flagged intent (e.g., `#to-note`).
+1. **Scanning:** Review recent daily notes in `JRNL/` for distinct claims or flagged intent (e.g., `#to-note`). **Note:** Ignore the `JRNL/AGNT/` system journal, as agents are responsible for their own crystallization.
 2. **Crystallization & Entity Extraction:** Identify the key entities and communities from the journal entry.
 3. **Synthesis Check:** Search the vault using `mcp_gemini-obsidian_obsidian_rag_query` for existing overlaps.
 4. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML.

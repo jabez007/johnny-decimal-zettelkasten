@@ -105,7 +105,96 @@ else
   echo "Skipping Git LFS setup (not a git repository or git not found)."
 fi
 
-echo "--- 5. Finalizing Environment ---"
+echo "--- 5. Hooking Global Gemini CLI ---"
+# This configures a global SessionStart hook to inject Agent Memory SOPs and state.
+GLOBAL_GEMINI_DIR="$HOME/.gemini"
+GLOBAL_HOOKS_DIR="$GLOBAL_GEMINI_DIR/hooks"
+GLOBAL_SETTINGS_JSON="$GLOBAL_GEMINI_DIR/settings.json"
+HOOK_SCRIPT="$GLOBAL_HOOKS_DIR/agent-memory-boot.sh"
+
+mkdir -p "$GLOBAL_HOOKS_DIR"
+
+echo "Creating global hook script at $HOOK_SCRIPT..."
+cat >"$HOOK_SCRIPT" <<'EOF'
+#!/bin/bash
+# Hook: SessionStart
+# Injects Agent Memory SOPs and Restores Session State
+
+CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "{}"
+  exit 0
+fi
+
+# Use jq to read config safely
+VAULT_PATH=$(jq -r '.vault_path' "$CONFIG_FILE" 2>/dev/null)
+if [ -z "$VAULT_PATH" ] || [ "$VAULT_PATH" == "null" ] || [ ! -d "$VAULT_PATH" ]; then
+  echo "{}"
+  exit 0
+fi
+
+# 1. SOPs (The "How-To")
+SOPS="## Agent Memory SOPs (JD/ZK Vault)
+You are integrated with a Johnny-Decimal Zettelkasten vault for persistent memory. Always use the 'gemini-obsidian' MCP tools for vault operations to ensure path and structural integrity.
+
+### Boot Sequence (Context Restoration)
+At the start of any significant task:
+1.  **Query Rules:** Run 'obsidian_rag_query' searching for the current task's entities within the 'communities: [Agent Procedural Memory]' cluster.
+2.  **Restore State:** Review the 'Last Session Log' provided in the initial context. Use 'obsidian_read_note' if you need to explore related notes mentioned in that log.
+
+### Shutdown Sequence (Context Preservation)
+Before concluding a session:
+1.  **Log Execution:** Use 'obsidian_create_note' to write a summary of the session to 'JRNL/AGNT/YYYY-MM-DD-HHMM.md'.
+2.  **Crystallize Rules:** If new preferences or technical standards were established:
+    - Search for existing rules using 'obsidian_search_notes'.
+    - Propose a new atomic note in the appropriate category folder under 'AGNT/10-Procedural_Rules/' (e.g., '11-Coding/' or '12-Writing/').
+    - **Naming Convention:** The filename MUST follow the 'SYS.AC.ID-Title.md' format (e.g., 'AGNT.11.05-Declarative-Title.md').
+    - **Hexadecimal Standard:** Use hexadecimal (**0-F**) for all numbering. Areas and Categories use 1-F (0 is reserved for indices). IDs use **01-FF**.
+    - **Metadata:** Include the mandatory YAML block (entities, communities: [Agent Procedural Memory], status: crystallized).
+    - **Header:** The first line of the note (after YAML) MUST be a link to the system index: '[[AGNT.00.00]]'.
+    - **Body:** Link back to the source log in 'JRNL/AGNT/' for traceability.
+    - **Indexing:** If a new rule is created, run 'obsidian_rag_index' for that specific file to ensure immediate discoverability.
+3.  **Transparency (Staff Report):** 
+    - Use 'obsidian_get_daily_note' to find today's note.
+    - Use 'obsidian_insert_at_heading' to append a brief 'Staff Report' (including an embed of your new log) under the '## Log' or '## Agent Reports' heading."
+
+# 2. Last Log (The "State")
+# Find the latest log in the episodic journal
+LAST_LOG_FILE=$(ls -t "$VAULT_PATH/JRNL/AGNT/"*.md 2>/dev/null | head -n 1)
+if [ -f "$LAST_LOG_FILE" ]; then
+  LOG_CONTENT=$(cat "$LAST_LOG_FILE")
+  STATE_CONTEXT="### Last Session Log ($LAST_LOG_FILE)
+$LOG_CONTENT"
+else
+  STATE_CONTEXT="### Last Session Log
+No previous logs found. This is a new session or system initialization."
+fi
+
+# Final Context
+FULL_CONTEXT="$SOPS
+
+$STATE_CONTEXT"
+
+# Output as JSON
+jq -n --arg context "$FULL_CONTEXT" '{"hookSpecificOutput": {"additionalContext": $context}}'
+EOF
+
+chmod +x "$HOOK_SCRIPT"
+
+echo "Updating global settings.json at $GLOBAL_SETTINGS_JSON..."
+if [ ! -f "$GLOBAL_SETTINGS_JSON" ]; then
+  echo '{"hooks": {"SessionStart": []}}' >"$GLOBAL_SETTINGS_JSON"
+fi
+
+# Add the hook to settings.json if it's not already there
+# We use jq to safely merge the hook into the SessionStart list.
+TEMP_SETTINGS=$(mktemp)
+jq --arg name "agent-memory-boot" \
+  --arg script "$HOOK_SCRIPT" \
+  '(.hooks.SessionStart // []) |= (if map(.name == $name) | any then . else . + [{"name": $name, "type": "command", "command": $script}] end)' \
+  "$GLOBAL_SETTINGS_JSON" >"$TEMP_SETTINGS" && mv "$TEMP_SETTINGS" "$GLOBAL_SETTINGS_JSON"
+
+echo "--- 6. Finalizing Environment ---"
 # Confirm that the Librarian skill and Obsidian extension are ready.
 echo "Active Skills in this Workspace:"
 gemini skills list

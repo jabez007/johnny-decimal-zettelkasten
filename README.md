@@ -1,7 +1,7 @@
 # **Second Brain: A Compounding Knowledge System**
 
 Most notes are transient—written and forgotten. This system makes knowledge compound over time. Each note you write becomes part of an interconnected network where insights build upon each other, and every hour of thinking leaves something behind that makes future thinking easier.  
-This project manages multiple Obsidian vaults, each combining **Johnny Decimal** for structural organization with **Zettelkasten** for emergent meaning through connections. Vault maintenance is augmented by AI librarian agents.
+This project manages multiple Obsidian vaults, each combining **Johnny Decimal** for structural organization with **Zettelkasten** for emergent meaning through connections. Vault maintenance is augmented by AI librarian agents, and the vault serves as a **persistent memory engine (AGNT system)** for the Gemini CLI.
 
 ## **Core Philosophy**
 
@@ -25,17 +25,28 @@ Zettelkasten creates emergent insight through explicit links between notes. Link
 
 The hierarchy handles organization; the association handles insight. The **AI Librarian** bridges the gap by auditing link health, suggesting evergreen extractions, and scaffolding new systems.
 
+### **4\. Agent Memory (Evolution)**
+
+The vault is not just for you; it is a "World Model" for your AI agents. 
+- **Procedural Memory**: Agents store behavioral rules and preferences in the `AGNT` system.
+- **Episodic Memory**: Agents log session state in `JRNL/AGNT/`, allowing them to "resume" work across sessions and computers.
+
 ## **Quick Start**
 
-Follow these steps to initialize your first vault:
+Follow these steps to initialize your first vault and enable Agent Memory:
 
-1. **Install Obsidian**: Download from [obsidian.md](https://obsidian.md/).  
-2. **Initialize Vault**: Open this repository folder as a vault in Obsidian.  
-3. **Enable Core Plugins**:  
-   * Go to Settings → Core Plugins.  
-   * Enable **Bases** (for dynamic indexes) and **Backlinks** (for Zettelkasten connections).  
-4. **Create System Folders**: Create a `_SYS` folder in your vault root to hold configuration files.  
-5. **Initialize Root Index**: Create `00.00.md` in the root and add the following:  
+1. **Install Obsidian**: Download from [obsidian.md](https://obsidian.md/).
+2. **Install Gemini CLI**: Follow the [official installation guide](https://github.com/google/gemini-cli).
+3. **Setup Environment**: 
+   ```bash
+   cd johnny-decimal-zettelkasten
+   ./.gemini/setup-environment.sh
+   ```
+   *The setup script installs the `gemini-obsidian` extension and configures a **Global Hook** that enables Agent Memory in all your CLI sessions.*
+4. **Initialize Vault in Obsidian**: 
+   * Open this repository folder as a vault in Obsidian.  
+   * Enable **Bases** and **Backlinks** core plugins.
+5. **Configure Root Index**: Create `00.00.md` in the root and add the following:  
    >\# Vault Index
    >
    >\!\[\[JDEX\_00.00.base\]\]
@@ -44,6 +55,18 @@ Follow these steps to initialize your first vault:
    * Right-click `_SYS/` → **New base** → Name it `JDEX_00.00`.  
    * Open the file, click the **Filter** icon, and add: `Property: file.name | Operator: ends with | Value: .00.00`.  
    * Set the view to **Cards**.
+
+## **The AGNT System (Agent Memory)**
+
+The `AGNT` system is a dedicated Johnny-Decimal system (Prefix: `AGNT`) that separates machine telemetry from human knowledge.
+
+- **`AGNT/10-Procedural_Rules/`**: Stores atomic, declarative rules (e.g., `AGNT.11.01-Pytest-Preference.md`).
+- **`JRNL/AGNT/`**: Stores chronological session logs (`YYYY-MM-DD-HHMM.md`).
+
+### **The Boot/Shutdown Protocol**
+The global Gemini CLI is now configured to follow a strict protocol within this vault:
+- **Boot**: Automatically restores state by reading the last session log and querying procedural rules via `obsidian_rag_query`.
+- **Shutdown**: Logs the session, crystallizes new rules, and appends a **Staff Report** to your current daily note using `obsidian_insert_at_heading`.
 
 ## **AI-Assisted Vault Maintenance**
 
