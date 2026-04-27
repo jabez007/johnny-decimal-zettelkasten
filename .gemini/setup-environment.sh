@@ -140,7 +140,7 @@ You are integrated with a Johnny-Decimal Zettelkasten vault for persistent memor
 ### Boot Sequence (Context Restoration)
 At the start of any significant task:
 1.  **Query Rules:** Run 'obsidian_rag_query' searching for the current task's entities within the 'communities: [Agent Procedural Memory]' cluster.
-2.  **Restore State:** Review the 'Last Session Log' provided in the initial context. Use 'obsidian_read_note' if you need to explore related notes mentioned in that log.
+2.  **Select Context:** Review the 'Recent Activity Map' provided below. If your current task relates to a previous session, use 'obsidian_read_note' to fetch that specific log's full content before proceeding. If the user explicitly says 'continue' or 'resume', assume the most recent log.
 
 ### Shutdown Sequence (Context Preservation)
 Before concluding a session:
@@ -158,16 +158,25 @@ Before concluding a session:
     - Use 'obsidian_get_daily_note' to find today's note.
     - Use 'obsidian_insert_at_heading' to append a brief 'Staff Report' (including an embed of your new log) under the '## Log' or '## Agent Reports' heading."
 
-# 2. Last Log (The "State")
-# Find the latest log in the episodic journal
-LAST_LOG_FILE=$(ls -t "$VAULT_PATH/JRNL/AGNT/"*.md 2>/dev/null | head -n 1)
-if [ -f "$LAST_LOG_FILE" ]; then
-  LOG_CONTENT=$(cat "$LAST_LOG_FILE")
-  STATE_CONTEXT="### Last Session Log ($LAST_LOG_FILE)
-$LOG_CONTENT"
+# 2. Recent Activity Map
+# Find the last 5 logs to provide a navigation map
+RECENT_LOGS=$(ls -t "$VAULT_PATH/JRNL/AGNT/"*.md 2>/dev/null | head -n 5)
+if [ -n "$RECENT_LOGS" ]; then
+  MAP_CONTENT="### Recent Activity Map (Last 5 Sessions)
+| Date/Time | Goal | Path |
+| :--- | :--- | :--- |"
+  while read -r log_path; do
+    LOG_NAME=$(basename "$log_path")
+    # Extract Goal line, stripping markdown formatting
+    GOAL=$(grep -m 1 "**Goal:**" "$log_path" | sed 's/\*\*Goal:\*\* //' | tr -d '\r')
+    if [ -z "$GOAL" ]; then GOAL="N/A"; fi
+    MAP_CONTENT="$MAP_CONTENT
+| ${LOG_NAME%.md} | $GOAL | $log_path |"
+  done <<< "$RECENT_LOGS"
+  STATE_CONTEXT="$MAP_CONTENT"
 else
-  STATE_CONTEXT="### Last Session Log
-No previous logs found. This is a new session or system initialization."
+  STATE_CONTEXT="### Recent Activity Map
+No previous session logs found. This is a new session or system initialization."
 fi
 
 # Final Context
