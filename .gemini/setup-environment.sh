@@ -200,7 +200,13 @@ fi
 TEMP_SETTINGS=$(mktemp)
 jq --arg name "agent-memory-boot" \
   --arg script "$HOOK_SCRIPT" \
-  '(.hooks.SessionStart // []) |= (if map(.name == $name) | any then . else . + [{"name": $name, "type": "command", "command": $script}] end)' \
+  '(.hooks.SessionStart // []) |= (
+    if any(.[]; .hooks? // [] | any(.[]; .name == $name)) then
+      .
+    else
+      . + [{"matcher": "*", "hooks": [{"name": $name, "type": "command", "command": $script}]}]
+    end
+  )' \
   "$GLOBAL_SETTINGS_JSON" >"$TEMP_SETTINGS" && mv "$TEMP_SETTINGS" "$GLOBAL_SETTINGS_JSON"
 
 echo "--- 6. Finalizing Environment ---"
