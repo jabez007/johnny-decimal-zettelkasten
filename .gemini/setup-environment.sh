@@ -122,14 +122,14 @@ cat >"$HOOK_SCRIPT" <<'EOF'
 
 CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
 if [ ! -f "$CONFIG_FILE" ]; then
-  echo "{}"
+  jq -n '{"systemMessage": "Agent Memory: Configuration file not found (~/.gemini-obsidian.config.json). SOPs and activity map were not loaded."}'
   exit 0
 fi
 
 # Use jq to read config safely
 VAULT_PATH=$(jq -r '.vault_path' "$CONFIG_FILE" 2>/dev/null)
 if [ -z "$VAULT_PATH" ] || [ "$VAULT_PATH" == "null" ] || [ ! -d "$VAULT_PATH" ]; then
-  echo "{}"
+  jq -n '{"systemMessage": "Agent Memory: Vault path not found or invalid. SOPs and activity map were not loaded."}'
   exit 0
 fi
 
@@ -185,7 +185,9 @@ FULL_CONTEXT="$SOPS
 $STATE_CONTEXT"
 
 # Output as JSON
-jq -n --arg context "$FULL_CONTEXT" '{"hookSpecificOutput": {"additionalContext": $context}}'
+jq -n --arg context "$FULL_CONTEXT" \
+      --arg msg "Agent Memory: SOPs and Activity Map successfully restored from $VAULT_PATH." \
+      '{"systemMessage": $msg, "hookSpecificOutput": {"additionalContext": $context}}'
 EOF
 
 chmod +x "$HOOK_SCRIPT"
