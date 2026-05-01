@@ -5,7 +5,16 @@
 
 set -e
 
-echo "--- 1. Installing gemini-obsidian extension globally ---"
+echo "--- 1. Dependency Checks ---"
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: 'jq' is not installed. Please install it to continue."
+  echo "On Ubuntu/Debian: sudo apt-get install jq"
+  echo "On macOS: brew install jq"
+  exit 1
+fi
+echo "'jq' found."
+
+echo "--- 2. Installing gemini-obsidian extension globally ---"
 # This allows the Gemini CLI to discover the extension's code.
 if ! gemini extension list 2>&1 | grep -q "gemini-obsidian"; then
   gemini extensions install https://github.com/jabez007/gemini-obsidian --consent
@@ -13,7 +22,7 @@ else
   echo "Extension gemini-obsidian is already installed. Skipping installation."
 fi
 
-echo "--- 2. Building extension & Installing native dependencies ---"
+echo "--- 3. Building extension & Installing native dependencies ---"
 # Since this extension uses LanceDB/ONNX, we must ensure binaries are built.
 # We target the global installation directory.
 # We capture the output and strip everything before the first '[' to ensure jq gets valid JSON.
@@ -41,7 +50,7 @@ echo "Running npm build..."
 npm run build --quiet
 popd >/dev/null
 
-echo "--- 3. Configuring Vault via Extension CLI ---"
+echo "--- 4. Configuring Vault via Extension CLI ---"
 # Prompt for vault name
 VAULT_NAME_RAW=""
 if [ -t 0 ]; then
@@ -88,7 +97,7 @@ if [ -t 0 ]; then
   fi
 fi
 
-echo "--- 4. Configuring Git LFS for binary files ---"
+echo "--- 5. Configuring Git LFS for binary files ---"
 # Since LanceDB datasets contain binary files, Git LFS should be used to store them efficiently.
 # Check if git is available before running.
 if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
@@ -105,7 +114,7 @@ else
   echo "Skipping Git LFS setup (not a git repository or git not found)."
 fi
 
-echo "--- 5. Hooking Global Gemini CLI ---"
+echo "--- 6. Hooking Global Gemini CLI ---"
 # This configures a global SessionStart hook to inject Agent Memory SOPs and state.
 GLOBAL_GEMINI_DIR="$HOME/.gemini"
 GLOBAL_HOOKS_DIR="$GLOBAL_GEMINI_DIR/hooks"
@@ -194,7 +203,7 @@ chmod +x "$HOOK_SCRIPT"
 
 echo "Updating global settings.json at $GLOBAL_SETTINGS_JSON..."
 if [ ! -f "$GLOBAL_SETTINGS_JSON" ]; then
-  echo '{"hooks": {"SessionStart": []}}' >"$GLOBAL_SETTINGS_JSON"
+  echo '{}' >"$GLOBAL_SETTINGS_JSON"
 fi
 
 # Add the hook to settings.json if it's not already there
@@ -202,16 +211,16 @@ fi
 TEMP_SETTINGS=$(mktemp)
 jq --arg name "agent-memory-boot" \
   --arg script "$HOOK_SCRIPT" \
-  '(.hooks.SessionStart // []) |= (
-    if any(.[]; .hooks? // [] | any(.[]; .name == $name)) then
-      .
-    else
-      . + [{"matcher": "*", "hooks": [{"name": $name, "type": "command", "command": $script}]}]
-    end
-  )' \
+  '.hooks |= (. // {}) | 
+   .hooks.SessionStart |= (. // []) |
+   if any(.hooks.SessionStart[]; .hooks? // [] | any(.[]; .name == $name)) then
+     .
+   else
+     .hooks.SessionStart += [{"matcher": "*", "hooks": [{"name": $name, "type": "command", "command": $script}]}]
+   end' \
   "$GLOBAL_SETTINGS_JSON" >"$TEMP_SETTINGS" && mv "$TEMP_SETTINGS" "$GLOBAL_SETTINGS_JSON"
 
-echo "--- 6. Finalizing Environment ---"
+echo "--- 7. Finalizing Environment ---"
 # Confirm that the Librarian skill and Obsidian extension are ready.
 echo "Active Skills in this Workspace:"
 gemini skills list
