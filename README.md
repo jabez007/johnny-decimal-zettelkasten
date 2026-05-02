@@ -163,7 +163,15 @@ The system index file (`SYS.00.00.md`) acts as the entry point for a specific sy
 
 ### **Note Template**
 
-Every evergreen note begins with a link to its system index to ground it in the hierarchy:  
+Every evergreen note MUST begin with a strict YAML frontmatter block for the graph-aware RAG database, followed by a link to its system index to ground it in the hierarchy:  
+
+>```yaml
+>---
+>entities: [3-5 core concepts, people, or technical terms]
+>communities: [The broader Johnny-Decimal category or thematic cluster]
+>status: [distilled|crystallized|synthesized|scaffolded]
+>---
+>```
 >\[\[LIFE/00-IDX/LIFE.00.00\]\]
 >
 >\# Descriptive Claim Title

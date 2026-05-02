@@ -47,6 +47,8 @@ Links are not decoration. They serve specific purposes:
 
 4. **Fine-grained context**: A link in the middle of a paragraph is more useful than a "see also" list. It shows exactly _where_ the connection applies.
 
+5. **Compound Assembly (Transclusion)**: Because notes are atomic and titles are declarative claims, larger arguments can be built by embedding notes within each other (e.g., `![[SYS.AC.ID]]`). This allows you to construct complex synthesis notes or articles without ever duplicating the underlying source text. The atomic note remains the single source of truth, but its meaning ripples through every document that embeds it.
+
 **Prefer explicit associations over inferred ones.** Machine-suggested "related notes" lack the context that makes links valuable. When you create a link, you encode _why_ it matters.
 
 ---

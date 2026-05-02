@@ -32,6 +32,9 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Refactoring Requirement:** When extracting text to a permanent note, replace the original text with an embed (`![[SYS.AC.ID]]`) to maintain context without duplication.
 - **Generate Graph YAML:** **CRITICAL.** Every note you crystallize MUST contain the machine-readable YAML frontmatter block.
 - **Navigation Header:** Every note MUST start with a link to its parent System Index (e.g., `[[LIFE.00.00]]`) on the first line.
+- **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
+- **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
+- **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).
 
 ## YAML Frontmatter Schema (Mandatory)
 
@@ -39,8 +42,6 @@ You must include this block at the very top of every new permanent note you crea
 
 ```yaml
 ---
-aliases: []
-tags: []
 entities: [List of 3-5 core concepts, people, or technical terms in this note]
 communities:
   [The broader Johnny-Decimal category or thematic cluster this belongs to]

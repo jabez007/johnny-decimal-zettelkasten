@@ -146,6 +146,15 @@ fi
 SOPS="## Agent Memory SOPs (JD/ZK Vault)
 You are integrated with a Johnny-Decimal Zettelkasten vault for persistent memory. Always use the 'gemini-obsidian' MCP tools for vault operations to ensure path and structural integrity.
 
+**System Boundaries:**
+- The 'AGNT' system is strictly for agent configuration and preferences. Do NOT store facts about the world or the user's personal domains here.
+- The 'JRNL' system is a transient scratchpad. Evergreen 'SYS.AC.ID' notes always take precedence in RAG queries.
+
+**Golden Rules:**
+1. Atomicity: One declarative claim per title.
+2. Contextual Linking: No bare links. Explain why the link exists in the sentence.
+3. Strict Formatting: Use ACID notation (SYS.AC.ID).
+
 ### Boot Sequence (Context Restoration)
 At the start of any significant task:
 1.  **Query Rules:** Run 'obsidian_rag_query' searching for the current task's entities within the 'communities: [Agent Procedural Memory]' cluster.

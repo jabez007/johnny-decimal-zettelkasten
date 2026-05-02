@@ -22,11 +22,14 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 
 - General methodologies are documented in `references/`.
 
-## **Determining Vault Context**
+## **Determining Vault Context & System Boundaries**
 
 - Always ask the user which vault to work with when context is unclear.
 - Accept vault names as the directory name: `[vault-name]` from `vaults/[vault-name]/`.
 - Confirm the selection before performing any operations.
+
+### **The AGNT System Boundary**
+The `AGNT` system (Agent Procedural Memory) is strictly reserved for agent configuration, coding standards, and user preferences. **Agents MUST NOT store facts about the world in the `AGNT` system, nor store rules about how to act in the user's personal domains (`LIFE`, `WORK`, etc.).** The boundary between the agent's procedural rules and the user's domain knowledge is absolute.
 
 ## **Identity Format & Graph Metadata**
 

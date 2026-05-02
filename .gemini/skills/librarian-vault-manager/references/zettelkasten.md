@@ -29,7 +29,7 @@ Notes contain:
 
 - A unique ID
 - Body text expressing one idea
-- Tags for topical categorization
+- Tags for status or actionable intent (in this hybrid system, Johnny-Decimal replaces topical tags)
 - Links to related notes
 - Source references when applicable
 
