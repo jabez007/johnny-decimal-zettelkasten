@@ -1,6 +1,6 @@
 ---
 name: librarian-vault-manager
-description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use when managing vault structure, auditing links, cleaning up notes, constructing new vault sections, reviewing daily notes, generating flashcards, or performing active knowledge synthesis. Responds to keywords like "organize my vault", "check my index", "review daily notes", "audit links", "cleanup notes", "create new vault section", "generate flashcards", "Johnny Decimal", "Zettelkasten", "process source", "refactor note", "synthesize vault", "vault health check".
+description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use when managing vault structure, auditing links, cleaning up notes, constructing new vault sections, reviewing daily notes, generating flashcards, or performing active knowledge synthesis.
 ---
 
 # **Librarian Vault Manager**
@@ -42,16 +42,16 @@ status: [distilled|crystallized|synthesized|scaffolded]
 
 ## **Librarian Specialists (Subagents)**
 
-For complex workflows, delegate to these specialized subagents:
+For complex workflows, delegate to these specialized agents:
 
-- `@librarian`: General vault questions, ID lookups, and coordination.
-- `@vault-auditor`: Audit link health, identify orphans, and suggest connections.
-- `@vault-cleaner`: Maintain hygiene, detect duplicates, and fix naming issues.
-- `@vault-synthesizer`: Identify contradictions, synergies, and gaps; propose synthesis notes.
-- `@vault-scaffolder`: Create new systems, areas, or categories from scratch.
-- `@daily-reviewer`: Extract durable knowledge and recurring themes from daily logs.
-- `@source-distiller`: Process long-form content (articles, transcripts) into atomic notes.
-- `@flashcard-generator`: Automatically create study materials from notes.
+- `librarian`: General vault questions, ID lookups, and coordination.
+- `vault-auditor`: Audit link health, identify orphans, and suggest connections.
+- `vault-cleaner`: Maintain hygiene, detect duplicates, and fix naming issues.
+- `vault-synthesizer`: Identify contradictions, synergies, and gaps; propose synthesis notes.
+- `vault-scaffolder`: Create new systems, areas, or categories from scratch.
+- `daily-reviewer`: Extract durable knowledge and recurring themes from daily logs.
+- `source-distiller`: Process long-form content (articles, transcripts) into atomic notes.
+- `flashcard-generator`: Automatically create study materials from notes.
 
 ## **General Reference Documents**
 

@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # setup-environment.sh
-# Configures the gemini-obsidian extension for the Librarian project.
+# Installs the latest gemini-obsidian Gemini extension globally and configures this vault.
 
 set -e
+
+EXT_REPO_URL="https://github.com/jabez007/gemini-obsidian"
 
 echo "--- 1. Dependency Checks ---"
 if ! command -v jq >/dev/null 2>&1; then
@@ -16,8 +18,8 @@ echo "'jq' found."
 
 echo "--- 2. Installing gemini-obsidian extension globally ---"
 # This allows the Gemini CLI to discover the extension's code.
-if ! gemini extension list 2>&1 | grep -q "gemini-obsidian"; then
-  gemini extensions install https://github.com/jabez007/gemini-obsidian --consent
+if ! gemini extensions list 2>&1 | grep -q "gemini-obsidian"; then
+  gemini extensions install "$EXT_REPO_URL" --consent
 else
   echo "Extension gemini-obsidian is already installed. Skipping installation."
 fi
@@ -78,8 +80,8 @@ fi
 PWD_BASE=$(basename "$WORKSPACE_DIR")
 VAULT_ID="${PWD_BASE}_${VAULT_SLUG}"
 
-# We use the extension's own tool to ensure the config file is correctly formatted.
-# This sets vault_path, workspace_path, and vault_id in ~/.gemini-obsidian.config.json
+# We use the extension's own tool to ensure the shared MCP config is correctly formatted.
+# This persists vault_path, workspace_path, and vault_id in ~/.obsidian-mcp.config.json
 node "$EXT_PATH/dist/index.js" obsidian_set_vault \
   --path "$VAULT_PATH" \
   --workspace_path "$WORKSPACE_DIR" \
@@ -129,9 +131,15 @@ cat >"$HOOK_SCRIPT" <<'EOF'
 # Hook: SessionStart
 # Injects Agent Memory SOPs and Restores Session State
 
-CONFIG_FILE="$HOME/.gemini-obsidian.config.json"
-if [ ! -f "$CONFIG_FILE" ]; then
-  jq -n '{"systemMessage": "Agent Memory: Configuration file not found (~/.gemini-obsidian.config.json). SOPs and activity map were not loaded."}'
+CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
+CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"
+CONFIG_FILE=""
+if [ -f "$CONFIG_PRIMARY" ]; then
+  CONFIG_FILE="$CONFIG_PRIMARY"
+elif [ -f "$CONFIG_LEGACY" ]; then
+  CONFIG_FILE="$CONFIG_LEGACY"
+else
+  jq -n '{"systemMessage": "Agent Memory: Configuration file not found (~/.obsidian-mcp.config.json or legacy ~/.gemini-obsidian.config.json). SOPs and activity map were not loaded."}'
   exit 0
 fi
 
@@ -238,6 +246,6 @@ echo "Active Extensions in this Workspace:"
 gemini extensions list
 
 echo "-------------------------------------------------------"
-echo "Setup Complete! The gemini-obsidian extension is now"
-echo "active only within this project's workspace."
+echo "Setup Complete! The Gemini extension is installed globally,"
+echo "and this vault is now configured in the shared MCP config."
 echo "-------------------------------------------------------"

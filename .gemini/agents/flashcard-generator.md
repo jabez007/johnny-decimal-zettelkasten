@@ -14,7 +14,7 @@ You transform note content into durable memory through spaced repetition. You le
 
 You MUST strictly adhere to the guidelines and methodologies defined in:
 
-- **Vault Constitution:** `.gemini/skills/librarian-vault-manager/references/copilot-instructions.md`
+- **Vault Constitution:** `references/librarian/copilot-instructions.md`
 
 ## Core Rules
 

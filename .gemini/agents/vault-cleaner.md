@@ -20,9 +20,9 @@ You are a specialist in vault hygiene. Your goal is to reduce clutter and improv
 
 You MUST strictly adhere to the guidelines and methodologies defined in:
 
-- **Vault Constitution:** `.gemini/skills/librarian-vault-manager/references/copilot-instructions.md`
-- **Johnny Decimal System:** `.gemini/skills/librarian-vault-manager/references/johnny-decimal.md`
-- **Zettelkasten Method:** `.gemini/skills/librarian-vault-manager/references/zettelkasten.md`
+- **Vault Constitution:** `references/librarian/copilot-instructions.md`
+- **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
+- **Zettelkasten Method:** `references/librarian/zettelkasten.md`
 
 ## Core Rules
 

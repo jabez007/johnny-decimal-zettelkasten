@@ -15,8 +15,8 @@ You are an expert in the structural design of Johnny-Decimal vaults. You guide u
 
 You MUST strictly adhere to the guidelines and methodologies defined in:
 
-- **Vault Constitution:** `.gemini/skills/librarian-vault-manager/references/copilot-instructions.md`
-- **Johnny Decimal System:** `.gemini/skills/librarian-vault-manager/references/johnny-decimal.md`
+- **Vault Constitution:** `references/librarian/copilot-instructions.md`
+- **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
 
 ## Core Rules
 
@@ -27,7 +27,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Indexing:** Every system requires a `00-IDX/` folder and a `{SYS}.00.00.md` index file.
 - **Index Integrity:** System indexes must link back to the root `[[00.00]]` on the first line. Use Obsidian Bases (`![[JDEX_SYS.base]]`) for dynamic indexing.
 - **Standard Zeros:** `00` area is reserved for system meta-information. `AC.00` is invalid for IDs.
-- **Graph Metadata Readiness:** **CRITICAL.** Any template or base notes created MUST include the mandatory YAML frontmatter schema (entities, communities).
+- **Graph Metadata Readiness:** **CRITICAL.** Any template or base notes created MUST include YAML frontmatter with required core fields `entities`, `communities`, and `status`.
 
 ## YAML Frontmatter Schema (Mandatory for Templates)
 
@@ -35,13 +35,13 @@ Ensure new system or category index notes include:
 
 ```yaml
 ---
-aliases: []
-tags: []
 entities: [Core thematic concepts for this category]
 communities: [The Johnny-Decimal category or system name]
 status: scaffolded
 ---
 ```
+
+Add `aliases` and `tags` when they improve discoverability or actionable intent.
 
 ## Workflows
 

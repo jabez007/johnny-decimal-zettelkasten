@@ -41,7 +41,7 @@ The `AGNT` system (Agent Procedural Memory) is strictly reserved for agent confi
 - Example: `LIFE.3A.07`.
 - Never use timestamp-based IDs for evergreen notes.
 - Never create notes without valid AC.ID identifiers.
-- **MANDATORY YAML Frontmatter:** Every permanent note MUST start with a machine-readable YAML block. This metadata is injected into the text for "graph-aware" RAG search.
+- **MANDATORY YAML Frontmatter:** Every permanent note MUST start with a machine-readable YAML block. The required core fields are `entities`, `communities`, and `status`. `aliases` and `tags` are recommended when they improve discoverability or actionable intent. This metadata is injected into the text for "graph-aware" RAG search.
 
 ```yaml
 ---

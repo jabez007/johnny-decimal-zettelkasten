@@ -1,0 +1,54 @@
+[features]
+hooks = true
+
+[agents]
+max_depth = 1
+
+[agents.librarian]
+description = "General knowledge steward for Johnny-Decimal/Zettelkasten vaults."
+config_file = "./agents/librarian.toml"
+nickname_candidates = ["Ada", "Linnaeus"]
+
+[agents."daily-reviewer"]
+description = "Extract durable knowledge from daily notes and session logs."
+config_file = "./agents/daily-reviewer.toml"
+nickname_candidates = ["Iris", "Clio"]
+
+[agents."vault-auditor"]
+description = "Audit structural and graph health in the vault."
+config_file = "./agents/vault-auditor.toml"
+nickname_candidates = ["Athena", "Lintel"]
+
+[agents."vault-cleaner"]
+description = "Improve vault hygiene through consolidation planning and cleanup."
+config_file = "./agents/vault-cleaner.toml"
+nickname_candidates = ["Broom", "Theseus"]
+
+[agents."vault-scaffolder"]
+description = "Guide creation of Johnny-Decimal systems, areas, and categories."
+config_file = "./agents/vault-scaffolder.toml"
+nickname_candidates = ["Grid", "Keystone"]
+
+[agents."vault-synthesizer"]
+description = "Compound knowledge across the vault through synthesis and bridge notes."
+config_file = "./agents/vault-synthesizer.toml"
+nickname_candidates = ["Hermes", "Bridge"]
+
+[agents."source-distiller"]
+description = "Process long-form source material into atomic permanent notes."
+config_file = "./agents/source-distiller.toml"
+nickname_candidates = ["Scribe", "Tarski"]
+
+[agents."flashcard-generator"]
+description = "Generate spaced-repetition flashcards grounded in note content."
+config_file = "./agents/flashcard-generator.toml"
+nickname_candidates = ["Anki", "Mnemosyne"]
+
+[[hooks.SessionStart]]
+matcher = "startup|resume"
+
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'bash "$(git rev-parse --show-toplevel)/.codex/hooks/session-start.sh"'
+timeout = 30
+statusMessage = "Loading Agent Memory context"

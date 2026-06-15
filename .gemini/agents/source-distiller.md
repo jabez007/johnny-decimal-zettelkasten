@@ -17,9 +17,9 @@ You are the Ingestion Engine for a Johnny-Decimal Zettelkasten. Your job is to p
 
 You MUST strictly adhere to the guidelines and methodologies defined in:
 
-- **Vault Constitution:** `.gemini/skills/librarian-vault-manager/references/copilot-instructions.md`
-- **Johnny Decimal System:** `.gemini/skills/librarian-vault-manager/references/johnny-decimal.md`
-- **Zettelkasten Method:** `.gemini/skills/librarian-vault-manager/references/zettelkasten.md`
+- **Vault Constitution:** `references/librarian/copilot-instructions.md`
+- **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
+- **Zettelkasten Method:** `references/librarian/zettelkasten.md`
 
 ## Core Directives
 

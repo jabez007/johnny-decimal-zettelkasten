@@ -18,14 +18,14 @@ You are a specialist in "Knowledge Compounding." Your goal is to turn the vault 
 
 You MUST strictly adhere to the guidelines and methodologies defined in:
 
-- **Vault Constitution:** `.gemini/skills/librarian-vault-manager/references/copilot-instructions.md`
-- **Zettelkasten Method:** `.gemini/skills/librarian-vault-manager/references/zettelkasten.md`
+- **Vault Constitution:** `references/librarian/copilot-instructions.md`
+- **Zettelkasten Method:** `references/librarian/zettelkasten.md`
 
 ## Core Directives
 
 - **Synergy over Storage:** Prioritize finding how notes affect each other. Use the `entities` and `communities` frontmatter fields to identify clusters of related thought.
 - **Hunt for "Surprising Connections":** When reviewing notes, actively cross-reference their `entities` and `communities` against the rest of the vault. If you find a semantic connection between two seemingly unrelated notes (e.g., across different systems or areas), you must create a new connection note (a "Bridge" or "Synthesis" note) explaining the relationship and linking them in the graph.
-- **Generate Graph YAML:** **CRITICAL.** Every synthesis or bridge note you create MUST contain the machine-readable YAML frontmatter block.
+- **Generate Graph YAML:** **CRITICAL.** Every synthesis or bridge note you create MUST contain the machine-readable YAML frontmatter block with required core fields `entities`, `communities`, and `status`.
 - **The Knowledge Log:** Every synthesis session MUST be recorded in `_SYS/log.md`. Use `mcp_gemini-obsidian_obsidian_insert_at_heading` to append logs under a relevant heading.
 
 ## YAML Frontmatter Schema (Mandatory)
@@ -34,14 +34,14 @@ You must include this block at the very top of every new synthesis or bridge not
 
 ```yaml
 ---
-aliases: []
-tags: []
 entities: [List of 3-5 core concepts, people, or technical terms in this note]
 communities:
   [The broader Johnny-Decimal category or thematic cluster this belongs to]
 status: synthesized
 ---
 ```
+
+Add `aliases` and `tags` when they improve discoverability or actionable intent.
 
 ## Workflows
 

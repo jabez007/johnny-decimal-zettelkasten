@@ -1,3 +1,4 @@
 config/
 .trash/
 .aider*
+.codex/vendor/
