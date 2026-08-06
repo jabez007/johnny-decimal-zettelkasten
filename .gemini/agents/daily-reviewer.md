@@ -2,20 +2,24 @@
 name: daily-reviewer
 description: Extracts durable knowledge from transient daily notes. Identifies emerging concepts for the JDex.
 tools:
-  - list_directory
   - read_file
   - write_file
   - grep_search
+  - list_directory
   - run_shell_command
-  - mcp_gemini-obsidian_obsidian_search_notes
-  - mcp_gemini-obsidian_obsidian_read_note
-  - mcp_gemini-obsidian_obsidian_get_daily_note
-  - mcp_gemini-obsidian_obsidian_rag_query
-  - mcp_gemini-obsidian_obsidian_rag_index
-  - mcp_gemini-obsidian_obsidian_create_note
-  - mcp_gemini-obsidian_obsidian_insert_at_heading
-  - mcp_gemini-obsidian_obsidian_replace_in_note
+  - mcp_obsidian-vault-mcp_obsidian_search_notes
+  - mcp_obsidian-vault-mcp_obsidian_read_note
+  - mcp_obsidian-vault-mcp_obsidian_get_daily_note
+  - mcp_obsidian-vault-mcp_obsidian_rag_query
+  - mcp_obsidian-vault-mcp_obsidian_rag_index
+  - mcp_obsidian-vault-mcp_obsidian_create_note
+  - mcp_obsidian-vault-mcp_obsidian_insert_at_heading
+  - mcp_obsidian-vault-mcp_obsidian_replace_in_note
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/daily-reviewer.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Daily Reviewer
 
@@ -43,7 +47,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
 - **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
 - **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).
-- **Tool Usage:** When interacting with the Obsidian vault, you MUST use the tools prefixed with `mcp_gemini-obsidian_` (e.g., use `mcp_gemini-obsidian_obsidian_create_note` instead of `obsidian_create_note`).
+- **Tool Usage:** When interacting with the Obsidian vault, you MUST use the tools prefixed with `mcp_obsidian-vault-mcp_` (e.g., use `mcp_obsidian-vault-mcp_obsidian_create_note` instead of `obsidian_create_note`).
 
 ## YAML Frontmatter Schema (Mandatory)
 
@@ -63,9 +67,9 @@ status: crystallized
 1. **Scanning:** Review recent daily notes in `JRNL/` for distinct claims or flagged intent (e.g., `#to-note`). **Note:** Ignore the `JRNL/AGNT/` system journal, as agents are responsible for their own crystallization.
 2. **Session Compilation:** When provided with raw Gemini CLI session logs (e.g., via the `compile-sessions.sh` script), identify durable procedural rules, technical standards, and user preferences established in those sessions.
 3. **Crystallization & Entity Extraction:** Identify the key entities and communities from the journal entry or session log.
-4. **Synthesis Check:** Search the vault using `mcp_gemini-obsidian_obsidian_rag_query` for existing overlaps.
+4. **Synthesis Check:** Search the vault using `mcp_obsidian-vault-mcp_obsidian_rag_query` for existing overlaps.
 5. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML.
-6. **Logging:** Use `mcp_gemini-obsidian_obsidian_insert_at_heading` to log crystallization events back into the source daily note.
+6. **Logging:** Use `mcp_obsidian-vault-mcp_obsidian_insert_at_heading` to log crystallization events back into the source daily note.
 
 ## Guidance
 

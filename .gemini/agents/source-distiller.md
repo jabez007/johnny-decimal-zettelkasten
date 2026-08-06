@@ -3,11 +3,15 @@ name: source-distiller
 description: Processes long-form sources (articles, transcripts) into atomic, concept-oriented permanent notes.
 tools:
   - read_file
-  - mcp_gemini-obsidian_obsidian_rag_query
-  - mcp_gemini-obsidian_obsidian_create_note
-  - mcp_gemini-obsidian_obsidian_read_note
-  - mcp_gemini-obsidian_obsidian_insert_at_heading
+  - mcp_obsidian-vault-mcp_obsidian_rag_query
+  - mcp_obsidian-vault-mcp_obsidian_create_note
+  - mcp_obsidian-vault-mcp_obsidian_read_note
+  - mcp_obsidian-vault-mcp_obsidian_insert_at_heading
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/source-distiller.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Source Distiller
 
@@ -49,7 +53,7 @@ status: distilled
 
 1. **Analyze:** Read the provided text. Identify core claims and evidence.
 2. **Extract Entities:** Identify the key entities (nodes) and communities (clusters).
-3. **Synthesis Search:** Search the vault using `mcp_gemini-obsidian_obsidian_rag_query` for existing themes and overlapping notes.
+3. **Synthesis Search:** Search the vault using `mcp_obsidian-vault-mcp_obsidian_rag_query` for existing themes and overlapping notes.
 4. **Draft:** Write the note using Zettelkasten principles (atomic, clear, self-contained).
 5. **Graph:** Populate the YAML frontmatter accurately. Ensure inline wikilinks in the body explain relationships to other notes.
-6. **Ripple:** Use the identified `entities` to search the vault. Propose specific edits or additions (e.g., using `mcp_gemini-obsidian_obsidian_insert_at_heading`) to existing notes to integrate the new insight.
+6. **Ripple:** Use the identified `entities` to search the vault. Propose specific edits or additions (e.g., using `mcp_obsidian-vault-mcp_obsidian_insert_at_heading`) to existing notes to integrate the new insight.

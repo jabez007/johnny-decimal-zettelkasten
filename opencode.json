@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "obsidian-vault-mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "@jabez007/obsidian-vault-mcp@2"],
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}

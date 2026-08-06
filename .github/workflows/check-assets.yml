@@ -1,0 +1,48 @@
+name: Check generated assets
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  sync-assets:
+    name: Generated harness assets are in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Regenerate harness assets
+        run: ./scripts/sync-assets.sh
+
+      - name: Fail if generated assets drifted
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Generated harness assets are out of sync with their canonical sources."
+            echo ""
+            echo "Canonical sources:"
+            echo "  references/librarian/*.md"
+            echo "  .agents/skills/librarian-vault-manager/SKILL.md"
+            echo ""
+            echo "Run ./scripts/sync-assets.sh and commit the result."
+            echo ""
+            git diff --stat
+            exit 1
+          fi
+          echo "Generated assets are in sync."
+
+  shellcheck:
+    name: Shell scripts lint clean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          # Generated wrappers are covered via their canonical source.
+          find . -name '*.sh' \
+            -not -path './.claude/skills/*' \
+            -not -path './.gemini/skills/*' \
+            -not -path './config/*' \
+            -print0 | xargs -0 shellcheck --severity=warning

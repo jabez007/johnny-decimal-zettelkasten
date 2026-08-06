@@ -2,12 +2,16 @@
 name: librarian
 description: General knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use for general questions, ID lookups, and coordinating vault maintenance.
 tools:
-  - list_directory
   - read_file
   - grep_search
-  - mcp_gemini-obsidian_obsidian_search_notes
-  - mcp_gemini-obsidian_obsidian_read_note
+  - list_directory
+  - mcp_obsidian-vault-mcp_obsidian_search_notes
+  - mcp_obsidian-vault-mcp_obsidian_read_note
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/librarian.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # The Librarian
 

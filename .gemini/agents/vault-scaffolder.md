@@ -2,10 +2,14 @@
 name: vault-scaffolder
 description: Expert in constructing new Johnny-Decimal structures. Guides the creation of systems, areas, and categories.
 tools:
-  - list_directory
   - write_file
+  - list_directory
   - run_shell_command
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/vault-scaffolder.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Vault Scaffolder
 

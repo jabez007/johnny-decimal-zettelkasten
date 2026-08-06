@@ -3,8 +3,12 @@ name: flashcard-generator
 description: Generates spaced-repetition flashcards (Q&A or Cloze) for Obsidian notes.
 tools:
   - read_file
-  - mcp_gemini-obsidian_obsidian_read_note
+  - mcp_obsidian-vault-mcp_obsidian_read_note
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/flashcard-generator.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Flashcard Generator
 

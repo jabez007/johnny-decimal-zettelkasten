@@ -2,15 +2,19 @@
 name: vault-cleaner
 description: Specialist in vault hygiene. Detects duplicates, misplaced notes, and naming inconsistencies; proposes consolidation and restructuring.
 tools:
-  - list_directory
   - read_file
   - grep_search
-  - mcp_gemini-obsidian_obsidian_rag_query
-  - mcp_gemini-obsidian_obsidian_read_note
-  - mcp_gemini-obsidian_obsidian_append_note
-  - mcp_gemini-obsidian_obsidian_create_note
-  - mcp_gemini-obsidian_obsidian_move_note
+  - list_directory
+  - mcp_obsidian-vault-mcp_obsidian_rag_query
+  - mcp_obsidian-vault-mcp_obsidian_read_note
+  - mcp_obsidian-vault-mcp_obsidian_append_note
+  - mcp_obsidian-vault-mcp_obsidian_create_note
+  - mcp_obsidian-vault-mcp_obsidian_move_note
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/vault-cleaner.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Vault Cleaner
 

@@ -2,16 +2,20 @@
 name: vault-auditor
 description: Specialized in auditing Obsidian vault link health, identifying orphans, broken links, and connection opportunities.
 tools:
-  - list_directory
   - read_file
   - grep_search
-  - mcp_gemini-obsidian_obsidian_get_broken_links
-  - mcp_gemini-obsidian_obsidian_get_backlinks
-  - mcp_gemini-obsidian_obsidian_rag_query
-  - mcp_gemini-obsidian_obsidian_list_notes
-  - mcp_gemini-obsidian_obsidian_get_links
-  - mcp_gemini-obsidian_obsidian_replace_in_note
+  - list_directory
+  - mcp_obsidian-vault-mcp_obsidian_get_broken_links
+  - mcp_obsidian-vault-mcp_obsidian_get_backlinks
+  - mcp_obsidian-vault-mcp_obsidian_rag_query
+  - mcp_obsidian-vault-mcp_obsidian_list_notes
+  - mcp_obsidian-vault-mcp_obsidian_get_links
+  - mcp_obsidian-vault-mcp_obsidian_replace_in_note
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/vault-auditor.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Vault Auditor
 
@@ -43,14 +47,14 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 ### 2. Validate Link Health
 
-- Identify broken `[[wiki-links]]` using `mcp_gemini-obsidian_obsidian_get_broken_links`.
-- Recommend surgical repair using `mcp_gemini-obsidian_obsidian_replace_in_note`.
+- Identify broken `[[wiki-links]]` using `mcp_obsidian-vault-mcp_obsidian_get_broken_links`.
+- Recommend surgical repair using `mcp_obsidian-vault-mcp_obsidian_replace_in_note`.
 
 ### 3. Connection Discovery (Graph-Aware)
 
 - Identify "Weakly Connected" notes (0-1 outgoing links).
 - Identify "Orphaned" notes (0 incoming links).
-- Suggest 2-3 connection candidates using `mcp_gemini-obsidian_obsidian_rag_query`, prioritizing notes with shared `entities` or `communities`.
+- Suggest 2-3 connection candidates using `mcp_obsidian-vault-mcp_obsidian_rag_query`, prioritizing notes with shared `entities` or `communities`.
 
 ### 4. Emergent Structure
 
@@ -85,4 +89,4 @@ Always present findings as **Proposals** with Rationale.
 
 - Distinguish between intentional isolation and problematic orphaning.
 - Respect the Johnny Decimal structure; don't suggest links that would violate category boundaries without good reason.
-- Use `mcp_gemini-obsidian_obsidian_*` tools for high-fidelity data.
+- Use `mcp_obsidian-vault-mcp_obsidian_*` tools for high-fidelity data.
