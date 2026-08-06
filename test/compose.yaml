@@ -1,0 +1,21 @@
+# Isolated test environment for the template's setup and migration scripts.
+#
+#   cd test && docker compose run --rm harness           # full suite
+#   cd test && docker compose run --rm harness bash      # interactive shell
+#
+# The repository is mounted READ-ONLY and the suite works on a copy inside the
+# container, so a test run can never modify the host working tree. The
+# container has its own HOME, so host plugin and vault config are untouched.
+
+services:
+  harness:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile
+    volumes:
+      - ..:/repo:ro
+    environment:
+      # Set SKIP_RAG_INDEX=1 to skip the semantic indexing test, which
+      # downloads the ~90MB embedding model on first run.
+      - SKIP_RAG_INDEX=${SKIP_RAG_INDEX:-}
+    init: true

@@ -48,16 +48,21 @@ else
 fi
 
 # Epoch-millisecond bounds for the SQLite-backed host.
+#
+# Only an explicit END_DATE produces an upper bound, and that bound is the
+# start of the following day, so it is correctly exclusive. Open-ended ranges
+# ("last N days", "since DATE") must stay unbounded above: clamping them to
+# "now" drops any message written in the current second.
 if [[ -n $START_DATE ]]; then
     START_MS=$(( $(date -d "$START_DATE" +%s) * 1000 ))
-    if [[ -n $END_DATE ]]; then
-        END_MS=$(( $(date -d "$END_DATE + 1 day" +%s) * 1000 ))
-    else
-        END_MS=$(( $(date +%s) * 1000 ))
-    fi
 else
     START_MS=$(( $(date -d "$DAYS days ago" +%s) * 1000 ))
-    END_MS=$(( $(date +%s) * 1000 ))
+fi
+
+if [[ -n $END_DATE ]]; then
+    END_CLAUSE="AND m.time_created < $(( $(date -d "$END_DATE + 1 day" +%s) * 1000 ))"
+else
+    END_CLAUSE=""
 fi
 
 echo "Scanning for agent CLI session logs $RANGE_DESC..."
@@ -158,7 +163,7 @@ extract_opencode_logs() {
         WHERE json_extract(p.data, '\$.type') = 'text'
           AND json_extract(p.data, '\$.text') IS NOT NULL
           AND m.time_created >= $START_MS
-          AND m.time_created < $END_MS
+          $END_CLAUSE
         ORDER BY m.time_created, p.time_created;
     " >>"$TMP_FILE" 2>/dev/null || echo "Note: could not read OpenCode database." >&2
     append_separator
