@@ -41,9 +41,11 @@ Every note must start with YAML frontmatter whose required core fields are:
 ---
 entities: [<entity-1>, <entity-2>, <entity-3>]
 communities: [<jd-category-or-cluster>]
-status: [distilled|crystallized|synthesized|scaffolded]
+status: distilled
 ---
 ```
+
+Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 
 Replace every `<token>` before writing a note. `entities` and `communities` are
 exact-match filter keys, so placeholder text becomes an unusable graph label.

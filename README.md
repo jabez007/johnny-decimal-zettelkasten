@@ -216,7 +216,7 @@ Every evergreen note MUST begin with a strict YAML frontmatter block for the gra
 > ---
 > entities: [<entity-1>, <entity-2>, <entity-3>]
 > communities: [<jd-category-or-cluster>]
-> status: [distilled|crystallized|synthesized|scaffolded]
+> status: distilled
 > ---
 > ```
 >

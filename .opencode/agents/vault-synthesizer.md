@@ -33,7 +33,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Synergy over Storage:** Prioritize finding how notes affect each other. Use the `entities` and `communities` frontmatter fields to identify clusters of related thought.
 - **Hunt for "Surprising Connections":** When reviewing notes, actively cross-reference their `entities` and `communities` against the rest of the vault. If you find a semantic connection between two seemingly unrelated notes (e.g., across different systems or areas), propose a new connection note (a "Bridge" or "Synthesis" note) explaining the relationship and linking them in the graph. Present the proposal — target ID, title, frontmatter, and the links it would create — and create the note only after the user approves.
 - **Generate Graph YAML:** **CRITICAL.** Every synthesis or bridge note you create MUST contain the machine-readable YAML frontmatter block with required core fields `entities`, `communities`, and `status`.
-- **The Knowledge Log:** Every synthesis session MUST be recorded in `_SYS/log.md`. Append with `obsidian-vault-mcp_obsidian_insert_at_heading`. If the log does not exist yet, propose creating it as part of the session's proposal, then append to it from then on.
+- **The Knowledge Log:** Every synthesis session MUST be recorded in `_SYS/log.md`, but the log is a vault write like any other. Include both the log entry and, on first use, the log's creation in the same proposal as the synthesis note, and write with `obsidian-vault-mcp_obsidian_insert_at_heading` only after the user approves. Never write the log for a session whose synthesis note was not approved.
 
 ## YAML Frontmatter Schema (Mandatory)
 

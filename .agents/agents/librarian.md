@@ -41,9 +41,11 @@ You must ensure this block is at the very top of every permanent note:
 ---
 entities: [<entity-1>, <entity-2>, <entity-3>]
 communities: [<jd-category-or-cluster>]
-status: [distilled|crystallized|synthesized|scaffolded]
+status: distilled
 ---
 ```
+
+Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 
 Replace every `<token>` before writing a note. Never leave a placeholder
 in a real note: `entities` and `communities` are exact-match filter keys,

@@ -251,9 +251,10 @@ fi
 # as three junk strings, and an agent copying the block writes them into the
 # graph. entities/communities are exact-match rag_query filter keys, so junk
 # there is not cosmetic.
-python3 - <<'PY' && pass "frontmatter examples use replaceable tokens" || fail "frontmatter examples use replaceable tokens"
+python3 - <<'PY' && pass "frontmatter examples use valid tokens and scalar status" || fail "frontmatter examples use valid tokens and scalar status"
 import glob, os, re, sys, yaml
 root = os.environ.get("WORK_DIR", "/work/repo")
+ALLOWED = {"distilled", "crystallized", "synthesized", "scaffolded"}
 bad = []
 srcs = glob.glob(os.path.join(root, ".agents/agents/*.md")) \
      + glob.glob(os.path.join(root, ".agents/skills/*/SKILL.md")) \
@@ -270,6 +271,14 @@ for f in srcs:
             for v in (d.get(key) or []):
                 if isinstance(v, str) and not v.startswith("<"):
                     bad.append(f"{os.path.basename(f)}: {key} -> {v!r}")
+        # status must be a scalar. "status: [a|b|c]" is a YAML flow sequence,
+        # so it writes a one-element list instead of one valid value.
+        if "status" in d:
+            st = d["status"]
+            if not isinstance(st, str):
+                bad.append(f"{os.path.basename(f)}: status is {type(st).__name__}, not a scalar -> {st!r}")
+            elif not st.startswith("<") and st not in ALLOWED:
+                bad.append(f"{os.path.basename(f)}: status -> {st!r} not in {sorted(ALLOWED)}")
 if bad:
     print("; ".join(bad[:4])); sys.exit(1)
 PY
