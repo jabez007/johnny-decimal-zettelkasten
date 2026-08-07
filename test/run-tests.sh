@@ -172,6 +172,23 @@ done
 [ "$ro_ok" = 1 ] && pass "read-only agents hold no mutating MCP tools" \
   || fail "read-only agents hold no mutating MCP tools"
 
+# Every status an agent emits must be in the canonical enum. `redirect` was
+# removed, so nothing may reintroduce an undocumented value.
+if grep -rn 'status: redirect' .agents/ references/ >/dev/null 2>&1; then
+  fail "no agent emits an undocumented status value" "found 'status: redirect'"
+else
+  pass "no agent emits an undocumented status value"
+fi
+
+# Merges no longer leave tombstones, so the cleaner must be able to find and
+# repoint inbound links itself.
+if grep -q 'obsidian_get_backlinks' .agents/agents/vault-cleaner.md \
+   && grep -q 'obsidian_replace_in_note' .agents/agents/vault-cleaner.md; then
+  pass "vault-cleaner can repoint inbound links on merge"
+else
+  fail "vault-cleaner can repoint inbound links on merge"
+fi
+
 # AC.00 is not a valid ID: 0 is reserved at every level and there is no
 # category-level index. Policies may say it is invalid, never prescribe it.
 if grep -rn 'AC\.00' .agents/ references/ | grep -qv 'not valid\|not a valid\|is invalid'; then

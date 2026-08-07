@@ -8,9 +8,11 @@ permission:
   "obsidian-vault-mcp_*": deny
   "obsidian-vault-mcp_obsidian_rag_query": allow
   "obsidian-vault-mcp_obsidian_read_note": allow
+  "obsidian-vault-mcp_obsidian_get_backlinks": allow
   "obsidian-vault-mcp_obsidian_append_note": allow
   "obsidian-vault-mcp_obsidian_create_note": allow
   "obsidian-vault-mcp_obsidian_move_note": allow
+  "obsidian-vault-mcp_obsidian_replace_in_note": allow
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
@@ -35,12 +37,12 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Metadata Integrity:** **CRITICAL.** Every consolidation or move MUST result in a note that adheres to the mandatory YAML frontmatter schema (entities, communities).
 - **Atomicity First:** One concept per note.
 - **Declarative Titles:** Titles MUST be complete declarative phrases.
-- **Redirects:** Use redirect notes (`status: redirect`) for merged content to prevent broken links.
+- **Link Integrity:** Consolidation must not break inbound links. Before retiring a note, find everything pointing at it with `obsidian-vault-mcp_obsidian_get_backlinks` and repoint each one at the surviving note with `obsidian-vault-mcp_obsidian_replace_in_note`. Do not leave a stub behind; there is no `redirect` status.
 
 ## Workflows
 
 1. **Detect Overlaps (Graph-Aware):** Identify notes with >60% semantic similarity or overlapping `entities`.
-2. **Consolidate/Factor:** Propose merging duplicates into a canonical note or splitting broad notes into atomic ones. Ensure the resulting note body captures the connections from both original notes using inline wikilinks.
+2. **Consolidate/Factor:** Propose merging duplicates into a canonical note or splitting broad notes into atomic ones. Ensure the resulting note body captures the connections from both original notes using inline wikilinks. The proposal MUST list every inbound link found via backlinks and how each will be repointed, so the user can see exactly what the merge rewrites.
 3. **Naming Hygiene:** Flag generic filenames and suggest JDex-compliant renames.
 4. **Relocation & Community Alignment:** Suggest moving notes if their `communities` field in the YAML doesn't align with their actual Johnny-Decimal folder path.
 
