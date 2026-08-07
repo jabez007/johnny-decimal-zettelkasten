@@ -38,12 +38,15 @@ You must include this block at the very top of every new note:
 
 ```yaml
 ---
-entities: [List of 3-5 core concepts, people, or technical terms in this note]
-communities:
-  [The broader Johnny-Decimal category or thematic cluster this belongs to]
+entities: [<entity-1>, <entity-2>, <entity-3>]
+communities: [<jd-category-or-cluster>]
 status: distilled
 ---
 ```
+
+Replace every `<token>` before writing a note. Never leave a placeholder
+in a real note: `entities` and `communities` are exact-match filter keys,
+so placeholder text becomes an unusable label in the graph.
 
 ## Workflow
 

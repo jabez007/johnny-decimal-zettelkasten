@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       jq \
       sqlite3 \
       shellcheck \
+      python3-yaml \
       ca-certificates \
       curl \
     && rm -rf /var/lib/apt/lists/*

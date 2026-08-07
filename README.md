@@ -214,8 +214,8 @@ Every evergreen note MUST begin with a strict YAML frontmatter block for the gra
 
 > ```yaml
 > ---
-> entities: [3-5 core concepts, people, or technical terms]
-> communities: [The broader Johnny-Decimal category or thematic cluster]
+> entities: [<entity-1>, <entity-2>, <entity-3>]
+> communities: [<jd-category-or-cluster>]
 > status: [distilled|crystallized|synthesized|scaffolded]
 > ---
 > ```

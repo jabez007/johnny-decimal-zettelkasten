@@ -25,15 +25,31 @@ echo "Required commands found."
 echo "--- 2. Installing the $EXT_NAME extension ---"
 EXT_LIST=$(gemini extensions list 2>&1 || true)
 
-if grep -q "$LEGACY_EXT_NAME" <<<"$EXT_LIST" && ! grep -q "$EXT_NAME" <<<"$EXT_LIST"; then
-  echo "Found the legacy '$LEGACY_EXT_NAME' extension. Removing it before installing v2..."
-  gemini extensions uninstall "$LEGACY_EXT_NAME" || \
-    echo "Warning: could not uninstall '$LEGACY_EXT_NAME'. Remove it manually if both remain installed."
+# Remove the legacy extension whenever it is present. Skipping this when v2 is
+# also installed would leave the v1 server running alongside it.
+if grep -q "$LEGACY_EXT_NAME" <<<"$EXT_LIST"; then
+  echo "Found the legacy '$LEGACY_EXT_NAME' extension. Removing it..."
+  if ! gemini extensions uninstall "$LEGACY_EXT_NAME"; then
+    echo "Error: could not uninstall '$LEGACY_EXT_NAME'."
+    echo "Both versions would run at once. Remove it manually, then re-run:"
+    echo "  gemini extensions uninstall $LEGACY_EXT_NAME"
+    exit 1
+  fi
 fi
 
 if grep -q "$EXT_NAME" <<<"$EXT_LIST"; then
   echo "Extension '$EXT_NAME' already installed. Updating..."
-  gemini extensions update "$EXT_NAME" || echo "Note: update skipped or already current."
+  # A non-zero exit here also covers "already current", so this is not fatal --
+  # but it must be visible, since a genuinely failed update otherwise reaches
+  # "Setup complete." looking like success.
+  if ! gemini extensions update "$EXT_NAME"; then
+    echo "WARNING: 'gemini extensions update $EXT_NAME' returned non-zero."
+    echo "         This is expected when already current, but if the vault"
+    echo "         tools misbehave, reinstall with:"
+    echo "           gemini extensions uninstall $EXT_NAME"
+    echo "           gemini extensions install $EXT_REPO_URL --consent"
+    UPDATE_WARNED=1
+  fi
 else
   gemini extensions install "$EXT_REPO_URL" --consent
 fi
@@ -65,10 +81,15 @@ cat >"$HOOK_SCRIPT" <<EOF
 
 set -euo pipefail
 
-CONTEXT=\$(bash "$CONTEXT_TARGET" 2>/dev/null || echo "Agent Memory: context script failed.")
+if CONTEXT=\$(bash "$CONTEXT_TARGET" 2>/dev/null) && [ -n "\$CONTEXT" ]; then
+  MSG="Agent Memory: SOPs and Activity Map restored."
+else
+  CONTEXT="Agent Memory: context script failed. Context restoration skipped."
+  MSG="Agent Memory: context restoration failed."
+fi
 
 jq -n --arg context "\$CONTEXT" \\
-      --arg msg "Agent Memory: SOPs and Activity Map restored." \\
+      --arg msg "\$MSG" \\
       '{"systemMessage": \$msg, "hookSpecificOutput": {"additionalContext": \$context}}'
 EOF
 
@@ -106,6 +127,11 @@ echo ""
 echo "  Extension: $EXT_NAME (launched via npx, no local build)"
 echo "  Agents:    .gemini/agents/"
 echo "  Hook:      $HOOK_SCRIPT"
+if [ -n "${UPDATE_WARNED:-}" ]; then
+  echo ""
+  echo "  NOTE: the extension update reported an error above. Verify the"
+  echo "        vault tools work before relying on this setup."
+fi
 echo ""
 echo "If you are upgrading an existing vault from v1, you MUST rebuild the RAG"
 echo "index once — see MIGRATION.md. A mixed old/new index degrades search"

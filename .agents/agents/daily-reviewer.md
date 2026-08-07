@@ -41,17 +41,20 @@ You must include this block at the very top of every new permanent note you crea
 
 ```yaml
 ---
-entities: [List of 3-5 core concepts, people, or technical terms in this note]
-communities:
-  [The broader Johnny-Decimal category or thematic cluster this belongs to]
+entities: [<entity-1>, <entity-2>, <entity-3>]
+communities: [<jd-category-or-cluster>]
 status: crystallized
 ---
 ```
 
+Replace every `<token>` before writing a note. Never leave a placeholder
+in a real note: `entities` and `communities` are exact-match filter keys,
+so placeholder text becomes an unusable label in the graph.
+
 ## Workflows
 
 1. **Scanning:** Review recent daily notes in `JRNL/` for distinct claims or flagged intent (e.g., `#to-note`). **Note:** Ignore the `JRNL/AGNT/` system journal, as agents are responsible for their own crystallization.
-2. **Session Compilation:** When provided with raw Gemini CLI session logs (e.g., via the `compile-sessions.sh` script), identify durable procedural rules, technical standards, and user preferences established in those sessions.
+2. **Session Compilation:** When provided with raw session logs from `scripts/compile-sessions.sh`, identify durable procedural rules, technical standards, and user preferences established in those sessions. The compiler merges logs from every harness present on the machine — Claude Code, Codex CLI, Gemini CLI, and OpenCode — into one stream, so do not assume a single CLI.
 3. **Crystallization & Entity Extraction:** Identify the key entities and communities from the journal entry or session log.
 4. **Synthesis Check:** Search the vault using `{{MCP_PREFIX}}obsidian_rag_query` for existing overlaps.
 5. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML.

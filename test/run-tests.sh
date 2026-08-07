@@ -246,6 +246,34 @@ else
   fail "vault-cleaner can repoint inbound links on merge"
 fi
 
+# Frontmatter examples must use replaceable tokens. Prose placeholders are
+# valid YAML: "entities: [List of 3-5 core concepts, people, or terms]" parses
+# as three junk strings, and an agent copying the block writes them into the
+# graph. entities/communities are exact-match rag_query filter keys, so junk
+# there is not cosmetic.
+python3 - <<'PY' && pass "frontmatter examples use replaceable tokens" || fail "frontmatter examples use replaceable tokens"
+import glob, os, re, sys, yaml
+root = os.environ.get("WORK_DIR", "/work/repo")
+bad = []
+srcs = glob.glob(os.path.join(root, ".agents/agents/*.md")) \
+     + glob.glob(os.path.join(root, ".agents/skills/*/SKILL.md")) \
+     + [os.path.join(root, "references/librarian/copilot-instructions.md")]
+for f in srcs:
+    for block in re.findall(r"```yaml\n(.*?)```", open(f).read(), re.S):
+        try:
+            d = yaml.safe_load(block.replace("---", "").strip())
+        except Exception:
+            continue
+        if not isinstance(d, dict):
+            continue
+        for key in ("entities", "communities"):
+            for v in (d.get(key) or []):
+                if isinstance(v, str) and not v.startswith("<"):
+                    bad.append(f"{os.path.basename(f)}: {key} -> {v!r}")
+if bad:
+    print("; ".join(bad[:4])); sys.exit(1)
+PY
+
 # AC.00 is not a valid ID: 0 is reserved at every level and there is no
 # category-level index. Policies may say it is invalid, never prescribe it.
 if grep -rn 'AC\.00' .agents/ references/ | grep -qv 'not valid\|not a valid\|is invalid'; then
