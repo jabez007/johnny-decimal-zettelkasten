@@ -54,7 +54,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 - Identify "Weakly Connected" notes (0-1 outgoing links).
 - Identify "Orphaned" notes (0 incoming links).
-- Suggest 2-3 connection candidates using `obsidian-vault-mcp_obsidian_rag_query`, prioritizing notes with shared `entities` or `communities`.
+- Suggest 2-3 connection candidates using `obsidian-vault-mcp_obsidian_rag_query`. Pass the shared `entities` or `communities` as filter parameters to find exact matches, then run an unfiltered query for candidates whose labels have drifted.
 
 ### 4. Emergent Structure
 
@@ -90,3 +90,11 @@ Always present findings as **Proposals** with Rationale.
 - Distinguish between intentional isolation and problematic orphaning.
 - Respect the Johnny Decimal structure; don't suggest links that would violate category boundaries without good reason.
 - Use `obsidian-vault-mcp_obsidian_*` tools for high-fidelity data.
+
+## Graph-Aware Querying
+
+`obsidian-vault-mcp_obsidian_rag_query` accepts `entities` and `communities` filter
+parameters. These match frontmatter labels exactly and are case-sensitive. When
+you are looking for notes related to a known entity or cluster, pass the filter
+rather than relying on semantic similarity to surface them — the filter is exact,
+the similarity is not. Use an unfiltered query only for open-ended discovery.

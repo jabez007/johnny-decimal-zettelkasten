@@ -226,6 +226,42 @@ fi
 check "obsidian_list_notes reads the vault" \
   $MCP_CMD obsidian_list_notes --path "$VAULT" --workspace_path "$WORK_DIR" --vault_id test_example
 
+# Ask the running server what it actually exposes, then confirm every tool the
+# agent policies grant still exists. This is what catches a tool being renamed
+# or dropped in a future MCP release, rather than trusting the README.
+TOOLS_JSON=$(mktemp)
+{
+  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"harness","version":"1"}}}'
+  printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+  printf '%s\n' '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+  sleep 12
+} | $MCP_CMD 2>/dev/null >"$TOOLS_JSON" || true
+
+SERVER_TOOLS=$(jq -r 'select(.id==2) | .result.tools[].name' "$TOOLS_JSON" 2>/dev/null | sort)
+if [ -z "$SERVER_TOOLS" ]; then
+  fail "MCP server advertises its tool list" "no tools/list response"
+else
+  pass "MCP server advertises its tool list ($(wc -l <<<"$SERVER_TOOLS") tools)"
+
+  GRANTED=$(grep -h '^mcp_tools:' "$WORK_DIR"/.agents/agents/*.md \
+            | sed 's/mcp_tools: \[//; s/\]//; s/, /\n/g' | grep -v '^$' | sort -u)
+  UNKNOWN=$(comm -23 <(echo "$GRANTED") <(echo "$SERVER_TOOLS"))
+  [ -z "$UNKNOWN" ] && pass "every granted MCP tool exists on the server" \
+    || fail "every granted MCP tool exists on the server" "unknown: $(echo "$UNKNOWN" | tr '\n' ' ')"
+
+  # A body may only name a tool its own policy grants.
+  body_ok=1
+  for src in "$WORK_DIR"/.agents/agents/*.md; do
+    g=$(grep '^mcp_tools:' "$src" | sed 's/mcp_tools: \[//; s/\]//; s/, /\n/g')
+    for u in $(grep -oE '\{\{MCP_PREFIX\}\}obsidian_[a-z_]+' "$src" | sed 's/{{MCP_PREFIX}}//' | sort -u); do
+      grep -qx "$u" <<<"$g" || { body_ok=0; echo "       $(basename "$src") uses ungranted $u"; }
+    done
+  done
+  [ "$body_ok" = 1 ] && pass "no agent body references a tool it was not granted" \
+    || fail "no agent body references a tool it was not granted"
+fi
+rm -f "$TOOLS_JSON"
+
 if [ -n "${SKIP_RAG_INDEX:-}" ]; then
   echo "  SKIP RAG indexing (SKIP_RAG_INDEX set)"
 else

@@ -45,9 +45,17 @@ status: distilled
 
 1. **Analyze:** Read the provided text. Identify core claims and evidence.
 2. **Extract Entities:** Identify the key entities (nodes) and communities (clusters).
-3. **Synthesis Search:** Search the vault using `obsidian_rag_query` for existing themes and overlapping notes.
+3. **Synthesis Search:** Search the vault using `obsidian_rag_query` for existing themes and overlapping notes. Filter on the `entities` you extracted in step 2 to find exact prior coverage before falling back to an unfiltered semantic query.
 4. **Draft:** Write the note using Zettelkasten principles (atomic, clear, self-contained).
 5. **Graph:** Populate the YAML frontmatter accurately. Ensure inline wikilinks in the body explain relationships to other notes.
 6. **Ripple:** Use the identified `entities` to search the vault. Propose specific edits or additions (e.g., using `obsidian_insert_at_heading`) to existing notes to integrate the new insight.
+
+## Graph-Aware Querying
+
+`obsidian_rag_query` accepts `entities` and `communities` filter
+parameters. These match frontmatter labels exactly and are case-sensitive. When
+you are looking for notes related to a known entity or cluster, pass the filter
+rather than relying on semantic similarity to surface them — the filter is exact,
+the similarity is not. Use an unfiltered query only for open-ended discovery.
 """
 nickname_candidates = ["Scribe", "Tarski"]

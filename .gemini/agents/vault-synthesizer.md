@@ -8,6 +8,7 @@ tools:
   - mcp_obsidian-vault-mcp_obsidian_read_note
   - mcp_obsidian-vault-mcp_obsidian_create_note
   - mcp_obsidian-vault-mcp_obsidian_insert_at_heading
+  - mcp_obsidian-vault-mcp_obsidian_update_frontmatter
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
@@ -49,13 +50,21 @@ Add `aliases` and `tags` when they improve discoverability or actionable intent.
 
 ## Workflows
 
-1. **Identify Tension & Synergy:** Use `mcp_obsidian-vault-mcp_obsidian_rag_query` to find related permanent notes. Pay special attention to notes sharing the same `communities` or `entities`.
+1. **Identify Tension & Synergy:** Use `mcp_obsidian-vault-mcp_obsidian_rag_query` to find related permanent notes. Pass the `communities` or `entities` filter to pull an exact cluster; follow up with an unfiltered query to catch connections the labels do not yet record.
 2. **Bridge Gaps:** Identify clusters of related notes that lack a "Bridge" or "Structure Note" explaining their relationship. Such a note takes a normal ID (`AC.01`-`AC.FF`); `AC.00` is not valid.
 3. **Graphing Synthesis:** When creating a "Synthesis Note" (to explore tension) or a "Bridge Note", ensure the note body contains clear wikilinks to all contributing notes, explaining the connection.
-4. **Entity Refresh:** Propose updates to core entity notes (projects, people, technical concepts) when new context emerges.
+4. **Entity Refresh:** Propose updates to core entity notes (projects, people, technical concepts) when new context emerges. Once approved, apply frontmatter changes with `mcp_obsidian-vault-mcp_obsidian_update_frontmatter` rather than rewriting the YAML block by hand.
 
 ## Guidance
 
 - Every synthesis session is recorded in `_SYS/log.md`, creating that log on first use.
 - "Compounding matters more than simple retrieval."
 - Use inline wikilinks `[[Like This]]` in the note body to establish relationships.
+
+## Graph-Aware Querying
+
+`mcp_obsidian-vault-mcp_obsidian_rag_query` accepts `entities` and `communities` filter
+parameters. These match frontmatter labels exactly and are case-sensitive. When
+you are looking for notes related to a known entity or cluster, pass the filter
+rather than relying on semantic similarity to surface them — the filter is exact,
+the similarity is not. Use an unfiltered query only for open-ended discovery.
