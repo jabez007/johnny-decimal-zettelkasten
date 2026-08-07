@@ -401,7 +401,8 @@ for hook in .codex/hooks/session-start.sh .claude/hooks/session-start.sh; do
 done
 
 # A failing context script must still yield a diagnostic, not an empty context.
-cp scripts/agent-memory-context.sh /tmp/ctx-backup.sh
+CTX_BACKUP=$(mktemp)
+cp scripts/agent-memory-context.sh "$CTX_BACKUP"
 printf '#!/bin/bash\necho "simulated failure" >&2\nexit 1\n' >scripts/agent-memory-context.sh
 hook_ok=1
 for hook in .codex/hooks/session-start.sh .claude/hooks/session-start.sh; do
@@ -410,7 +411,7 @@ for hook in .codex/hooks/session-start.sh .claude/hooks/session-start.sh; do
 done
 [ "$hook_ok" = 1 ] && pass "hooks degrade to a diagnostic when the context script fails" \
   || fail "hooks degrade to a diagnostic when the context script fails" "got an empty context"
-mv /tmp/ctx-backup.sh scripts/agent-memory-context.sh
+mv "$CTX_BACKUP" scripts/agent-memory-context.sh
 
 # The jq refresh branch must tolerate a SessionStart entry with no hooks array.
 if echo '{"hooks":{"SessionStart":[{"matcher":"*"},{"matcher":"x","hooks":[{"name":"agent-memory-boot","command":"old"}]}]}}' \
@@ -432,6 +433,25 @@ section "5. Session compiler"
 
 check "compile-sessions.sh handles no logs" \
   env AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1
+
+# Actually execute the generated wrapper. Checking only that the file exists
+# once let a broken repo-root expression ship: the wrapper resolved to two
+# newline-joined paths and could not exec the compiler at all.
+WRAPPER=.gemini/skills/librarian-vault-manager/scripts/compile-sessions.sh
+out=$(AI_MEMORY_DRY_RUN=1 bash "$WRAPPER" 1 2>&1)
+if echo "$out" | grep -q 'Scanning for agent CLI session logs'; then
+  pass "generated wrapper execs the compiler"
+else
+  fail "generated wrapper execs the compiler" "$(echo "$out" | tail -1)"
+fi
+
+# The wrapper must resolve from its own location, not the caller's cwd.
+out=$(cd / && AI_MEMORY_DRY_RUN=1 bash "$WORK_DIR/$WRAPPER" 1 2>&1)
+if echo "$out" | grep -q 'Scanning for agent CLI session logs'; then
+  pass "generated wrapper works from an unrelated cwd"
+else
+  fail "generated wrapper works from an unrelated cwd" "$(echo "$out" | tail -1)"
+fi
 
 out=$(AI_MEMORY_HOST=bogus AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1 2>&1)
 echo "$out" | grep -q 'No session logs found' && pass "reports empty log set cleanly" \
@@ -482,7 +502,7 @@ if echo "$out" | grep -q 'No session logs found'; then
 else
   fail "noise-only transcript reports no logs" "$(echo "$out" | tail -1)"
 fi
-rm -rf "$HOME/.claude/projects" "$out"
+rm -rf "$HOME/.claude/projects"
 
 # --- 6. Migration script ----------------------------------------------------
 section "6. Migration script"
