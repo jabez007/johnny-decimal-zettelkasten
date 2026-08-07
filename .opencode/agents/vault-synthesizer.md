@@ -2,7 +2,7 @@
 description: Specialist in knowledge compounding and synthesis. Identifies contradictions, synergies, and gaps; proposes "Bridge" or "Synthesis" notes.
 mode: subagent
 permission:
-  edit: allow
+  edit: deny
   bash: deny
   webfetch: deny
   "obsidian-vault-mcp_*": deny

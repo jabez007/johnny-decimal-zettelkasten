@@ -2,7 +2,7 @@
 description: Processes long-form sources (articles, transcripts) into atomic, concept-oriented permanent notes.
 mode: subagent
 permission:
-  edit: allow
+  edit: deny
   bash: deny
   webfetch: deny
   "obsidian-vault-mcp_*": deny

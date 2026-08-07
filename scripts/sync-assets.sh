@@ -216,12 +216,17 @@ for src in "$CANONICAL_AGENTS"/*.md; do
     echo "description: $description"
     echo "mode: subagent"
     echo "permission:"
+    # Derive filesystem permissions from the declared capabilities, not from
+    # the readonly flag. An agent that writes only through MCP has no business
+    # editing the working tree, and the other harnesses already withhold their
+    # Write tool from it — this keeps OpenCode from being the permissive one.
+    case " $capabilities " in
+      *" write "*|*" edit "*) echo "  edit: allow" ;;
+      *)                      echo "  edit: deny" ;;
+    esac
     if [ "$readonly_flag" = "true" ]; then
-      # Read-only agents analyze and propose; they never edit the working tree.
-      echo "  edit: deny"
       echo "  bash: deny"
     else
-      echo "  edit: allow"
       case " $capabilities " in
         *" bash "*) echo "  bash: ask" ;;
         *)          echo "  bash: deny" ;;

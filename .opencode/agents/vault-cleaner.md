@@ -2,7 +2,7 @@
 description: Specialist in vault hygiene. Detects duplicates, misplaced notes, and naming inconsistencies; proposes consolidation and restructuring.
 mode: subagent
 permission:
-  edit: allow
+  edit: deny
   bash: deny
   webfetch: deny
   "obsidian-vault-mcp_*": deny

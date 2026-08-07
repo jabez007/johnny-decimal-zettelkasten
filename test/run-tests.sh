@@ -158,6 +158,31 @@ else
   fail "OpenCode agents re-allow their declared MCP tools"
 fi
 
+# OpenCode's edit permission must track the declared capabilities, not the
+# readonly flag. Otherwise an agent that writes only through MCP gets working
+# tree access in OpenCode while every other harness withholds its Write tool.
+parity_ok=1
+for src in .agents/agents/*.md; do
+  n=$(basename "$src" .md)
+  caps=$(grep '^capabilities:' "$src")
+  oc_edit=$(grep -m1 '^  edit:' ".opencode/agents/$n.md" | awk '{print $2}')
+  if echo "$caps" | grep -qE 'write|edit'; then want=allow; else want=deny; fi
+  [ "$oc_edit" = "$want" ] || { parity_ok=0; echo "       $n: capabilities imply edit:$want, OpenCode says $oc_edit"; }
+  # Claude only lists Write when the capability is declared.
+  if grep -q '^tools:.*Write' ".claude/agents/$n.md"; then cw=allow; else cw=deny; fi
+  [ "$cw" = "$want" ] || { parity_ok=0; echo "       $n: capabilities imply Write=$want, Claude says $cw"; }
+done
+[ "$parity_ok" = 1 ] && pass "filesystem write permissions agree across harnesses" \
+  || fail "filesystem write permissions agree across harnesses"
+
+# The scaffolder builds vault structure and must do it through MCP, not shell.
+if grep -q '^mcp_tools:.*obsidian_create_note' .agents/agents/vault-scaffolder.md \
+   && ! grep -qE '^capabilities:.*(write|bash)' .agents/agents/vault-scaffolder.md; then
+  pass "vault-scaffolder builds structure via MCP, not shell"
+else
+  fail "vault-scaffolder builds structure via MCP, not shell"
+fi
+
 # An agent declared readonly must not hold a mutating MCP tool. The auditor
 # reads untrusted note content, so a write capability there is a prompt
 # injection path into the vault.
