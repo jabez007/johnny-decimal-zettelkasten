@@ -31,7 +31,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
 - **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
 - **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).
-- **Tool Usage:** When interacting with the Obsidian vault, you MUST use the tools prefixed with `` (e.g., use `obsidian_create_note` instead of `obsidian_create_note`).
+- **Tool Usage:** When interacting with the Obsidian vault, you MUST use the `obsidian-vault-mcp` MCP tools exactly as they are named in your tool configuration, rather than generic file-editing tools. The MCP backend enforces the vault boundary and re-indexes each note it writes.
 
 ## YAML Frontmatter Schema (Mandatory)
 

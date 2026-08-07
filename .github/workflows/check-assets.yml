@@ -5,12 +5,18 @@ on:
     branches: [master]
   pull_request:
 
+# Neither job needs write access or authenticated git commands.
+permissions:
+  contents: read
+
 jobs:
   sync-assets:
     name: Generated harness assets are in sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Regenerate harness assets
         run: ./scripts/sync-assets.sh
@@ -36,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Run shellcheck
         run: |

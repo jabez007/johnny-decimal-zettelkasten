@@ -76,7 +76,10 @@ for target in "${TARGETS[@]}"; do
 
 set -euo pipefail
 
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# Resolve from this script's own location rather than the caller's cwd, so
+# invoking the wrapper from outside the worktree still finds the right repo.
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || cd "$SCRIPT_DIR/../../../.." && pwd)
 exec "$REPO_ROOT/scripts/compile-sessions.sh" "$@"
 WRAPPER
   chmod +x "$target/scripts/compile-sessions.sh"
@@ -204,6 +207,10 @@ for src in "$CANONICAL_AGENTS"/*.md; do
   } >".gemini/agents/$name.md"
 
   # --- OpenCode: permission map rather than a tool list ---------------------
+  # OpenCode has no per-agent tool allowlist, so an agent would otherwise
+  # inherit every MCP tool the server exposes. Deny the whole namespace and
+  # re-allow only this agent's declared tools, matching the explicit
+  # allowlists the other three harnesses get.
   {
     echo "---"
     echo "description: $description"
@@ -221,6 +228,10 @@ for src in "$CANONICAL_AGENTS"/*.md; do
       esac
     fi
     echo "  webfetch: deny"
+    echo "  \"${OPENCODE_PREFIX}*\": deny"
+    for tool in $mcp_tools; do
+      echo "  \"${OPENCODE_PREFIX}${tool}\": allow"
+    done
     echo "---"
     echo ""
     echo "<!-- GENERATED FILE — DO NOT EDIT."

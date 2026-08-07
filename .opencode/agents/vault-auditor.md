@@ -5,6 +5,13 @@ permission:
   edit: deny
   bash: deny
   webfetch: deny
+  "obsidian-vault-mcp_*": deny
+  "obsidian-vault-mcp_obsidian_get_broken_links": allow
+  "obsidian-vault-mcp_obsidian_get_backlinks": allow
+  "obsidian-vault-mcp_obsidian_rag_query": allow
+  "obsidian-vault-mcp_obsidian_list_notes": allow
+  "obsidian-vault-mcp_obsidian_get_links": allow
+  "obsidian-vault-mcp_obsidian_replace_in_note": allow
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.

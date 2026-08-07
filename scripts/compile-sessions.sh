@@ -93,6 +93,20 @@ append_separator() {
     printf '\n---\n\n' >>"$TMP_FILE"
 }
 
+# Run an extractor and separate its output only if it actually retained text.
+# Without this, a transcript of pure tool-call noise still writes a separator,
+# leaving TMP_FILE non-empty and sending the reviewer a payload of delimiters.
+# `wc -c` is used rather than `stat` because the two differ on GNU and BSD.
+extract_and_separate() {
+    local before after
+    before=$(wc -c <"$TMP_FILE")
+    "$@"
+    after=$(wc -c <"$TMP_FILE")
+    if [ "$after" -gt "$before" ]; then
+        append_separator
+    fi
+}
+
 extract_gemini_log() {
     jq -r '
         def render_text:
@@ -166,31 +180,27 @@ extract_opencode_logs() {
           $END_CLAUSE
         ORDER BY m.time_created, p.time_created;
     " >>"$TMP_FILE" 2>/dev/null || echo "Note: could not read OpenCode database." >&2
-    append_separator
 }
 
 while read -r file; do
     [ -z "$file" ] && continue
     echo "Processing Gemini log $file..."
-    extract_gemini_log "$file"
-    append_separator
+    extract_and_separate extract_gemini_log "$file"
 done < <(find_logs "$HOME/.gemini/tmp" \( -path '*/chats/*' \) \( -name "*.jsonl" -o -name "*.json" \))
 
 while read -r file; do
     [ -z "$file" ] && continue
     echo "Processing Codex log $file..."
-    extract_codex_log "$file"
-    append_separator
+    extract_and_separate extract_codex_log "$file"
 done < <(find_logs "$HOME/.codex/sessions" -name "*.jsonl")
 
 while read -r file; do
     [ -z "$file" ] && continue
     echo "Processing Claude Code log $file..."
-    extract_claude_log "$file"
-    append_separator
+    extract_and_separate extract_claude_log "$file"
 done < <(find_logs "$HOME/.claude/projects" -name "*.jsonl")
 
-extract_opencode_logs
+extract_and_separate extract_opencode_logs
 
 if [ ! -s "$TMP_FILE" ]; then
     echo "No session logs found for the specified range."
@@ -248,10 +258,17 @@ $PROMPT" <"$TMP_FILE"
 $PROMPT" --permission-mode acceptEdits --add-dir "$REPO_ROOT" <"$TMP_FILE"
         ;;
     opencode)
-        opencode run --agent daily-reviewer --dir "$REPO_ROOT" "$PROMPT
+        # Attach the logs as a file. Passing them as an argument overflows
+        # ARG_MAX on any sizeable compilation (a 30-day sweep already exceeds
+        # the 2MB limit on Linux) and opencode never starts.
+        LOG_FILE="$(dirname "$TMP_FILE")/session-logs-$$.md"
+        cp "$TMP_FILE" "$LOG_FILE"
+        trap 'rm -f "$TMP_FILE" "$LOG_FILE"' EXIT
+        opencode run --agent daily-reviewer --dir "$REPO_ROOT" \
+            --file "$LOG_FILE" \
+            "$PROMPT
 
---- SESSION LOGS ---
-$(cat "$TMP_FILE")"
+The raw session logs are in the attached file."
         ;;
     *)
         echo "Error: Unsupported AI_MEMORY_HOST '$HOST_CLI'. Use gemini, codex, claude, or opencode."

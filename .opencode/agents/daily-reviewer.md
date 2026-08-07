@@ -5,6 +5,15 @@ permission:
   edit: allow
   bash: ask
   webfetch: deny
+  "obsidian-vault-mcp_*": deny
+  "obsidian-vault-mcp_obsidian_search_notes": allow
+  "obsidian-vault-mcp_obsidian_read_note": allow
+  "obsidian-vault-mcp_obsidian_get_daily_note": allow
+  "obsidian-vault-mcp_obsidian_rag_query": allow
+  "obsidian-vault-mcp_obsidian_rag_index": allow
+  "obsidian-vault-mcp_obsidian_create_note": allow
+  "obsidian-vault-mcp_obsidian_insert_at_heading": allow
+  "obsidian-vault-mcp_obsidian_replace_in_note": allow
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
@@ -37,7 +46,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
 - **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
 - **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).
-- **Tool Usage:** When interacting with the Obsidian vault, you MUST use the tools prefixed with `obsidian-vault-mcp_` (e.g., use `obsidian-vault-mcp_obsidian_create_note` instead of `obsidian_create_note`).
+- **Tool Usage:** When interacting with the Obsidian vault, you MUST use the `obsidian-vault-mcp` MCP tools exactly as they are named in your tool configuration, rather than generic file-editing tools. The MCP backend enforces the vault boundary and re-indexes each note it writes.
 
 ## YAML Frontmatter Schema (Mandatory)
 

@@ -14,7 +14,12 @@ touches host plugin registrations, index storage, and the RAG index itself.
 ```bash
 git pull
 ./scripts/migrate-v2.sh
-./.claude/setup-environment.sh     # run for each harness you actually use
+
+# Then run the setup script for each harness you actually use:
+./.claude/setup-environment.sh      # Claude Code
+./.codex/setup-environment.sh       # Codex CLI
+./.gemini/setup-environment.sh      # Gemini CLI
+./.opencode/setup-environment.sh    # OpenCode
 ```
 
 The one step you cannot skip is the **RAG index rebuild** — see below.
@@ -92,7 +97,7 @@ already drifted apart. Now there is one canonical copy and a generator.
 
 **Canonical (edit these):**
 
-```
+```text
 references/librarian/*.md                        shared doctrine
 .agents/skills/librarian-vault-manager/SKILL.md  skill body
 .agents/agents/*.md                              agent policies
@@ -100,7 +105,7 @@ references/librarian/*.md                        shared doctrine
 
 **Generated (never edit — `scripts/sync-assets.sh` overwrites them):**
 
-```
+```text
 .claude/skills/…   .claude/agents/*.md
 .gemini/skills/…   .gemini/agents/*.md
                    .opencode/agents/*.md

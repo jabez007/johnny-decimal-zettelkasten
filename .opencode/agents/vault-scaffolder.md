@@ -5,6 +5,7 @@ permission:
   edit: allow
   bash: ask
   webfetch: deny
+  "obsidian-vault-mcp_*": deny
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.

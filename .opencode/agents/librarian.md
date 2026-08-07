@@ -5,6 +5,9 @@ permission:
   edit: deny
   bash: deny
   webfetch: deny
+  "obsidian-vault-mcp_*": deny
+  "obsidian-vault-mcp_obsidian_search_notes": allow
+  "obsidian-vault-mcp_obsidian_read_note": allow
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.

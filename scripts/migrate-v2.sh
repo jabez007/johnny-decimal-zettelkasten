@@ -90,7 +90,10 @@ echo "--- 4. Git LFS tracking patterns ---"
 GITATTRS="$REPO_ROOT/.gitattributes"
 if [ -f "$GITATTRS" ] && grep -q "\.gemini-obsidian/" "$GITATTRS"; then
   echo "Rewriting .gemini-obsidian/ LFS patterns to .obsidian-vault-mcp/..."
-  sed -i 's#\.gemini-obsidian/#.obsidian-vault-mcp/#g' "$GITATTRS"
+  # A temp file keeps this working on both GNU and BSD sed; BSD's -i
+  # requires a suffix argument and would otherwise consume the script.
+  sed 's#\.gemini-obsidian/#.obsidian-vault-mcp/#g' "$GITATTRS" >"$GITATTRS.tmp" \
+    && mv "$GITATTRS.tmp" "$GITATTRS"
   echo "Updated $GITATTRS."
 else
   echo "No legacy LFS patterns to rewrite."
@@ -153,10 +156,14 @@ else
   echo "Vault: $VAULT_PATH"
   if confirm "Rebuild the RAG index now? (this may take several minutes)"; then
     # shellcheck disable=SC2086
+    # Omit --vault_id when the config has none: an empty identifier would
+    # target the wrong index and defeat the rebuild.
+    VAULT_ID_ARGS=()
+    [ -n "${VAULT_ID:-}" ] && VAULT_ID_ARGS=(--vault_id "$VAULT_ID")
     $MCP_CMD obsidian_rag_index \
       --path "$VAULT_PATH" \
       --workspace_path "${WORKSPACE_PATH:-$REPO_ROOT}" \
-      --vault_id "${VAULT_ID:-}" \
+      "${VAULT_ID_ARGS[@]}" \
       --force_reindex true
     echo "Index rebuilt."
   else

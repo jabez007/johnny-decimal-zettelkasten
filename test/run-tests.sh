@@ -142,6 +142,31 @@ check "Claude agents use mcp__ prefix" \
 check "Gemini agents use mcp_ prefix" \
   grep -q 'mcp_obsidian-vault-mcp_obsidian_read_note' .gemini/agents/librarian.md
 
+# OpenCode has no tool allowlist, so each agent must deny the MCP namespace
+# and re-allow only its own tools. Without this an agent inherits every tool
+# the server exposes, including writes on a read-only agent.
+oc_ok=1
+for f in .opencode/agents/*.md; do
+  grep -q '"obsidian-vault-mcp_\*": deny' "$f" || oc_ok=0
+done
+[ "$oc_ok" = 1 ] && pass "OpenCode agents deny the MCP namespace by default" \
+  || fail "OpenCode agents deny the MCP namespace by default"
+
+if grep -q '"obsidian-vault-mcp_obsidian_read_note": allow' .opencode/agents/librarian.md; then
+  pass "OpenCode agents re-allow their declared MCP tools"
+else
+  fail "OpenCode agents re-allow their declared MCP tools"
+fi
+
+# Codex strips the prefix placeholder, so no generated text may end up saying
+# "use X instead of X" or referencing an empty prefix.
+if grep -q 'prefixed with ``' .codex/agents/*.toml; then
+  fail "Codex agents have no empty-prefix artifact" \
+       "$(grep -l 'prefixed with ``' .codex/agents/*.toml | tr '\n' ' ')"
+else
+  pass "Codex agents have no empty-prefix artifact"
+fi
+
 # --- 3. MCP server integration ---------------------------------------------
 section "3. MCP server integration"
 
@@ -165,8 +190,10 @@ if [ -n "${SKIP_RAG_INDEX:-}" ]; then
   echo "  SKIP RAG indexing (SKIP_RAG_INDEX set)"
 else
   echo "  (indexing downloads the embedding model on first run; this is slow)"
+  INDEX_LOG=$(mktemp); QUERY_LOG=$(mktemp)
+  trap 'rm -f "$INDEX_LOG" "$QUERY_LOG"' EXIT
   if $MCP_CMD obsidian_rag_index --path "$VAULT" --workspace_path "$WORK_DIR" \
-       --vault_id test_example --force_reindex true >/tmp/index.log 2>&1; then
+       --vault_id test_example --force_reindex true >"$INDEX_LOG" 2>&1; then
     pass "obsidian_rag_index --force_reindex true"
     if [ -d "$WORK_DIR/.obsidian-vault-mcp" ]; then
       pass "index written to .obsidian-vault-mcp/ (v2 storage name)"
@@ -175,18 +202,18 @@ else
            "found: $(find "$WORK_DIR" -maxdepth 1 -name '.*obsidian*' -printf '%f ' 2>/dev/null)"
     fi
     if $MCP_CMD obsidian_rag_query --query "Johnny Decimal index" --path "$VAULT" \
-         --workspace_path "$WORK_DIR" --vault_id test_example >/tmp/query.log 2>&1; then
+         --workspace_path "$WORK_DIR" --vault_id test_example >"$QUERY_LOG" 2>&1; then
       pass "obsidian_rag_query returns results"
-      if grep -q 'undefined' /tmp/query.log; then
+      if grep -q 'undefined' "$QUERY_LOG"; then
         fail "rag_query relevance score renders" "output contains 'undefined'"
       else
         pass "rag_query relevance score renders"
       fi
     else
-      fail "obsidian_rag_query returns results" "$(tail -3 /tmp/query.log | tr '\n' ' ')"
+      fail "obsidian_rag_query returns results" "$(tail -3 "$QUERY_LOG" | tr '\n' ' ')"
     fi
   else
-    fail "obsidian_rag_index --force_reindex true" "$(tail -5 /tmp/index.log | tr '\n' ' ')"
+    fail "obsidian_rag_index --force_reindex true" "$(tail -5 "$INDEX_LOG" | tr '\n' ' ')"
   fi
 fi
 
@@ -240,6 +267,33 @@ for hook in .codex/hooks/session-start.sh .claude/hooks/session-start.sh; do
   fi
 done
 
+# A failing context script must still yield a diagnostic, not an empty context.
+cp scripts/agent-memory-context.sh /tmp/ctx-backup.sh
+printf '#!/bin/bash\necho "simulated failure" >&2\nexit 1\n' >scripts/agent-memory-context.sh
+hook_ok=1
+for hook in .codex/hooks/session-start.sh .claude/hooks/session-start.sh; do
+  ctx=$(bash "$hook" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""')
+  [ -n "$ctx" ] || hook_ok=0
+done
+[ "$hook_ok" = 1 ] && pass "hooks degrade to a diagnostic when the context script fails" \
+  || fail "hooks degrade to a diagnostic when the context script fails" "got an empty context"
+mv /tmp/ctx-backup.sh scripts/agent-memory-context.sh
+
+# The jq refresh branch must tolerate a SessionStart entry with no hooks array.
+if echo '{"hooks":{"SessionStart":[{"matcher":"*"},{"matcher":"x","hooks":[{"name":"agent-memory-boot","command":"old"}]}]}}' \
+   | jq --arg name "agent-memory-boot" --arg script "/new" '
+       .hooks |= (. // {}) | .hooks.SessionStart |= (. // [])
+       | if any(.hooks.SessionStart[]; (.hooks? // []) | any(.[]; .name == $name)) then
+           .hooks.SessionStart |= map(
+             if (.hooks | type) == "array" then
+               .hooks |= map(if .name == $name then .command = $script else . end)
+             else . end)
+         else . end' >/dev/null 2>&1; then
+  pass "hook registration tolerates entries without a hooks array"
+else
+  fail "hook registration tolerates entries without a hooks array"
+fi
+
 # --- 5. Session compiler ----------------------------------------------------
 section "5. Session compiler"
 
@@ -281,7 +335,21 @@ echo "$comp" | grep -q 'prefer vitest in this repo' && pass "extracts OpenCode S
 
 out=$(AI_MEMORY_HOST=bogus bash scripts/compile-sessions.sh 1 2>&1)
 echo "$out" | grep -q 'Unsupported AI_MEMORY_HOST' && pass "rejects unknown AI_MEMORY_HOST" \
-  || fail "rejects unknown AI_MEMORY_HOST" "$out"
+  || fail "rejects unknown AI_MEMORY_HOST"
+
+# A transcript holding only tool-call noise must not produce a payload of bare
+# separators, which would look non-empty and invoke a reviewer on nothing.
+rm -rf "$HOME/.claude/projects" "$HOME/.local/share/opencode"
+mkdir -p "$HOME/.claude/projects/-noise"
+echo '{"type":"user","message":{"role":"user","content":[{"tool_use_id":"x","type":"tool_result","content":"noise"}]}}' \
+  >"$HOME/.claude/projects/-noise/s.jsonl"
+out=$(AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1 2>&1)
+if echo "$out" | grep -q 'No session logs found'; then
+  pass "noise-only transcript reports no logs"
+else
+  fail "noise-only transcript reports no logs" "$(echo "$out" | tail -1)"
+fi
+rm -rf "$HOME/.claude/projects" "$out"
 
 # --- 6. Migration script ----------------------------------------------------
 section "6. Migration script"

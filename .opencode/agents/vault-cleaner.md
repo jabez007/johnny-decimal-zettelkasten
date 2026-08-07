@@ -5,6 +5,12 @@ permission:
   edit: allow
   bash: deny
   webfetch: deny
+  "obsidian-vault-mcp_*": deny
+  "obsidian-vault-mcp_obsidian_rag_query": allow
+  "obsidian-vault-mcp_obsidian_read_note": allow
+  "obsidian-vault-mcp_obsidian_append_note": allow
+  "obsidian-vault-mcp_obsidian_create_note": allow
+  "obsidian-vault-mcp_obsidian_move_note": allow
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.

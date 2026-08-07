@@ -87,8 +87,12 @@ jq --arg name "agent-memory-boot" \
    | .hooks.SessionStart |= (. // [])
    | if any(.hooks.SessionStart[]; (.hooks? // []) | any(.[]; .name == $name)) then
        # Already registered: refresh the command path in case the repo moved.
+       # Only touch entries that actually carry a hooks array; mapping over a
+       # missing key makes jq fail with "Cannot iterate over null".
        .hooks.SessionStart |= map(
-         .hooks |= map(if .name == $name then .command = $script else . end)
+         if (.hooks | type) == "array" then
+           .hooks |= map(if .name == $name then .command = $script else . end)
+         else . end
        )
      else
        .hooks.SessionStart += [{"matcher": "*", "hooks": [{"name": $name, "type": "command", "command": $script}]}]

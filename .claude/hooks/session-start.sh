@@ -23,4 +23,10 @@ if [ ! -f "$CONTEXT_SCRIPT" ]; then
   exit 0
 fi
 
-emit_context "$(bash "$CONTEXT_SCRIPT")"
+# Capture separately so a failing context script degrades to a diagnostic
+# instead of emitting an empty additionalContext.
+if ! CONTEXT=$(bash "$CONTEXT_SCRIPT" 2>&1) || [ -z "$CONTEXT" ]; then
+  CONTEXT="Agent Memory: context script failed. Context restoration skipped.${CONTEXT:+ Details: $CONTEXT}"
+fi
+
+emit_context "$CONTEXT"
