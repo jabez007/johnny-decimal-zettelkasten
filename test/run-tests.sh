@@ -166,21 +166,53 @@ for src in .agents/agents/*.md; do
   n=$(basename "$src" .md)
   caps=$(grep '^capabilities:' "$src")
   oc_edit=$(grep -m1 '^  edit:' ".opencode/agents/$n.md" | awk '{print $2}')
-  if echo "$caps" | grep -qE 'write|edit'; then want=allow; else want=deny; fi
+  scope=$(grep -m1 '^write_scope:' "$src" || true)
+  if echo "$caps" | grep -qE 'write|edit'; then
+    # A scoped writer prompts instead of being granted outright.
+    if [ -n "$scope" ]; then want=ask; else want=allow; fi
+    cw_want=allow
+  else
+    want=deny; cw_want=deny
+  fi
   [ "$oc_edit" = "$want" ] || { parity_ok=0; echo "       $n: capabilities imply edit:$want, OpenCode says $oc_edit"; }
   # Claude only lists Write when the capability is declared.
   if grep -q '^tools:.*Write' ".claude/agents/$n.md"; then cw=allow; else cw=deny; fi
-  [ "$cw" = "$want" ] || { parity_ok=0; echo "       $n: capabilities imply Write=$want, Claude says $cw"; }
+  [ "$cw" = "$cw_want" ] || { parity_ok=0; echo "       $n: capabilities imply Write=$cw_want, Claude says $cw"; }
 done
 [ "$parity_ok" = 1 ] && pass "filesystem write permissions agree across harnesses" \
   || fail "filesystem write permissions agree across harnesses"
 
-# The scaffolder builds vault structure and must do it through MCP, not shell.
-if grep -q '^mcp_tools:.*obsidian_create_note' .agents/agents/vault-scaffolder.md \
-   && ! grep -qE '^capabilities:.*(write|bash)' .agents/agents/vault-scaffolder.md; then
-  pass "vault-scaffolder builds structure via MCP, not shell"
+# The scaffolder creates notes through MCP and never through a shell. Its one
+# filesystem write is Bases config, which must be declared as a write_scope.
+sc=.agents/agents/vault-scaffolder.md
+if grep -q '^mcp_tools:.*obsidian_create_note' "$sc" && ! grep -qE '^capabilities:.*bash' "$sc"; then
+  pass "vault-scaffolder creates notes via MCP and has no shell"
 else
-  fail "vault-scaffolder builds structure via MCP, not shell"
+  fail "vault-scaffolder creates notes via MCP and has no shell"
+fi
+
+# Any agent holding a filesystem write capability must declare what it is for.
+scope_ok=1
+for src in .agents/agents/*.md; do
+  grep -qE '^capabilities:.*(write|edit)' "$src" || continue
+  n=$(basename "$src" .md)
+  # daily-reviewer writes freely by design; everything else must be scoped.
+  [ "$n" = "daily-reviewer" ] && continue
+  grep -q '^write_scope:' "$src" || { scope_ok=0; echo "       $n: has write but declares no write_scope"; }
+done
+[ "$scope_ok" = 1 ] && pass "scoped writers declare a write_scope" \
+  || fail "scoped writers declare a write_scope"
+
+# The declared scope must reach every harness body, since no harness can bound
+# a write tool to a path pattern.
+if grep -q '^write_scope:' "$sc"; then
+  sc_ok=1
+  for g in .claude/agents/vault-scaffolder.md .gemini/agents/vault-scaffolder.md \
+           .opencode/agents/vault-scaffolder.md .codex/agents/vault-scaffolder.toml; do
+    grep -q 'Filesystem Write Scope' "$g" || { sc_ok=0; echo "       missing scope section: $g"; }
+  done
+  [ "$sc_ok" = 1 ] && pass "write scope is stated in every generated harness copy" \
+    || fail "write scope is stated in every generated harness copy"
 fi
 
 # An agent declared readonly must not hold a mutating MCP tool. The auditor

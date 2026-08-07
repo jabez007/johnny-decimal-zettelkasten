@@ -157,7 +157,22 @@ for src in "$CANONICAL_AGENTS"/*.md; do
   capabilities=$(unlist "$(fm_value "$src" capabilities)")
   mcp_tools=$(unlist "$(fm_value "$src" mcp_tools)")
   nicknames=$(unlist "$(fm_value "$src" nicknames)")
+  # Optional: restricts filesystem writes to a single path pattern. Harnesses
+  # cannot scope a write tool by path, so the scope is enforced by prompting
+  # where that is supported and stated as a hard rule in the body everywhere.
+  write_scope=$(fm_value "$src" write_scope)
   body=$(fm_body "$src")
+
+  if [ -n "$write_scope" ]; then
+    body="$body
+
+## Filesystem Write Scope
+
+Your filesystem write tool is permitted for **\`$write_scope\`** and nothing
+else. Every other file you create goes through the Obsidian MCP tools, which
+enforce the vault boundary. Check the path against that pattern before each
+direct write; if it does not match, you are using the wrong tool."
+  fi
 
   AGENT_COUNT=$((AGENT_COUNT + 1))
 
@@ -221,8 +236,12 @@ for src in "$CANONICAL_AGENTS"/*.md; do
     # editing the working tree, and the other harnesses already withhold their
     # Write tool from it — this keeps OpenCode from being the permissive one.
     case " $capabilities " in
-      *" write "*|*" edit "*) echo "  edit: allow" ;;
-      *)                      echo "  edit: deny" ;;
+      *" write "*|*" edit "*)
+        # A scoped writer prompts, since no harness can bound a write tool to a
+        # path pattern. The prompt is the only real check on the scope rule.
+        if [ -n "$write_scope" ]; then echo "  edit: ask"; else echo "  edit: allow"; fi
+        ;;
+      *) echo "  edit: deny" ;;
     esac
     if [ "$readonly_flag" = "true" ]; then
       echo "  bash: deny"
