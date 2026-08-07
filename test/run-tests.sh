@@ -456,6 +456,79 @@ else
   fail "hook registration tolerates entries without a hooks array"
 fi
 
+# --- 4b. Harness parity -----------------------------------------------------
+section "4b. Harness parity"
+
+# The four setup scripts are hand-maintained, so the generator cannot keep them
+# aligned. These assert the contract they are all supposed to honour.
+for h in claude codex gemini opencode; do
+  f=".$h/setup-environment.sh"
+  missing=""
+  grep -q 'set -euo pipefail' "$f"                  || missing="$missing set-euo"
+  grep -qE "for cmd in .*git.*jq.*node.*npx.*$h" "$f" || missing="$missing dep-check"
+  grep -q 'configure-vault.sh' "$f"                 || missing="$missing configure-vault"
+  grep -q 'sync-assets.sh' "$f"                     || missing="$missing sync-assets"
+  grep -q 'MIGRATION.md' "$f"                       || missing="$missing reindex-warning"
+  [ -z "$missing" ] && pass "$f honours the setup contract" \
+    || fail "$f honours the setup contract" "missing:$missing"
+done
+
+# Every SessionStart hook must behave identically on both paths. The Gemini one
+# is generated inside a heredoc, so it is extracted and executed the same way
+# the setup script would write it. A degradation fix landed for Claude and
+# Codex before Gemini once already; this is what catches that next time.
+HOOK_DIR=$(mktemp -d)
+CONTEXT_TARGET="$WORK_DIR/scripts/agent-memory-context.sh"
+export CONTEXT_TARGET
+sed -n '/^cat >"\$HOOK_SCRIPT" <<EOF$/,/^EOF$/p' .gemini/setup-environment.sh \
+  | sed '1d;$d' >"$HOOK_DIR/raw"
+if [ -s "$HOOK_DIR/raw" ]; then
+  eval "cat <<EOF
+$(cat "$HOOK_DIR/raw")
+EOF" >"$HOOK_DIR/gemini-hook.sh"
+  pass "Gemini hook is extractable from the setup heredoc"
+else
+  fail "Gemini hook is extractable from the setup heredoc"
+fi
+
+HOOKS=(".claude/hooks/session-start.sh" ".codex/hooks/session-start.sh" "$HOOK_DIR/gemini-hook.sh")
+
+# Path 1: a working context script yields real content.
+ok=1
+for hk in "${HOOKS[@]}"; do
+  [ -f "$hk" ] || { ok=0; echo "       missing hook: $hk"; continue; }
+  ctx=$(bash "$hk" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""')
+  case "$ctx" in
+    *"Agent Memory SOPs"*) ;;
+    *) ok=0; echo "       $hk did not emit SOPs (got ${#ctx} chars)" ;;
+  esac
+done
+[ "$ok" = 1 ] && pass "all SessionStart hooks emit SOPs on the success path" \
+  || fail "all SessionStart hooks emit SOPs on the success path"
+
+# Path 2: a failing context script must still yield a diagnostic, never an
+# empty context and never a false claim of success.
+CTX_SAVE=$(mktemp)
+cp scripts/agent-memory-context.sh "$CTX_SAVE"
+printf '#!/bin/bash\necho "simulated failure" >&2\nexit 1\n' >scripts/agent-memory-context.sh
+ok=1
+for hk in "${HOOKS[@]}"; do
+  [ -f "$hk" ] || continue
+  outj=$(bash "$hk" 2>/dev/null)
+  ctx=$(echo "$outj" | jq -r '.hookSpecificOutput.additionalContext // ""')
+  [ -n "$ctx" ] || { ok=0; echo "       $hk emitted an empty context on failure"; }
+  # Gemini also carries a systemMessage; it must not claim success.
+  msg=$(echo "$outj" | jq -r '.systemMessage // ""')
+  case "$msg" in
+    *restored*) ok=0; echo "       $hk claims 'restored' while the context failed" ;;
+  esac
+done
+[ "$ok" = 1 ] && pass "all SessionStart hooks degrade honestly on failure" \
+  || fail "all SessionStart hooks degrade honestly on failure"
+cp "$CTX_SAVE" scripts/agent-memory-context.sh
+rm -f "$CTX_SAVE"
+rm -rf "$HOOK_DIR"
+
 # --- 5. Session compiler ----------------------------------------------------
 section "5. Session compiler"
 
