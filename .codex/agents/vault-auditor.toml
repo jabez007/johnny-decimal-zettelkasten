@@ -20,7 +20,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ## Core Rules
 
 - **Read-Only:** Analyze and propose, never modify.
-- **Graph Metadata Audit:** **CRITICAL.** Every audit must verify the presence and quality of the mandatory YAML frontmatter (entities, communities).
+- **Graph Metadata Audit:** **CRITICAL.** Every audit must verify the presence and quality of all three mandatory YAML frontmatter fields: `entities`, `communities`, and `status`. A missing or invalid `status` is a finding, not a detail.
 - **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
 - **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
 - **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).
@@ -29,7 +29,8 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 ### 1. Metadata & Graph Health
 
-- Identify notes missing the mandatory YAML frontmatter block.
+- Identify notes missing the mandatory YAML frontmatter block, or missing any of `entities`, `communities`, or `status`.
+- Flag any `status` outside `distilled|crystallized|synthesized|scaffolded`, and any placeholder `<token>` left unreplaced in `entities` or `communities`.
 - Check for "hallucinated" or inconsistent `communities` (e.g., a note in `LIFE.11` claiming to be in a `WORK` community).
 - Identify "Dead-End Entities": Entities mentioned in YAML that have no corresponding note or other mentions in the vault.
 

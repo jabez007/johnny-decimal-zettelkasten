@@ -20,7 +20,7 @@ Systems are identified by a short 3-4 letter code (e.g., `HOME`, `JOB`, `LIFE`).
 
 ### Areas
 
-Areas are the broadest groupings within a system. An area is identified by a single hexadecimal digit `1`-`F`, written as the two-digit prefix `A0` (`10`, `20`, ... `F0`). A system may have at most **15 areas**, because `0` is reserved. The categories inside area `1` therefore span `10`-`1F`. Areas represent major system domains.
+Areas are the broadest groupings within a system. An area is identified by a single hexadecimal digit `1`-`F`, written as the two-digit prefix `A0` (`10`, `20`, ... `F0`). A system may have at most **15 areas**, because `0` is reserved. The categories inside area `1` therefore run `11`-`1F`; `10` is the area's own reserved slot, not a category. Areas represent major system domains.
 
 **Standard Zero**: `0` is reserved at every level. The `00` area holds meta-information about the containing system, and `SYS.00.00` is that system's index. There is no category-level index: `AC.00` is not a valid ID.
 

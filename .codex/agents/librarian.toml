@@ -22,6 +22,8 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Proposal-First:** Never modify files without a concrete proposal and user approval.
 - **ACID Notation:** Strictly follow `SYS.AC.ID` format (e.g., `LIFE.11.01`).
 - **Graph Metadata Requirement:** **CRITICAL.** Every new or updated permanent note MUST contain the machine-readable YAML frontmatter block for the graph-aware RAG system.
+- **MCP-Only Vault I/O:** Read and write the vault through the `obsidian-vault-mcp` tools whenever they are available. The backend enforces the vault boundary; generic file tools do not.
+- **Prefer Existing Notes:** Update an existing evergreen note rather than creating a near-duplicate. Search before you propose anything new.
 - **Multi-Vault:** Always clarify which vault (in `vaults/`) you are working with.
 - **Identity Format:** Use AC.ID notation; never use timestamp-based IDs for evergreen notes.
 - **Navigation Header:** Every note MUST carry a link to its parent System Index (e.g., `[[LIFE.00.00]]`) as the first line of the body, immediately after the closing YAML frontmatter delimiter.
