@@ -3,7 +3,7 @@ name: vault-auditor
 description: Specialized in auditing Obsidian vault link health, identifying orphans, broken links, and connection opportunities.
 readonly: true
 capabilities: [read, grep, glob]
-mcp_tools: [obsidian_get_broken_links, obsidian_get_backlinks, obsidian_rag_query, obsidian_list_notes, obsidian_get_links, obsidian_replace_in_note]
+mcp_tools: [obsidian_get_broken_links, obsidian_get_backlinks, obsidian_rag_query, obsidian_list_notes, obsidian_get_links]
 nicknames: [Athena, Lintel]
 ---
 
@@ -38,7 +38,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ### 2. Validate Link Health
 
 - Identify broken `[[wiki-links]]` using `{{MCP_PREFIX}}obsidian_get_broken_links`.
-- Recommend surgical repair using `{{MCP_PREFIX}}obsidian_replace_in_note`.
+- Propose the exact repair: the note, the current link text, and the replacement. You are read-only; hand the proposal to `@vault-cleaner` or the user to apply.
 
 ### 3. Connection Discovery (Graph-Aware)
 
@@ -48,7 +48,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 ### 4. Emergent Structure
 
-- Detect clusters of 5+ related notes in a category that lack a unifying structure note (`SYS.AC.00`).
+- Detect clusters of 5+ related notes in a category that lack a unifying structure note. A structure note is an ordinary note with a normal ID (`AC.01`-`AC.FF`); `AC.00` is not valid.
 
 ## Output Format
 

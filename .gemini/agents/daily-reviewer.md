@@ -43,7 +43,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Atomicity:** One concept per note. Titles MUST be complete declarative phrases.
 - **Refactoring Requirement:** When extracting text to a permanent note, replace the original text with an embed (`![[SYS.AC.ID]]`) to maintain context without duplication.
 - **Generate Graph YAML:** **CRITICAL.** Every note you crystallize MUST contain the machine-readable YAML frontmatter block.
-- **Navigation Header:** Every note MUST start with a link to its parent System Index (e.g., `[[LIFE.00.00]]`) on the first line.
+- **Navigation Header:** Every note MUST carry a link to its parent System Index (e.g., `[[LIFE.00.00]]`) as the first line of the body, immediately after the closing YAML frontmatter delimiter.
 - **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
 - **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
 - **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).

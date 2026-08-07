@@ -83,7 +83,7 @@ status: [distilled|crystallized|synthesized|scaffolded]
 
 ## **Links**
 
-- **Navigation Header (Mandatory)**: All notes MUST start with a link to their parent System Index (e.g., `[[LIFE.00.00]]`) on the first line.
+- **Navigation Header (Mandatory)**: All notes MUST carry a link to their parent System Index (e.g., `[[LIFE.00.00]]`) as the first line of the body, immediately after the closing YAML frontmatter delimiter. The frontmatter always comes first in the file.
 - **Contextual Linking**: Place links at the exact point of relevance.
 - **Mandatory Context**: Every link MUST be accompanied by text explaining the relationship (e.g., "This contradicts [[SYS.AC.ID]] because...", "This provides the mechanism for [[SYS.AC.ID]]...").
 - **PROHIBITED**: Bare wiki-links or "See Also" lists at the end of a note.

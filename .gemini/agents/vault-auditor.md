@@ -10,7 +10,6 @@ tools:
   - mcp_obsidian-vault-mcp_obsidian_rag_query
   - mcp_obsidian-vault-mcp_obsidian_list_notes
   - mcp_obsidian-vault-mcp_obsidian_get_links
-  - mcp_obsidian-vault-mcp_obsidian_replace_in_note
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
@@ -48,7 +47,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ### 2. Validate Link Health
 
 - Identify broken `[[wiki-links]]` using `mcp_obsidian-vault-mcp_obsidian_get_broken_links`.
-- Recommend surgical repair using `mcp_obsidian-vault-mcp_obsidian_replace_in_note`.
+- Propose the exact repair: the note, the current link text, and the replacement. You are read-only; hand the proposal to `@vault-cleaner` or the user to apply.
 
 ### 3. Connection Discovery (Graph-Aware)
 
@@ -58,7 +57,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 ### 4. Emergent Structure
 
-- Detect clusters of 5+ related notes in a category that lack a unifying structure note (`SYS.AC.00`).
+- Detect clusters of 5+ related notes in a category that lack a unifying structure note. A structure note is an ordinary note with a normal ID (`AC.01`-`AC.FF`); `AC.00` is not valid.
 
 ## Output Format
 

@@ -27,7 +27,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
   - Area Folder: `A0-Name/` (e.g., `10-Finance`, `20-Health`).
   - Category Folder: `AC-Name/` (e.g., `11-Bank`, `21-Medical`).
 - **Indexing:** Every system requires a `00-IDX/` folder and a `{SYS}.00.00.md` index file.
-- **Index Integrity:** System indexes must link back to the root `[[00.00]]` on the first line. Use Obsidian Bases (`![[JDEX_SYS.base]]`) for dynamic indexing.
+- **Index Integrity:** System indexes must link back to the root `[[00.00]]` as the first line of the body, immediately after the frontmatter. Use Obsidian Bases (`![[JDEX_SYS.base]]`) for dynamic indexing.
 - **Standard Zeros:** `00` area is reserved for system meta-information. `AC.00` is invalid for IDs.
 - **Graph Metadata Readiness:** **CRITICAL.** Any template or base notes created MUST include YAML frontmatter with required core fields `entities`, `communities`, and `status`.
 

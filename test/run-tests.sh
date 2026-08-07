@@ -158,6 +158,29 @@ else
   fail "OpenCode agents re-allow their declared MCP tools"
 fi
 
+# An agent declared readonly must not hold a mutating MCP tool. The auditor
+# reads untrusted note content, so a write capability there is a prompt
+# injection path into the vault.
+ro_ok=1
+for src in .agents/agents/*.md; do
+  grep -q '^readonly: true' "$src" || continue
+  if grep -qE '^mcp_tools:.*(create_note|move_note|append_note|replace_in_note|replace_section|insert_at_heading|update_frontmatter)' "$src"; then
+    ro_ok=0
+    echo "       readonly agent with a write tool: $src"
+  fi
+done
+[ "$ro_ok" = 1 ] && pass "read-only agents hold no mutating MCP tools" \
+  || fail "read-only agents hold no mutating MCP tools"
+
+# AC.00 is not a valid ID: 0 is reserved at every level and there is no
+# category-level index. Policies may say it is invalid, never prescribe it.
+if grep -rn 'AC\.00' .agents/ references/ | grep -qv 'not valid\|not a valid\|is invalid'; then
+  fail "no policy prescribes AC.00 as a usable ID" \
+       "$(grep -rn 'AC\.00' .agents/ references/ | grep -v 'not valid\|not a valid\|is invalid' | head -2 | tr '\n' ' ')"
+else
+  pass "no policy prescribes AC.00 as a usable ID"
+fi
+
 # Codex strips the prefix placeholder, so no generated text may end up saying
 # "use X instead of X" or referencing an empty prefix.
 if grep -q 'prefixed with ``' .codex/agents/*.toml; then

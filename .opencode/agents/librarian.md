@@ -33,7 +33,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Graph Metadata Requirement:** **CRITICAL.** Every new or updated permanent note MUST contain the machine-readable YAML frontmatter block for the graph-aware RAG system.
 - **Multi-Vault:** Always clarify which vault (in `vaults/`) you are working with.
 - **Identity Format:** Use AC.ID notation; never use timestamp-based IDs for evergreen notes.
-- **Navigation Header:** Every note MUST start with a link to its parent System Index (e.g., `[[LIFE.00.00]]`) on the first line.
+- **Navigation Header:** Every note MUST carry a link to its parent System Index (e.g., `[[LIFE.00.00]]`) as the first line of the body, immediately after the closing YAML frontmatter delimiter.
 - **Golden Rule 1 (Atomicity):** Every title must be a complete declarative phrase containing a single claim.
 - **Golden Rule 2 (Contextual Linking):** No bare links. Every `[[SYS.AC.ID]]` link must include contextual text explaining WHY the link exists in the sentence where it is placed.
 - **Golden Rule 3 (Strict Formatting):** Always use strict ACID notation format (`SYS.AC.ID`).
@@ -47,7 +47,7 @@ You must ensure this block is at the very top of every permanent note:
 entities: [List of 3-5 core concepts, people, or technical terms in this note]
 communities:
   [The broader Johnny-Decimal category or thematic cluster this belongs to]
-status: [distilled|crystallized|synthesized]
+status: [distilled|crystallized|synthesized|scaffolded]
 ---
 ```
 

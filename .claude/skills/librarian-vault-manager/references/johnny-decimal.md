@@ -20,19 +20,19 @@ Systems are identified by a short 3-4 letter code (e.g., `HOME`, `JOB`, `LIFE`).
 
 ### Areas
 
-Areas are the broadest groupings within a system. Each area spans a range of hexadecimal numbers (e.g., 10-1F). A system may have at most **15 areas** (10 through F0). Areas represent major system domains.
+Areas are the broadest groupings within a system. An area is identified by a single hexadecimal digit `1`-`F`, written as the two-digit prefix `A0` (`10`, `20`, ... `F0`). A system may have at most **15 areas**, because `0` is reserved. The categories inside area `1` therefore span `10`-`1F`. Areas represent major system domains.
 
-**Standard Zero**: The `00` area is reserved for meta-information about the containing system.
+**Standard Zero**: `0` is reserved at every level. The `00` area holds meta-information about the containing system, and `SYS.00.00` is that system's index. There is no category-level index: `AC.00` is not a valid ID.
 
 ### Categories
 
-Within each area, up to sixteen categories exist. Categories are two-digit numbers. They group related items under a common theme within their parent area.
+Within each area, up to **15 categories** exist. Categories are two-digit numbers `AC`, where `C` runs `1`-`F`; `C = 0` is reserved. They group related items under a common theme within their parent area.
 
-The first digit of the category is the area number, and the second digit is the category number within that area (e.g., 11, 12, ..., 1F).
+The first digit of the category is the area number, and the second digit is the category number within that area (e.g., `11`, `12`, ... `1F`).
 
 ### IDs
 
-Each category contains up to 256 unique IDs. An ID is a two-part hexadecimal number: `AC.ID` (e.g., `1F.05`). IDs represent specific things, topics, or discrete units of information.
+Each category contains up to **255 unique IDs**, numbered `01`-`FF`; `00` is reserved. An ID is a two-part hexadecimal number: `AC.ID` (e.g., `1F.05`). IDs represent specific things, topics, or discrete units of information.
 
 **Format:** `AC.ID` where:
 
