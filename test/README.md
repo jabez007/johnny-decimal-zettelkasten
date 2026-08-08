@@ -29,6 +29,13 @@ env -i PATH="$PATH" HOME="$SANDBOX/home" \
   bash test/run-tests.sh
 ```
 
+## In CI
+
+`.github/workflows/test.yml` runs the whole suite on every push and pull
+request, without Docker — a runner is disposable, so the isolation Docker
+provides locally is redundant there. A cold run takes about three minutes,
+nearly all of it npm fetching onnxruntime.
+
 ## Safety
 
 - The repository mounts **read-only**; the suite works on a copy at
