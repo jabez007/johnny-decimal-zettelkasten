@@ -47,20 +47,39 @@ else
     RANGE_DESC="from the last $DAYS day(s)"
 fi
 
-# Epoch-millisecond bounds for the SQLite-backed host.
+# Epoch-millisecond bounds for the SQLite-backed host. GNU and BSD date use
+# different interfaces, so detect the available form before calculating them.
 #
 # Only an explicit END_DATE produces an upper bound, and that bound is the
 # start of the following day, so it is correctly exclusive. Open-ended ranges
 # ("last N days", "since DATE") must stay unbounded above: clamping them to
 # "now" drops any message written in the current second.
-if [[ -n $START_DATE ]]; then
-    START_MS=$(( $(date -d "$START_DATE" +%s) * 1000 ))
+if date -d "1970-01-01" +%s >/dev/null 2>&1; then
+    if [[ -n $START_DATE ]]; then
+        START_SECONDS=$(date -d "$START_DATE" +%s)
+    else
+        START_SECONDS=$(date -d "$DAYS days ago" +%s)
+    fi
+    if [[ -n $END_DATE ]]; then
+        END_SECONDS=$(date -d "$END_DATE + 1 day" +%s)
+    fi
+elif date -j -f "%Y-%m-%d" "1970-01-01" +%s >/dev/null 2>&1; then
+    if [[ -n $START_DATE ]]; then
+        START_SECONDS=$(date -j -f "%Y-%m-%d" "$START_DATE" +%s)
+    else
+        START_SECONDS=$(date -v-"${DAYS}"d +%s)
+    fi
+    if [[ -n $END_DATE ]]; then
+        END_SECONDS=$(date -j -v+1d -f "%Y-%m-%d" "$END_DATE" +%s)
+    fi
 else
-    START_MS=$(( $(date -d "$DAYS days ago" +%s) * 1000 ))
+    echo "Error: unsupported date implementation; GNU or BSD date is required."
+    exit 1
 fi
 
+START_MS=$(( START_SECONDS * 1000 ))
 if [[ -n $END_DATE ]]; then
-    END_CLAUSE="AND m.time_created < $(( $(date -d "$END_DATE + 1 day" +%s) * 1000 ))"
+    END_CLAUSE="AND m.time_created < $(( END_SECONDS * 1000 ))"
 else
     END_CLAUSE=""
 fi

@@ -544,6 +544,29 @@ section "5. Session compiler"
 check "compile-sessions.sh handles no logs" \
   env AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1
 
+# macOS and other BSD hosts expose date -j/-v rather than GNU date -d. Keep a
+# stub first on PATH so this Linux-run suite also exercises that branch.
+DATE_STUB_DIR=$(mktemp -d)
+cat >"$DATE_STUB_DIR/date" <<'DATE_STUB'
+#!/bin/bash
+if [ "${1:-}" = "-d" ]; then
+  exit 1
+fi
+case " $* " in
+  *" -j -f %Y-%m-%d 1970-01-01 +%s "*) echo 0 ;;
+  *" -v-1d +%s "*) echo 1700000000 ;;
+  *" -j -f %Y-%m-%d 2026-08-01 +%s "*) echo 1785542400 ;;
+  *" -j -v+1d -f %Y-%m-%d 2026-08-02 +%s "*) echo 1785801600 ;;
+  *) exit 1 ;;
+esac
+DATE_STUB
+chmod +x "$DATE_STUB_DIR/date"
+check "compile-sessions.sh supports BSD relative dates" \
+  env PATH="$DATE_STUB_DIR:$PATH" AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1
+check "compile-sessions.sh supports BSD date ranges" \
+  env PATH="$DATE_STUB_DIR:$PATH" AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 2026-08-01 2026-08-02
+rm -rf "$DATE_STUB_DIR"
+
 # Actually execute the generated wrapper. Checking only that the file exists
 # once let a broken repo-root expression ship: the wrapper resolved to two
 # newline-joined paths and could not exec the compiler at all.
@@ -651,6 +674,9 @@ for h in claude codex gemini opencode; do
          "$(echo "$out" | tail -2 | tr '\n' ' ')"
   fi
 done
+
+check "Codex setup uses marketplace upgrade" \
+  grep -q 'codex plugin marketplace upgrade "$MARKETPLACE_NAME"' .codex/setup-environment.sh
 rm -rf "$STUB_BIN"
 
 # --- Summary ----------------------------------------------------------------

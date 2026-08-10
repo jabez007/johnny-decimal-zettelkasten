@@ -37,7 +37,7 @@ fi
 echo "--- 3. Installing the $PLUGIN_NAME plugin ---"
 if codex plugin marketplace list --json 2>/dev/null | jq -e --arg n "$MARKETPLACE_NAME" '.marketplaces[]? | select(.name == $n)' >/dev/null; then
   echo "Marketplace '$MARKETPLACE_NAME' already registered. Refreshing..."
-  codex plugin marketplace update "$MARKETPLACE_NAME" >/dev/null 2>&1 || \
+  codex plugin marketplace upgrade "$MARKETPLACE_NAME" >/dev/null 2>&1 || \
     echo "Note: refresh skipped or already current."
 else
   echo "Adding marketplace from $MARKETPLACE_SOURCE..."
