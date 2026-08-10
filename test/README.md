@@ -18,9 +18,9 @@ commands with `sudo`.
 
 ### Without Docker
 
-The suite runs on any machine with `node`, `git`, `jq`, `sqlite3`,
-`shellcheck`, and `python3`. Point it at a throwaway HOME so it cannot touch
-your real vault config or plugin state:
+The suite runs on any machine with Node.js 20 or later, `git`, `jq`, `sqlite3`,
+`shellcheck`, and Python 3.11 or later. Point it at a throwaway HOME so it
+cannot touch your real vault config or plugin state:
 
 ```bash
 SANDBOX=$(mktemp -d)
