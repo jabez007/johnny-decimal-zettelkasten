@@ -41,18 +41,20 @@ The `AGNT` system (Agent Procedural Memory) is strictly reserved for agent confi
 - Example: `LIFE.3A.07`.
 - Never use timestamp-based IDs for evergreen notes.
 - Never create notes without valid AC.ID identifiers.
-- **MANDATORY YAML Frontmatter:** Every permanent note MUST start with a machine-readable YAML block. This metadata is injected into the text for "graph-aware" RAG search.
+- **MANDATORY YAML Frontmatter:** Every permanent note MUST start with a machine-readable YAML block. The required core fields are `entities`, `communities`, and `status`. `aliases` and `tags` are recommended when they improve discoverability or actionable intent. This metadata is injected into the text for "graph-aware" RAG search.
 
 ```yaml
 ---
 # Optional when useful:
 # aliases: []
 # tags: []
-entities: [3-5 core concepts, people, or technical terms]
-communities: [The broader Johnny-Decimal category or thematic cluster]
-status: [distilled|crystallized|synthesized|scaffolded]
+entities: [<entity-1>, <entity-2>, <entity-3>]
+communities: [<jd-category-or-cluster>]
+status: distilled
 ---
 ```
+
+Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 
 ## **Atomicity**
 
@@ -83,7 +85,7 @@ status: [distilled|crystallized|synthesized|scaffolded]
 
 ## **Links**
 
-- **Navigation Header (Mandatory)**: All notes MUST start with a link to their parent System Index (e.g., `[[LIFE.00.00]]`) on the first line.
+- **Navigation Header (Mandatory)**: All notes MUST carry a link to their parent System Index (e.g., `[[LIFE.00.00]]`) as the first line of the body, immediately after the closing YAML frontmatter delimiter. The frontmatter always comes first in the file.
 - **Contextual Linking**: Place links at the exact point of relevance.
 - **Mandatory Context**: Every link MUST be accompanied by text explaining the relationship (e.g., "This contradicts [[SYS.AC.ID]] because...", "This provides the mechanism for [[SYS.AC.ID]]...").
 - **PROHIBITED**: Bare wiki-links or "See Also" lists at the end of a note.

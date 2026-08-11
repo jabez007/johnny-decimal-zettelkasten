@@ -1,19 +1,22 @@
 #!/bin/bash
 
-# setup-environment.sh
-# Installs the latest gemini-obsidian Codex plugin globally and configures this vault.
+# setup-environment.sh (Codex CLI)
+# Installs the obsidian-vault-mcp v2 Codex plugin and configures this vault.
+#
+# v2 ships as an npm package and Codex can add a marketplace straight from a Git
+# source, so the old ~/.codex/vendor clone-and-build step is gone.
 
 set -euo pipefail
 
-EXT_REPO_URL="https://github.com/jabez007/gemini-obsidian.git"
-WORKSPACE_DIR="$(pwd)"
-GLOBAL_EXT_ROOT="$HOME/.codex/vendor"
-GLOBAL_EXT_PATH="$GLOBAL_EXT_ROOT/gemini-obsidian"
-CODEX_MARKETPLACE_NAME="gemini-obsidian-repo"
-CODEX_PLUGIN_NAME="gemini-obsidian"
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+MARKETPLACE_SOURCE="jabez007/obsidian-vault-mcp"
+MARKETPLACE_NAME="obsidian-vault-mcp-repo"
+PLUGIN_NAME="obsidian-vault-mcp"
+LEGACY_MARKETPLACE_NAME="gemini-obsidian-repo"
+LEGACY_PLUGIN_NAME="gemini-obsidian"
 
-echo "--- 1. Dependency Checks ---"
-for cmd in git jq node codex npm; do
+echo "--- 1. Dependency checks ---"
+for cmd in git jq node npx codex; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Error: '$cmd' is required but not installed."
     exit 1
@@ -21,100 +24,48 @@ for cmd in git jq node codex npm; do
 done
 echo "Required commands found."
 
-echo "--- 2. Installing global gemini-obsidian backend for Codex ---"
-mkdir -p "$GLOBAL_EXT_ROOT"
-if [ -d "$GLOBAL_EXT_PATH/.git" ]; then
-  echo "Updating existing checkout at $GLOBAL_EXT_PATH..."
-  git -C "$GLOBAL_EXT_PATH" pull --ff-only
-else
-  if [ -e "$GLOBAL_EXT_PATH" ]; then
-    echo "Error: $GLOBAL_EXT_PATH exists but is not a git checkout."
-    exit 1
-  fi
-  echo "Cloning $EXT_REPO_URL into $GLOBAL_EXT_PATH..."
-  git clone "$EXT_REPO_URL" "$GLOBAL_EXT_PATH"
+echo "--- 2. Removing legacy gemini-obsidian install, if present ---"
+if codex plugin list --json 2>/dev/null | jq -e --arg n "$LEGACY_PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
+  echo "Removing legacy plugin '$LEGACY_PLUGIN_NAME'..."
+  codex plugin remove "$LEGACY_PLUGIN_NAME" >/dev/null || true
+fi
+if codex plugin marketplace list --json 2>/dev/null | jq -e --arg n "$LEGACY_MARKETPLACE_NAME" '.marketplaces[]? | select(.name == $n)' >/dev/null; then
+  echo "Removing legacy marketplace '$LEGACY_MARKETPLACE_NAME'..."
+  codex plugin marketplace remove "$LEGACY_MARKETPLACE_NAME" >/dev/null || true
 fi
 
-echo "--- 3. Building extension dependencies ---"
-pushd "$GLOBAL_EXT_PATH" >/dev/null
-echo "Running npm install..."
-npm install --quiet
-echo "Running npm build..."
-npm run build --quiet
-popd >/dev/null
+echo "--- 3. Installing the $PLUGIN_NAME plugin ---"
+if codex plugin marketplace list --json 2>/dev/null | jq -e --arg n "$MARKETPLACE_NAME" '.marketplaces[]? | select(.name == $n)' >/dev/null; then
+  echo "Marketplace '$MARKETPLACE_NAME' already registered. Refreshing..."
+  codex plugin marketplace upgrade "$MARKETPLACE_NAME" >/dev/null 2>&1 || \
+    echo "Note: refresh skipped or already current."
+else
+  echo "Adding marketplace from $MARKETPLACE_SOURCE..."
+  codex plugin marketplace add "$MARKETPLACE_SOURCE" >/dev/null
+fi
+
+if codex plugin list --json 2>/dev/null | jq -e --arg n "$PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
+  echo "Refreshing installed plugin '$PLUGIN_NAME'..."
+  codex plugin remove "$PLUGIN_NAME" >/dev/null
+fi
+codex plugin add "$PLUGIN_NAME@$MARKETPLACE_NAME" >/dev/null
+echo "Installed Codex plugin '$PLUGIN_NAME'."
 
 echo "--- 4. Configuring vault ---"
-VAULT_NAME_RAW=""
-if [ -t 0 ]; then
-  read -rp "Enter Obsidian vault name [example]: " VAULT_NAME_RAW
-fi
+bash "$REPO_ROOT/scripts/configure-vault.sh"
 
-if [ -z "$VAULT_NAME_RAW" ]; then
-  VAULT_NAME_RAW="example"
-fi
+echo "--- 5. Generating per-harness assets ---"
+bash "$REPO_ROOT/scripts/sync-assets.sh"
 
-VAULT_SLUG=$(echo "$VAULT_NAME_RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\{1,\}/-/g' | sed 's/^-//;s/-$//')
-VAULT_PATH="$WORKSPACE_DIR/vaults/$VAULT_SLUG"
-PWD_BASE=$(basename "$WORKSPACE_DIR")
-VAULT_ID="${PWD_BASE}_${VAULT_SLUG}"
-
-if [ ! -d "$VAULT_PATH" ]; then
-  echo "Creating new vault directory at $VAULT_PATH..."
-  mkdir -p "$VAULT_PATH"
-else
-  echo "Using existing vault directory at $VAULT_PATH."
-fi
-
-node "$GLOBAL_EXT_PATH/dist/index.js" obsidian_set_vault \
-  --path "$VAULT_PATH" \
-  --workspace_path "$WORKSPACE_DIR" \
-  --vault_id "$VAULT_ID"
-
-if [ -t 0 ]; then
-  read -rp "Would you like to perform initial semantic indexing now? (y/n) [n]: " DO_INDEX
-  if [[ "$DO_INDEX" =~ ^[Yy]$ ]]; then
-    echo "Starting semantic indexing (this may take a few minutes)..."
-    node "$GLOBAL_EXT_PATH/dist/index.js" obsidian_rag_index \
-      --path "$VAULT_PATH" \
-      --workspace_path "$WORKSPACE_DIR" \
-      --vault_id "$VAULT_ID"
-  fi
-fi
-
-echo "--- 5. Installing or Updating Codex Plugin Globally ---"
-MARKETPLACE_JSON=$(codex plugin marketplace list --json)
-CURRENT_MARKETPLACE_ROOT=$(printf '%s' "$MARKETPLACE_JSON" | jq -r --arg name "$CODEX_MARKETPLACE_NAME" '.marketplaces[]? | select(.name == $name) | .root')
-
-if [ -n "$CURRENT_MARKETPLACE_ROOT" ] && [ "$CURRENT_MARKETPLACE_ROOT" != "$GLOBAL_EXT_PATH" ]; then
-  echo "Removing existing Codex marketplace '$CODEX_MARKETPLACE_NAME' from $CURRENT_MARKETPLACE_ROOT..."
-  codex plugin marketplace remove "$CODEX_MARKETPLACE_NAME" >/dev/null
-  CURRENT_MARKETPLACE_ROOT=""
-fi
-
-if [ -z "$CURRENT_MARKETPLACE_ROOT" ]; then
-  echo "Adding Codex marketplace '$CODEX_MARKETPLACE_NAME' from $GLOBAL_EXT_PATH..."
-  codex plugin marketplace add "$GLOBAL_EXT_PATH" >/dev/null
-else
-  echo "Codex marketplace '$CODEX_MARKETPLACE_NAME' already points at $GLOBAL_EXT_PATH."
-fi
-
-PLUGIN_JSON=$(codex plugin list --json)
-if printf '%s' "$PLUGIN_JSON" | jq -e --arg name "$CODEX_PLUGIN_NAME" '.installed[]? | select(.name == $name)' >/dev/null; then
-  echo "Refreshing installed Codex plugin '$CODEX_PLUGIN_NAME'..."
-  codex plugin remove "$CODEX_PLUGIN_NAME" >/dev/null
-fi
-
-codex plugin add "$CODEX_PLUGIN_NAME@$CODEX_MARKETPLACE_NAME" >/dev/null
-echo "Installed Codex plugin '$CODEX_PLUGIN_NAME' globally."
-
-echo "--- 6. Finalizing Environment ---"
-
+echo "--- 6. Finalizing ---"
 echo "-------------------------------------------------------"
-echo "Setup Complete! Start a new Codex session in"
-echo "$WORKSPACE_DIR so it loads AGENTS.md,"
-echo ".codex/agents/, and .codex/config.toml."
-echo "If Codex asks you to review project hooks,"
-echo "open /hooks and trust the repo-local SessionStart hook."
-echo "The Obsidian Vault plugin now lives in your global"
-echo "Codex plugin configuration."
+echo "Setup complete. Start Codex from $REPO_ROOT so it loads"
+echo "AGENTS.md, .codex/agents/, and .codex/config.toml."
+echo ""
+echo "If Codex prompts you to review project hooks, open /hooks"
+echo "and trust the repo-local SessionStart hook."
+echo ""
+echo "If you are upgrading an existing vault from v1, you MUST rebuild the RAG"
+echo "index once — see MIGRATION.md. A mixed old/new index degrades search"
+echo "ranking silently, with no error."
 echo "-------------------------------------------------------"

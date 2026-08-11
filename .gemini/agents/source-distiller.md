@@ -3,11 +3,15 @@ name: source-distiller
 description: Processes long-form sources (articles, transcripts) into atomic, concept-oriented permanent notes.
 tools:
   - read_file
-  - mcp_gemini-obsidian_obsidian_rag_query
-  - mcp_gemini-obsidian_obsidian_create_note
-  - mcp_gemini-obsidian_obsidian_read_note
-  - mcp_gemini-obsidian_obsidian_insert_at_heading
+  - mcp_obsidian-vault-mcp_obsidian_rag_query
+  - mcp_obsidian-vault-mcp_obsidian_create_note
+  - mcp_obsidian-vault-mcp_obsidian_read_note
+  - mcp_obsidian-vault-mcp_obsidian_insert_at_heading
 ---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Source: .agents/agents/source-distiller.md
+     Regenerate with: ./scripts/sync-assets.sh -->
 
 # Source Distiller
 
@@ -38,18 +42,29 @@ You must include this block at the very top of every new note:
 
 ```yaml
 ---
-entities: [List of 3-5 core concepts, people, or technical terms in this note]
-communities:
-  [The broader Johnny-Decimal category or thematic cluster this belongs to]
+entities: [<entity-1>, <entity-2>, <entity-3>]
+communities: [<jd-category-or-cluster>]
 status: distilled
 ---
 ```
+
+Replace every `<token>` before writing a note. Never leave a placeholder
+in a real note: `entities` and `communities` are exact-match filter keys,
+so placeholder text becomes an unusable label in the graph.
 
 ## Workflow
 
 1. **Analyze:** Read the provided text. Identify core claims and evidence.
 2. **Extract Entities:** Identify the key entities (nodes) and communities (clusters).
-3. **Synthesis Search:** Search the vault using `mcp_gemini-obsidian_obsidian_rag_query` for existing themes and overlapping notes.
+3. **Synthesis Search:** Search the vault using `mcp_obsidian-vault-mcp_obsidian_rag_query` for existing themes and overlapping notes. Filter on the `entities` you extracted in step 2 to find exact prior coverage before falling back to an unfiltered semantic query.
 4. **Draft:** Write the note using Zettelkasten principles (atomic, clear, self-contained).
 5. **Graph:** Populate the YAML frontmatter accurately. Ensure inline wikilinks in the body explain relationships to other notes.
-6. **Ripple:** Use the identified `entities` to search the vault. Propose specific edits or additions (e.g., using `mcp_gemini-obsidian_obsidian_insert_at_heading`) to existing notes to integrate the new insight.
+6. **Ripple:** Use the identified `entities` to search the vault. Propose specific edits or additions (e.g., using `mcp_obsidian-vault-mcp_obsidian_insert_at_heading`) to existing notes to integrate the new insight.
+
+## Graph-Aware Querying
+
+`mcp_obsidian-vault-mcp_obsidian_rag_query` accepts `entities` and `communities` filter
+parameters. These match frontmatter labels exactly and are case-sensitive. When
+you are looking for notes related to a known entity or cluster, pass the filter
+rather than relying on semantic similarity to surface them — the filter is exact,
+the similarity is not. Use an unfiltered query only for open-ended discovery.

@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+# The suite only reads the repository; nothing here needs write access.
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    name: Template harness suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Mirrors test/Dockerfile. shellcheck and sqlite3 back the static checks
+      # and the OpenCode session store; PyYAML parses agent frontmatter. TOML
+      # parsing uses stdlib tomllib, which needs the runner's Python 3.11+.
+      - name: Install harness dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck sqlite3 python3-yaml
+
+      # Docker is what keeps a local run away from the developer's real vault
+      # config and plugin state. A runner is disposable, so the suite runs
+      # directly here; it already copies the repo and isolates its own HOME.
+      #
+      # Deliberately uncached: npx pulls ~1.1G of onnxruntime, which restores
+      # slower than the ~3min cold download. SKIP_RAG_INDEX is not set either —
+      # it saves about 3s, since the MCP section needs that download regardless.
+      - name: Run test harness
+        env:
+          REPO_SRC: ${{ github.workspace }}
+          WORK_DIR: ${{ runner.temp }}/repo
+        run: bash test/run-tests.sh

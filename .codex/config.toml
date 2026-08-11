@@ -1,48 +1,53 @@
+# GENERATED FILE — DO NOT EDIT.
+# Agent entries are generated from .agents/agents/*.md.
+# Regenerate with: ./scripts/sync-assets.sh
+
 [features]
 hooks = true
 
 [agents]
 max_depth = 1
 
-[agents.librarian]
-description = "General knowledge steward for Johnny-Decimal/Zettelkasten vaults."
-config_file = "./agents/librarian.toml"
-nickname_candidates = ["Ada", "Linnaeus"]
 
 [agents."daily-reviewer"]
-description = "Extract durable knowledge from daily notes and session logs."
+description = "Extracts durable knowledge from transient daily notes. Identifies emerging concepts for the JDex."
 config_file = "./agents/daily-reviewer.toml"
 nickname_candidates = ["Iris", "Clio"]
 
+[agents."flashcard-generator"]
+description = "Generates spaced-repetition flashcards (Q&A or Cloze) for Obsidian notes."
+config_file = "./agents/flashcard-generator.toml"
+nickname_candidates = ["Anki", "Mnemosyne"]
+
+[agents."librarian"]
+description = "General knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use for general questions, ID lookups, and coordinating vault maintenance."
+config_file = "./agents/librarian.toml"
+nickname_candidates = ["Ada", "Linnaeus"]
+
+[agents."source-distiller"]
+description = "Processes long-form sources (articles, transcripts) into atomic, concept-oriented permanent notes."
+config_file = "./agents/source-distiller.toml"
+nickname_candidates = ["Scribe", "Tarski"]
+
 [agents."vault-auditor"]
-description = "Audit structural and graph health in the vault."
+description = "Specialized in auditing Obsidian vault link health, identifying orphans, broken links, and connection opportunities."
 config_file = "./agents/vault-auditor.toml"
 nickname_candidates = ["Athena", "Lintel"]
 
 [agents."vault-cleaner"]
-description = "Improve vault hygiene through consolidation planning and cleanup."
+description = "Specialist in vault hygiene. Detects duplicates, misplaced notes, and naming inconsistencies; proposes consolidation and restructuring."
 config_file = "./agents/vault-cleaner.toml"
 nickname_candidates = ["Broom", "Theseus"]
 
 [agents."vault-scaffolder"]
-description = "Guide creation of Johnny-Decimal systems, areas, and categories."
+description = "Expert in constructing new Johnny-Decimal structures. Guides the creation of systems, areas, and categories."
 config_file = "./agents/vault-scaffolder.toml"
 nickname_candidates = ["Grid", "Keystone"]
 
 [agents."vault-synthesizer"]
-description = "Compound knowledge across the vault through synthesis and bridge notes."
+description = "Specialist in knowledge compounding and synthesis. Identifies contradictions, synergies, and gaps; proposes \"Bridge\" or \"Synthesis\" notes."
 config_file = "./agents/vault-synthesizer.toml"
 nickname_candidates = ["Hermes", "Bridge"]
-
-[agents."source-distiller"]
-description = "Process long-form source material into atomic permanent notes."
-config_file = "./agents/source-distiller.toml"
-nickname_candidates = ["Scribe", "Tarski"]
-
-[agents."flashcard-generator"]
-description = "Generate spaced-repetition flashcards grounded in note content."
-config_file = "./agents/flashcard-generator.toml"
-nickname_candidates = ["Anki", "Mnemosyne"]
 
 [[hooks.SessionStart]]
 matcher = "startup|resume"
