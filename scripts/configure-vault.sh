@@ -14,7 +14,7 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2"}
+MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.1.0"}
 
 echo "--- Configuring vault ---"
 
@@ -45,6 +45,9 @@ else
   echo "Using existing vault directory at $VAULT_PATH."
 fi
 
+# Reuse the committed ID when a clone has a different directory name.
+VAULT_ID=$(node "$REPO_ROOT/scripts/index-snapshots.mjs" register --vault "$VAULT_PATH" --id "$VAULT_ID")
+
 # Persist vault_path, workspace_path, and vault_id to ~/.obsidian-mcp.config.json
 # through the server's own CLI so the format stays authoritative.
 # shellcheck disable=SC2086
@@ -53,29 +56,15 @@ $MCP_CMD obsidian_set_vault \
   --workspace_path "$REPO_ROOT" \
   --vault_id "$VAULT_ID"
 
-echo "--- Configuring Git LFS for RAG index binaries ---"
-# v2 stores indexes under .obsidian-vault-mcp/ (renamed from .gemini-obsidian/).
-if command -v git >/dev/null 2>&1 && [ -d "$REPO_ROOT/.git" ]; then
-  if command -v git-lfs >/dev/null 2>&1; then
-    git -C "$REPO_ROOT" lfs install --local
-    git -C "$REPO_ROOT" lfs track ".obsidian-vault-mcp/**/*.lance"
-    git -C "$REPO_ROOT" lfs track ".obsidian-vault-mcp/**/*.lance/**"
-    git -C "$REPO_ROOT" lfs track ".obsidian-vault-mcp/**/*.onnx"
-    echo "Git LFS tracking configured for .obsidian-vault-mcp/."
-  else
-    echo "Warning: git-lfs not found. RAG index binaries will not be tracked efficiently."
-  fi
-else
-  echo "Skipping Git LFS setup (not a git repository or git not found)."
-fi
+bash "$REPO_ROOT/scripts/configure-index-git.sh"
 
-if [ -t 0 ]; then
-  read -rp "Would you like to perform initial semantic indexing now? (y/n) [n]: " DO_INDEX
+if [ -t 0 ] && [ ! -f "$REPO_ROOT/.obsidian-vault-mcp/shared/$VAULT_ID/snapshot.json" ]; then
+  read -rp "Would you like to perform semantic indexing on this machine now? (y/n) [n]: " DO_INDEX
   if [[ "$DO_INDEX" =~ ^[Yy]$ ]]; then
     echo "Starting semantic indexing (this may take a few minutes)..."
     # shellcheck disable=SC2086
     $MCP_CMD obsidian_rag_index \
-      --path "$VAULT_PATH" \
+      --vault_path "$VAULT_PATH" \
       --workspace_path "$REPO_ROOT" \
       --vault_id "$VAULT_ID"
   fi

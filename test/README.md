@@ -19,7 +19,7 @@ commands with `sudo`.
 ### Without Docker
 
 The suite runs on any machine with Node.js 20 or later, `git`, `jq`, `sqlite3`,
-`shellcheck`, and Python 3.11 or later. Point it at a throwaway HOME so it
+`git-lfs`, `shellcheck`, and Python 3.11 or later. Point it at a throwaway HOME so it
 cannot touch your real vault config or plugin state:
 
 ```bash
@@ -28,6 +28,40 @@ env -i PATH="$PATH" HOME="$SANDBOX/home" \
   REPO_SRC="$PWD" WORK_DIR="$SANDBOX/repo" \
   bash test/run-tests.sh
 ```
+
+### Snapshot hook tests only
+
+The snapshot tests require Node.js, Git, Git LFS, and Python:
+
+```bash
+python3 test/test-index-hooks.py
+```
+
+They use temporary repositories and isolated Git configuration. Most cases
+use a deterministic MCP fixture to test rollback, partial staging, multiple
+vaults, stable IDs, LFS pointers, migration, automatic indexing, merge and rebase
+pulls, branch switches, and installation failures. Regression cases cover staged
+registration removals, CRLF migration, LF checkouts with `core.autocrlf=true`,
+conflicting attributes, and actual `git commit -am` success and rollback in
+ordinary repositories and linked worktrees.
+Attribute-only cases cover root and nested rules, deletion of required rules,
+staged rules differing from working rules, and removal of LFS filters. Valid
+attribute changes must pass without the MCP or changes to unstaged notes.
+
+To also test a real release, set `MCP_SNAPSHOT_RELEASE` to the unpacked MCP
+2.1.0 package directory with its dependencies installed:
+
+```bash
+MCP_SNAPSHOT_RELEASE=/path/to/package python3 test/test-index-hooks.py
+```
+
+That test seeds a real LanceDB with synthetic vectors, invokes the published
+CLI, pushes to a local bare repository through Git LFS, clones it, and
+installs the snapshot through setup in an `autocrlf=true` clone. It then indexes
+a new empty note during `git commit -am` and installs the updated snapshot
+automatically on pull before running vector and full-text queries. It downloads
+no embedding model and contacts no external Git remote. The full harness resolves the npm
+package and requires this test, even when `SKIP_RAG_INDEX=1`.
 
 ## In CI
 
@@ -56,6 +90,7 @@ nearly all of it npm fetching onnxruntime.
 | 5. Session compiler | Extracts Claude Code turns and filters `tool_result` noise; extracts OpenCode SQLite turns; handles an empty log set; rejects an unknown `AI_MEMORY_HOST` |
 | 6. Migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
 | 7. Setup gates | Each `setup-environment.sh` fails fast when its CLI is missing, tested with a restricted PATH so the result does not depend on what is installed |
+| 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.1.0 export → LFS push/clone → vector and full-text queries without reindexing |
 
 ## What it does not cover
 

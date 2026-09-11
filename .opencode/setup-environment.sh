@@ -32,7 +32,7 @@ echo "opencode.json registers obsidian-vault-mcp."
 
 echo "--- 3. Warming the MCP package cache ---"
 # Pull the package now so the first OpenCode session does not stall on npx.
-npx -y @jabez007/obsidian-vault-mcp@2 --help >/dev/null 2>&1 || \
+npx -y @jabez007/obsidian-vault-mcp@2.1.0 --help >/dev/null 2>&1 || \
   echo "Note: could not pre-warm the npx cache; it will resolve on first use."
 
 echo "--- 4. Configuring vault ---"

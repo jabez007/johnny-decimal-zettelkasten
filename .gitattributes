@@ -1,0 +1,8 @@
+# Keep MCP content hashes and Git checkouts consistent across platforms.
+*.gitattributes text eol=lf
+*.sh text eol=lf
+*.mjs text eol=lf
+*.py text eol=lf
+vaults/**/*.md text eol=lf
+.obsidian-indexes.json text eol=lf
+.obsidian-vault-mcp/shared/*/*.json text eol=lf

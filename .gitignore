@@ -2,3 +2,18 @@ config/
 .trash/
 .aider*
 .codex/vendor/
+
+# MCP runtime dependencies are installed separately on each machine.
+node_modules/
+
+# Model downloads are local. Published snapshots live under shared/.
+/.obsidian-vault-mcp/**/*.onnx
+/.obsidian-vault-mcp/**/*.onnx_data
+/.gemini-obsidian/**/*.onnx
+/.gemini-obsidian/**/*.onnx_data
+
+# Live databases, MCP snapshot generations, and publication transactions are local.
+# shared/<vault-id>/ contains the single Git-tracked snapshot for each vault.
+/.obsidian-vault-mcp/vaults/
+/.gemini-obsidian/vaults/
+/.obsidian-vault-mcp/.transactions/

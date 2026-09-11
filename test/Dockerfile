@@ -24,7 +24,7 @@ USER tester
 WORKDIR /work
 
 # Warm the npx cache at build time so test runs do not re-download the server.
-RUN npx -y @jabez007/obsidian-vault-mcp@2 --help >/dev/null 2>&1 || true
+RUN npx -y @jabez007/obsidian-vault-mcp@2.1.0 --help >/dev/null 2>&1 || true
 
 ENV REPO_SRC=/repo \
     WORK_DIR=/work/repo

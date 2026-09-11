@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2"
+MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.1.0"
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"
 ASSUME_YES=0

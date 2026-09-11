@@ -28,7 +28,7 @@ jobs:
       - name: Install harness dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq shellcheck sqlite3 python3-yaml
+          sudo apt-get install -y -qq shellcheck sqlite3 python3-yaml git-lfs
 
       # Docker is what keeps a local run away from the developer's real vault
       # config and plugin state. A runner is disposable, so the suite runs

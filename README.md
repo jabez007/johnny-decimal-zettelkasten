@@ -55,8 +55,8 @@ Follow these steps to initialize your first vault and enable Agent Memory:
    Run one per harness you use; they are independent and share the same vault
    config. Each targets a vault inside `vaults/<vault-name>/` (default:
    `vaults/example/`) and persists the selection to `~/.obsidian-mcp.config.json`.
-   Because the backend ships on npm, there is no clone-and-build step — every
-   host launches it with `npx -y @jabez007/obsidian-vault-mcp@2`.
+   The shared setup uses the published npm package,
+   `npx -y @jabez007/obsidian-vault-mcp@2.1.0`.
 4. **Initialize the actual vault in Obsidian**:
    - Open `vaults/<vault-name>/` as the Obsidian vault, not the repository root.
    - Enable **Bases** and **Backlinks** core plugins.
@@ -70,6 +70,25 @@ Follow these steps to initialize your first vault and enable Agent Memory:
    - Right-click `vaults/<vault-name>/_SYS/` → **New base** → Name it `JDEX_00.00`.
    - Open the file, click the **Filter** icon, and add: `Property: file.name | Operator: ends with | Value: .00.00`.
    - Set the view to **Cards**.
+
+## Sharing the search index
+
+Setup installs a pre-commit hook that uses MCP 2.1.0 to publish a validated
+LanceDB snapshot for each registered vault after incremental indexing. Database files use Git LFS;
+matching metadata and stable vault IDs use ordinary Git. Live databases and
+export history stay local.
+
+After setup in each clone, use normal commits and pushes. On the receiving
+machine, pull **before starting the MCP**. Git hooks download missing LFS
+payloads and install the shared snapshot automatically. Branch switches and
+completed rebases also install their matching snapshots. The receiving
+machine can search without rebuilding document embeddings.
+`git commit -a` works for tracked notes; stage new notes first. Shared text uses
+LF line endings so note hashes match across machines, including Git
+configurations that default to CRLF.
+See [index snapshot setup](docs/index-snapshots.md) for registration, migration
+of existing tracked databases and CRLF checkouts, hook compatibility, and commit
+policies.
 
 ## **The AGNT System (Agent Memory)**
 
