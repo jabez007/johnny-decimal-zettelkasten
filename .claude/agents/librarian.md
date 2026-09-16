@@ -1,7 +1,7 @@
 ---
 name: librarian
 description: General knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. Use for general questions, ID lookups, and coordinating vault maintenance.
-tools: Read, Grep, Glob, mcp__obsidian-vault-mcp__obsidian_search_notes, mcp__obsidian-vault-mcp__obsidian_read_note
+tools: Read, Grep, Glob, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_search_notes, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_read_note
 model: inherit
 ---
 

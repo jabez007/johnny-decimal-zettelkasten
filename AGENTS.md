@@ -36,4 +36,6 @@
 - Keep machine-facing logs and procedural rules traceable back to `JRNL/AGNT/` session notes.
 - At the start of significant work, check for relevant AGNT procedural rules and review recent `JRNL/AGNT/` logs when the task appears to continue earlier work.
 - If the user says `continue` or `resume`, assume prior session context matters and look for the most recent relevant `JRNL/AGNT/` log unless they specify otherwise.
-- Before concluding substantial work, preserve agent context in `JRNL/AGNT/` and crystallize durable new procedural rules into `AGNT/` when warranted.
+- Before concluding substantial work, preserve agent context in `JRNL/AGNT/`. Crystallize durable rules into `AGNT/` only when working in the repository that owns the selected vault, following the local proposal workflow.
+- Global template instructions permit research across every system and capture under `JRNL/`. Outside the selected vault's own repository, record candidate insights in the journal for later local review. Keep crystallization, permanent-note edits, and structural management local.
+- This boundary is an agent workflow policy owned by the template and its clones. The shared MCP remains vault-agnostic and does not enforce JRNL-only writes.

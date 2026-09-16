@@ -34,42 +34,38 @@ The vault is not just for you; it is a "World Model" for your AI agents.
 - **Procedural Memory**: Agents store behavioral rules and preferences in the `AGNT` system.
 - **Episodic Memory**: Agents log session state in `JRNL/AGNT/`, allowing them to "resume" work across sessions and computers.
 
-## **Quick Start**
+## Quick start
 
-Follow these steps to initialize your first vault and enable Agent Memory:
+Install Obsidian, Git, Git LFS, Node.js 20 or later, Python 3.9 or later, `jq`,
+and your chosen agent CLI. Clone this repository, then run setup for each
+harness you use:
 
-1. **Install Obsidian**: Download from [obsidian.md](https://obsidian.md/).
-2. **Install your AI CLI** — any one of:
-   - **Claude Code**: [installation guide](https://claude.com/claude-code)
-   - **Codex CLI**: [official Codex docs](https://developers.openai.com/codex/cli)
-   - **Gemini CLI**: [official installation guide](https://github.com/google/gemini-cli)
-   - **OpenCode**: [opencode.ai](https://opencode.ai)
-3. **Run the matching setup script**:
-   ```bash
-   cd johnny-decimal-zettelkasten
-   ./.claude/setup-environment.sh      # Claude Code
-   ./.codex/setup-environment.sh       # Codex CLI
-   ./.gemini/setup-environment.sh      # Gemini CLI
-   ./.opencode/setup-environment.sh    # OpenCode
-   ```
-   Run one per harness you use; they are independent and share the same vault
-   config. Each targets a vault inside `vaults/<vault-name>/` (default:
-   `vaults/example/`) and persists the selection to `~/.obsidian-mcp.config.json`.
-   The shared setup uses the published npm package,
-   `npx -y @jabez007/obsidian-vault-mcp@2.1.0`.
-4. **Initialize the actual vault in Obsidian**:
-   - Open `vaults/<vault-name>/` as the Obsidian vault, not the repository root.
-   - Enable **Bases** and **Backlinks** core plugins.
-5. **Configure Root Index**: Create `vaults/<vault-name>/00.00.md` and add the following:
+```bash
+./.claude/setup-environment.sh --vault my-notes
+./.codex/setup-environment.sh --vault my-notes
+./.opencode/setup-environment.sh --vault my-notes
+./.gemini/setup-environment.sh --vault my-notes
+```
 
-   > \# Vault Index
-   >
-   > \!\[\[JDEX_00.00.base\]\]
+Open `vaults/my-notes/` in Obsidian. Setup creates clean starter indexes and
+journal templates, configures the shared MCP default, and checks semantic
+retrieval. Restart your harness after setup.
 
-6. **Configure your first Base**:
-   - Right-click `vaults/<vault-name>/_SYS/` → **New base** → Name it `JDEX_00.00`.
-   - Open the file, click the **Filter** icon, and add: `Property: file.name | Operator: ends with | Value: .00.00`.
-   - Set the view to **Cards**.
+Research and journal capture work from any project. Permanent-note management,
+crystallization, and the eight librarian agents stay in the vault repository.
+These are template-owned instructions; the MCP remains vault-agnostic.
+
+Rerunning setup preserves the selected vault in this checkout. Use `--vault`
+to select a different vault explicitly. Use `--skip-index` to defer the final
+indexing and retrieval check. Without an existing selection, unattended setup
+defaults to `vaults/example/`.
+
+See [setup and verification](docs/setup.md) for global installation paths,
+configuration preservation, migration, and diagnostics:
+
+```bash
+python3 scripts/doctor.py --harness opencode
+```
 
 ## Sharing the search index
 
@@ -97,18 +93,23 @@ The `AGNT` system is a dedicated Johnny-Decimal system (Prefix: `AGNT`) that sep
 - **`AGNT/10-Procedural_Rules/`**: Stores atomic, declarative rules (e.g., `AGNT.11.01-Pytest-Preference.md`).
 - **`JRNL/AGNT/`**: Stores chronological session logs (`YYYY-MM-DD-HHMM.md`).
 
-### **The Boot/Shutdown Protocol**
+### Global capture and local management
 
-The boot context itself is canonical in `scripts/agent-memory-context.sh`; each harness hook wraps that one script in whatever JSON shape it expects.
+Setup installs `jd-vault-research`, `jd-vault-journal`, and a managed block in
+each harness's global instructions. The rules apply only to template-owned
+vaults registered by setup. They permit research across systems and capture
+under `JRNL/` from any project. Global agents record candidate durable insights
+for later local review; they do not crystallize them into permanent notes.
 
-| Harness | Boot mechanism |
-| :--- | :--- |
-| **Claude Code** | `SessionStart` hook in `.claude/settings.json` → `.claude/hooks/session-start.sh` |
-| **Codex CLI** | `SessionStart` hook in `.codex/config.toml` → `.codex/hooks/session-start.sh` |
-| **Gemini CLI** | Global `SessionStart` hook installed by the setup script into `~/.gemini/hooks/` |
-| **OpenCode** | No command-based session hook; `AGENTS.md` carries the standing rules |
+Global policy is canonical in `references/global-vault/`. The local boot context
+is canonical in `scripts/agent-memory-context.sh`. Claude and Codex retain their
+repo-local session hooks; Gemini reads `GEMINI.md`, and OpenCode reads `AGENTS.md`.
+Gemini's former global memory hook is retired by setup.
 
-- **Shared workflow**: every harness should restore context from recent `JRNL/AGNT/` logs, query existing procedural rules before acting, and write new durable rules back into `AGNT/` when appropriate.
+Sessions include the originating project so a later agent can restore relevant
+work instead of blindly selecting the newest session in the vault. When working
+in the selected vault's own repository, the local librarian can propose and
+perform approved crystallization and structural management.
 
 ## **AI-Assisted Vault Maintenance**
 
@@ -136,7 +137,7 @@ Agent policies and doctrine are written **once** and generated into each harness
 
 CI reruns the generator and fails the build if generated files drift, so the copies cannot silently diverge.
 
-Agent bodies reference MCP tools through a `{{MCP_PREFIX}}` placeholder, since each harness namespaces MCP tools differently — `mcp__obsidian-vault-mcp__` for Claude Code, `mcp_obsidian-vault-mcp_` for Gemini, `obsidian-vault-mcp_` for OpenCode, and bare names for Codex.
+Agent bodies reference MCP tools through a `{{MCP_PREFIX}}` placeholder, since each harness namespaces MCP tools differently — `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__` for the Claude plugin, `mcp_obsidian-vault-mcp_` for Gemini, `obsidian-vault-mcp_` for OpenCode, and bare names for Codex.
 
 ### **Specialized Subagents**
 
@@ -262,12 +263,12 @@ Every harness reads the same vault config (`~/.obsidian-mcp.config.json`) and th
 | :--- | :--- | :--- |
 | **Claude Code** | `./.claude/setup-environment.sh` | `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` |
 | **Codex CLI** | `./.codex/setup-environment.sh` | `AGENTS.md`, `.codex/agents/`, `.codex/config.toml`, `.agents/skills/` |
-| **Gemini CLI** | `./.gemini/setup-environment.sh` | `.gemini/agents/`, `.gemini/skills/`, global `~/.gemini/hooks/` |
+| **Gemini CLI** | `./.gemini/setup-environment.sh` | `.gemini/agents/`, `.gemini/skills/`, global `~/.gemini/GEMINI.md` |
 | **OpenCode** | `./.opencode/setup-environment.sh` | `AGENTS.md`, `.opencode/agents/`, `opencode.json` |
 
 Notes:
 
-- **Claude Code** and **Codex** install the backend as a plugin from the upstream marketplace. **Gemini** installs it as an extension. **OpenCode** launches it directly from `opencode.json`.
+- **Claude Code** and **Codex** install the backend as a global plugin from the upstream marketplace. **Gemini** installs it as an extension. **OpenCode** gets both global and repository-local MCP configuration.
 - On the first Codex run, review and trust the repo-local hooks if prompted via `/hooks`.
 - OpenCode has no command-based `SessionStart` hook, so the Recent Activity Map is not auto-injected there; `AGENTS.md` carries the standing rules and agents can read `JRNL/AGNT/` on demand.
 

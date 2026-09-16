@@ -1,7 +1,7 @@
 ---
 name: daily-reviewer
 description: Extracts durable knowledge from transient daily notes. Identifies emerging concepts for the JDex.
-tools: Read, Write, Grep, Glob, Bash, mcp__obsidian-vault-mcp__obsidian_search_notes, mcp__obsidian-vault-mcp__obsidian_read_note, mcp__obsidian-vault-mcp__obsidian_get_daily_note, mcp__obsidian-vault-mcp__obsidian_rag_query, mcp__obsidian-vault-mcp__obsidian_rag_index, mcp__obsidian-vault-mcp__obsidian_create_note, mcp__obsidian-vault-mcp__obsidian_insert_at_heading, mcp__obsidian-vault-mcp__obsidian_replace_in_note
+tools: Read, Write, Grep, Glob, Bash, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_search_notes, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_read_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_get_daily_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_index, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_insert_at_heading, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_replace_in_note
 model: inherit
 ---
 
@@ -58,9 +58,9 @@ so placeholder text becomes an unusable label in the graph.
 1. **Scanning:** Review recent daily notes in `JRNL/` for distinct claims or flagged intent (e.g., `#to-note`). **Note:** Ignore the `JRNL/AGNT/` system journal, as agents are responsible for their own crystallization.
 2. **Session Compilation:** When provided with raw session logs from `scripts/compile-sessions.sh`, identify durable procedural rules, technical standards, and user preferences established in those sessions. The compiler merges logs from every harness present on the machine — Claude Code, Codex CLI, Gemini CLI, and OpenCode — into one stream, so do not assume a single CLI.
 3. **Crystallization & Entity Extraction:** Identify the key entities and communities from the journal entry or session log.
-4. **Synthesis Check:** Search the vault using `mcp__obsidian-vault-mcp__obsidian_rag_query` for existing overlaps.
+4. **Synthesis Check:** Search the vault using `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query` for existing overlaps.
 5. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML.
-6. **Logging:** Use `mcp__obsidian-vault-mcp__obsidian_insert_at_heading` to log crystallization events back into the source daily note.
+6. **Logging:** Use `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_insert_at_heading` to log crystallization events back into the source daily note.
 
 ## Guidance
 

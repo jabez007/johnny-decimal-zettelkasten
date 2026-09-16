@@ -34,6 +34,15 @@ if [ -z "$VAULT_PATH" ] || [ ! -d "$VAULT_PATH" ]; then
   exit 0
 fi
 
+# This context is repo-local. Global behavior is installed as standing rules.
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+OWNER_REPO=$(cd "$SCRIPT_DIR/.." && pwd)
+CONFIGURED_REPO=$(jq -r '.workspace_path // empty' "$CONFIG_FILE")
+if [ "$CONFIGURED_REPO" != "$OWNER_REPO" ]; then
+  echo "Agent Memory: the selected vault belongs to another repository. Use global research and JRNL capture; management remains in its owning repository."
+  exit 0
+fi
+
 cat <<'SOPS'
 ## Agent Memory SOPs (JD/ZK Vault)
 
@@ -60,13 +69,15 @@ At the start of any significant task:
    task's entities within the `Agent Procedural Memory` community.
 2. Review the Recent Activity Map below. If the task continues earlier work,
    read that session's log with `obsidian_read_note` before acting. If the user
-   says "continue" or "resume", assume the most recent log unless told otherwise.
+   says "continue" or "resume", select the most recent log for this project and task.
 
 ### Shutdown Sequence (Context Preservation)
 Before concluding a session:
-1. Log the session to `JRNL/AGNT/YYYY-MM-DD-HHMM.md` via `obsidian_create_note`.
-   Include a `**Goal:**` line — the Recent Activity Map is built from it.
-2. If durable new preferences or standards were established, search for an
+1. Log the session to `JRNL/AGNT/YYYY-MM-DD-HHMMSS.md` via `obsidian_create_note`.
+   Include `**Goal:**`, `**Project:**`, and the harness name. Check for a filename
+   collision and choose another timestamp rather than overwriting a session.
+2. Only while working in the repository that owns the selected vault, if durable
+   new preferences or standards were established, search for an
    existing rule with `obsidian_search_notes` before proposing a new one.
    Prefer updating an existing rule over adding a near-duplicate.
 3. New AGNT rules go in `AGNT/10-Procedural_Rules/<area>/` and must use:
@@ -109,7 +120,8 @@ extract_goal() {
 }
 
 # Recent Activity Map: the last 5 session logs and what each one set out to do.
-RECENT_LOGS=$(ls -t "$VAULT_PATH/JRNL/AGNT/"*.md 2>/dev/null | head -n 5 || true)
+RECENT_LOGS=$(printf '%s\n' "$VAULT_PATH/JRNL/AGNT/"*.md | LC_ALL=C sort -r | head -n 5 || true)
+if [ ! -f "${RECENT_LOGS%%$'\n'*}" ]; then RECENT_LOGS=""; fi
 if [ -n "$RECENT_LOGS" ]; then
   echo "### Recent Activity Map (Last 5 Sessions)"
   echo "| Date/Time | Goal | Path |"

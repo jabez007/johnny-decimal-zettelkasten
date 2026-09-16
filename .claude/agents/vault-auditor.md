@@ -1,7 +1,7 @@
 ---
 name: vault-auditor
 description: Specialized in auditing Obsidian vault link health, identifying orphans, broken links, and connection opportunities.
-tools: Read, Grep, Glob, mcp__obsidian-vault-mcp__obsidian_get_broken_links, mcp__obsidian-vault-mcp__obsidian_get_backlinks, mcp__obsidian-vault-mcp__obsidian_rag_query, mcp__obsidian-vault-mcp__obsidian_list_notes, mcp__obsidian-vault-mcp__obsidian_get_links
+tools: Read, Grep, Glob, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_get_broken_links, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_get_backlinks, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_list_notes, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_get_links
 model: inherit
 ---
 
@@ -40,14 +40,14 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 ### 2. Validate Link Health
 
-- Identify broken `[[wiki-links]]` using `mcp__obsidian-vault-mcp__obsidian_get_broken_links`.
+- Identify broken `[[wiki-links]]` using `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_get_broken_links`.
 - Propose the exact repair: the note, the current link text, and the replacement. You are read-only; hand the proposal to `@vault-cleaner` or the user to apply.
 
 ### 3. Connection Discovery (Graph-Aware)
 
 - Identify "Weakly Connected" notes (0-1 outgoing links).
 - Identify "Orphaned" notes (0 incoming links).
-- Suggest 2-3 connection candidates using `mcp__obsidian-vault-mcp__obsidian_rag_query`. Pass the shared `entities` or `communities` as filter parameters to find exact matches, then run an unfiltered query for candidates whose labels have drifted.
+- Suggest 2-3 connection candidates using `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query`. Pass the shared `entities` or `communities` as filter parameters to find exact matches, then run an unfiltered query for candidates whose labels have drifted.
 
 ### 4. Emergent Structure
 
@@ -82,11 +82,11 @@ Always present findings as **Proposals** with Rationale.
 
 - Distinguish between intentional isolation and problematic orphaning.
 - Respect the Johnny Decimal structure; don't suggest links that would violate category boundaries without good reason.
-- Use `mcp__obsidian-vault-mcp__obsidian_*` tools for high-fidelity data.
+- Use `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_*` tools for high-fidelity data.
 
 ## Graph-Aware Querying
 
-`mcp__obsidian-vault-mcp__obsidian_rag_query` accepts `entities` and `communities` filter
+`mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query` accepts `entities` and `communities` filter
 parameters. These match frontmatter labels exactly and are case-sensitive. When
 you are looking for notes related to a known entity or cluster, pass the filter
 rather than relying on semantic similarity to surface them — the filter is exact,

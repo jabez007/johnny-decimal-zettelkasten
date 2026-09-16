@@ -9,11 +9,17 @@ description: Knowledge steward for Johnny-Decimal/Zettelkasten Obsidian vaults. 
 
 This skill provides the foundational knowledge and rules for managing Obsidian vaults structured using the Johnny-Decimal and Zettelkasten methodologies, enhanced with graph-aware metadata for advanced RAG systems.
 
+## Scope
+
+Use this management skill only from the repository that owns the selected vault.
+Check `obsidian_get_config` and the current Git worktree root before managing
+notes. From other projects, research across systems and capture candidates in
+`JRNL/`; leave crystallization and permanent-note changes for local review.
+
 ## **Core Mandates**
 
 - **Graph-Aware Metadata:** **CRITICAL.** Every permanent note MUST include YAML frontmatter with required core fields `entities`, `communities`, and `status`. Add `aliases` and `tags` when they improve discoverability or actionable intent.
-- **Read-Only Analysis and Proposals:** **NEVER** create, modify, or delete files directly without a preceding proposal phase.
-- **Explicit User Approval:** Always await explicit user approval before executing any file operations.
+- **Proposal-first management:** Propose placement, IDs, and metadata before structural or bulk note changes. Existing user authorization remains valid; do not ask again for approved work. Journal capture follows the global capture workflow.
 - **Respect ACID Notation:** All references must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
 - **Adherence to Vault Guidelines:** Consult `references/librarian/copilot-instructions.md` for identity, atomicity, titles, and links.
 - **Maintain JDex Integrity:** `00.00.md` index and `_SYS/*.base` configuration must be kept consistent.

@@ -8,7 +8,15 @@
 
 set -euo pipefail
 
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
+cd "$REPO_ROOT"
+
+for arg in "$@"; do
+  if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+    exec bash "$REPO_ROOT/scripts/configure-vault.sh" --help
+  fi
+done
 MARKETPLACE_SOURCE="jabez007/obsidian-vault-mcp"
 MARKETPLACE_NAME="obsidian-vault-mcp-repo"
 PLUGIN_NAME="obsidian-vault-mcp"
@@ -16,13 +24,18 @@ LEGACY_MARKETPLACE_NAME="gemini-obsidian-repo"
 LEGACY_PLUGIN_NAME="gemini-obsidian"
 
 echo "--- 1. Dependency checks ---"
-for cmd in git jq node npx codex; do
+for cmd in git jq node npx python3 codex; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Error: '$cmd' is required but not installed."
     exit 1
   fi
 done
 echo "Required commands found."
+bash "$REPO_ROOT/scripts/configure-vault.sh" --check "$@"
+python3 "$REPO_ROOT/scripts/install-global.py" --harness codex --check
+for arg in "$@"; do
+  if [[ "$arg" == "--check" ]]; then exit 0; fi
+done
 
 echo "--- 2. Removing legacy gemini-obsidian install, if present ---"
 if codex plugin list --json 2>/dev/null | jq -e --arg n "$LEGACY_PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
@@ -44,18 +57,20 @@ else
   codex plugin marketplace add "$MARKETPLACE_SOURCE" >/dev/null
 fi
 
-if codex plugin list --json 2>/dev/null | jq -e --arg n "$PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
-  echo "Refreshing installed plugin '$PLUGIN_NAME'..."
-  codex plugin remove "$PLUGIN_NAME" >/dev/null
+if codex plugin list --json | jq -e --arg n "$PLUGIN_NAME" '.installed[]? | select(.name == $n and .enabled == true)' >/dev/null; then
+  echo "Codex plugin '$PLUGIN_NAME' is already enabled; preserving its installation."
+else
+  codex plugin add "$PLUGIN_NAME@$MARKETPLACE_NAME" >/dev/null
+  echo "Installed Codex plugin '$PLUGIN_NAME'."
 fi
-codex plugin add "$PLUGIN_NAME@$MARKETPLACE_NAME" >/dev/null
-echo "Installed Codex plugin '$PLUGIN_NAME'."
 
 echo "--- 4. Configuring vault ---"
-bash "$REPO_ROOT/scripts/configure-vault.sh"
+bash "$REPO_ROOT/scripts/configure-vault.sh" "$@"
 
 echo "--- 5. Generating per-harness assets ---"
 bash "$REPO_ROOT/scripts/sync-assets.sh"
+
+python3 "$REPO_ROOT/scripts/install-global.py" --harness codex
 
 echo "--- 6. Finalizing ---"
 echo "-------------------------------------------------------"

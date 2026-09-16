@@ -14,7 +14,7 @@ and workflow that apply here.
 - `.claude/settings.json` registers a `SessionStart` hook that restores Agent
   Memory (procedural rules plus a map of recent `JRNL/AGNT/` sessions).
 - Vault access goes through the `obsidian-vault-mcp` MCP server. Its tools are
-  namespaced `mcp__obsidian-vault-mcp__obsidian_*`.
+  namespaced `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_*`.
 
 Run `./.claude/setup-environment.sh` to install the MCP plugin and configure a
 vault.

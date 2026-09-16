@@ -5,6 +5,11 @@ config/
 
 # MCP runtime dependencies are installed separately on each machine.
 node_modules/
+__pycache__/
+
+# Selected vault paths are specific to this machine.
+/.jd-vault-local.json
+/.jd-vault-local.json.tmp
 
 # Model downloads are local. Published snapshots live under shared/.
 /.obsidian-vault-mcp/**/*.onnx

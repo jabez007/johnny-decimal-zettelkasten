@@ -9,6 +9,27 @@ version, which also unlocked Claude Code and OpenCode support.
 and every note you have written remain exactly as they were. This migration only
 touches host plugin registrations, index storage, and the RAG index itself.
 
+
+## Global research and journal setup
+
+After updating this template, rerun each harness's setup script with the vault
+name you intend to use. Setup now installs template-owned global research and
+journal skills and standing instructions for all four harnesses. OpenCode also
+gets a global MCP registration. Management agents remain repository-local.
+
+Existing selections are preserved on unattended reruns. Selecting a vault in a
+different checkout requires an explicit `--vault NAME`. Global workflow rules
+apply only to vaults registered by the template. They keep permanent-note
+management and crystallization in the owning repository; the MCP itself is
+unchanged.
+
+Gemini setup retires the old template memory hook because it instructed global
+agents to create permanent rules. User hooks and unrelated settings are
+preserved. Claude's generated agents now use the plugin-qualified MCP tool
+names. See [setup and verification](docs/setup.md) and run the doctor command
+after restarting the harness.
+
+
 ## TL;DR
 
 ```bash
@@ -120,7 +141,7 @@ because each harness namespaces MCP tools differently:
 
 | Harness | Prefix |
 | :--- | :--- |
-| Claude Code | `mcp__obsidian-vault-mcp__` |
+| Claude Code plugin | `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__` |
 | Gemini CLI | `mcp_obsidian-vault-mcp_` |
 | OpenCode | `obsidian-vault-mcp_` |
 | Codex CLI | *(bare — the plugin namespaces at call time)* |

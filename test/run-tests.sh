@@ -138,7 +138,7 @@ else
 fi
 
 check "Claude agents use mcp__ prefix" \
-  grep -q 'mcp__obsidian-vault-mcp__obsidian_read_note' .claude/agents/librarian.md
+  grep -q 'mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_read_note' .claude/agents/librarian.md
 check "Gemini agents use mcp_ prefix" \
   grep -q 'mcp_obsidian-vault-mcp_obsidian_read_note' .gemini/agents/librarian.md
 
@@ -450,21 +450,6 @@ done
   || fail "hooks degrade to a diagnostic when the context script fails" "got an empty context"
 mv "$CTX_BACKUP" scripts/agent-memory-context.sh
 
-# The jq refresh branch must tolerate a SessionStart entry with no hooks array.
-if echo '{"hooks":{"SessionStart":[{"matcher":"*"},{"matcher":"x","hooks":[{"name":"agent-memory-boot","command":"old"}]}]}}' \
-   | jq --arg name "agent-memory-boot" --arg script "/new" '
-       .hooks |= (. // {}) | .hooks.SessionStart |= (. // [])
-       | if any(.hooks.SessionStart[]; (.hooks? // []) | any(.[]; .name == $name)) then
-           .hooks.SessionStart |= map(
-             if (.hooks | type) == "array" then
-               .hooks |= map(if .name == $name then .command = $script else . end)
-             else . end)
-         else . end' >/dev/null 2>&1; then
-  pass "hook registration tolerates entries without a hooks array"
-else
-  fail "hook registration tolerates entries without a hooks array"
-fi
-
 # --- 4b. Harness parity -----------------------------------------------------
 section "4b. Harness parity"
 
@@ -482,25 +467,7 @@ for h in claude codex gemini opencode; do
     || fail "$f honours the setup contract" "missing:$missing"
 done
 
-# Every SessionStart hook must behave identically on both paths. The Gemini one
-# is generated inside a heredoc, so it is extracted and executed the same way
-# the setup script would write it. A degradation fix landed for Claude and
-# Codex before Gemini once already; this is what catches that next time.
-HOOK_DIR=$(mktemp -d)
-CONTEXT_TARGET="$WORK_DIR/scripts/agent-memory-context.sh"
-export CONTEXT_TARGET
-sed -n '/^cat >"\$HOOK_SCRIPT" <<EOF$/,/^EOF$/p' .gemini/setup-environment.sh \
-  | sed '1d;$d' >"$HOOK_DIR/raw"
-if [ -s "$HOOK_DIR/raw" ]; then
-  eval "cat <<EOF
-$(cat "$HOOK_DIR/raw")
-EOF" >"$HOOK_DIR/gemini-hook.sh"
-  pass "Gemini hook is extractable from the setup heredoc"
-else
-  fail "Gemini hook is extractable from the setup heredoc"
-fi
-
-HOOKS=(".claude/hooks/session-start.sh" ".codex/hooks/session-start.sh" "$HOOK_DIR/gemini-hook.sh")
+HOOKS=(".claude/hooks/session-start.sh" ".codex/hooks/session-start.sh")
 
 # Path 1: a working context script yields real content.
 ok=1
@@ -536,7 +503,8 @@ done
   || fail "all SessionStart hooks degrade honestly on failure"
 cp "$CTX_SAVE" scripts/agent-memory-context.sh
 rm -f "$CTX_SAVE"
-rm -rf "$HOOK_DIR"
+
+check "isolated global and local setup workflows" python3 test/test-setup.py
 
 # --- 5. Session compiler ----------------------------------------------------
 section "5. Session compiler"
@@ -661,7 +629,7 @@ section "7. Setup script dependency gates"
 # Run with a PATH that has the core utilities but none of the agent CLIs, so
 # the result is the same here and on a machine that has them installed.
 STUB_BIN=$(mktemp -d)
-for tool in bash sh env git jq node npx sed awk grep cat ls mkdir rm cp basename dirname tr head tail find chmod; do
+for tool in bash sh env git jq node npx python3 sed awk grep cat ls mkdir rm cp basename dirname tr head tail find chmod; do
   src=$(command -v "$tool" 2>/dev/null) && ln -sf "$src" "$STUB_BIN/$tool"
 done
 

@@ -5,6 +5,22 @@ isolated environment.
 
 ## Running
 
+Run the setup integration tests without network access or authenticated CLIs:
+
+```bash
+python3 test/test-setup.py
+```
+
+They use temporary homes and repositories, real setup scripts and Git, and
+deterministic harness and MCP fixtures. They cover global installation for all
+four harnesses, local management scope, user configuration preservation,
+JSONC comments, vault selection, starter recovery, and indexing failures.
+
+Set `MCP_SETUP_RELEASE` to an installed MCP 2.1.0 package directory to also
+provision a fresh temporary vault through the real server, compare exact starter
+note contents, and verify semantic retrieval. This optional test can download
+the embedding model. It still uses fixture harness CLIs, not model sessions.
+
 ```bash
 cd test
 docker compose run --rm harness           # full suite
@@ -90,13 +106,16 @@ nearly all of it npm fetching onnxruntime.
 | 5. Session compiler | Extracts Claude Code turns and filters `tool_result` noise; extracts OpenCode SQLite turns; handles an empty log set; rejects an unknown `AI_MEMORY_HOST` |
 | 6. Migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
 | 7. Setup gates | Each `setup-environment.sh` fails fast when its CLI is missing, tested with a restricted PATH so the result does not depend on what is installed |
+| Setup integration | All four complete setup paths with fixture CLIs; global skill installation, local management scope, configuration preservation, selection, diagnostics, and recovery |
 | 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.1.0 export → LFS push/clone → vector and full-text queries without reindexing |
 
 ## What it does not cover
 
-Running actual agent sessions. That needs authenticated CLIs, so the suite
-stops at verifying each setup script's dependency gate. The MCP server itself
-is exercised for real, since its CLI mode needs no credentials.
+Running actual model sessions. That needs authenticated CLIs. Setup is exercised
+with deterministic CLI fixtures; the MCP server is also exercised separately
+with the published package. Follow [the harness smoke test](harness-smoke.md)
+to verify skill discovery and tool use in an authenticated session. The global
+JRNL policy is an instruction-following contract, not a server permission test.
 
 ## Notes
 

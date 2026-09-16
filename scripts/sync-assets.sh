@@ -29,7 +29,8 @@
 
 set -euo pipefail
 
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$REPO_ROOT"
 
 SKILL_NAME="librarian-vault-manager"
@@ -104,7 +105,7 @@ if [ ! -d "$CANONICAL_AGENTS" ]; then
 fi
 
 # Each harness namespaces MCP tools differently.
-CLAUDE_PREFIX="mcp__obsidian-vault-mcp__"
+CLAUDE_PREFIX="mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__"
 GEMINI_PREFIX="mcp_obsidian-vault-mcp_"
 OPENCODE_PREFIX="obsidian-vault-mcp_"
 

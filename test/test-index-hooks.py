@@ -24,7 +24,7 @@ class IndexHooksTest(unittest.TestCase):
                     'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull,
                     'GIT_TERMINAL_PROMPT': '0', 'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1'}
         Path(self.env['HOME']).mkdir()
-        for relative in ['.gitignore', 'scripts/index-snapshot-attributes.gitattributes', 'scripts/configure-vault.sh', 'scripts/configure-index-git.sh',
+        for relative in ['.gitignore', 'scripts/index-snapshot-attributes.gitattributes', 'scripts/configure-vault.sh', 'scripts/configure-vault.py', 'scripts/configure-index-git.sh',
                          'scripts/check-index-snapshot.sh', 'scripts/prepare-index-snapshot.sh',
                          'scripts/install-index-snapshot.sh', 'scripts/index-snapshots.mjs',
                          'scripts/receive-index-snapshot.sh', 'scripts/hooks/post-merge.sh',
@@ -330,7 +330,8 @@ class IndexHooksTest(unittest.TestCase):
 
     def test_shared_setup_reuses_registered_id(self):
         self.register()
-        self.run_cmd('bash', 'scripts/configure-vault.sh', extra_env={
+        self.write('vaults/example/existing.md', 'Existing vault')
+        self.run_cmd('bash', 'scripts/configure-vault.sh', '--skip-index', extra_env={
             'MCP_CMD': 'python3 ' + str(SOURCE / 'test/fixtures/snapshot-mcp.py')})
         config = json.loads((self.repo / '.obsidian-indexes.json').read_text())
         self.assertEqual(config['vaults'], [{'path': 'vaults/example', 'id': 'shared-example'}])
