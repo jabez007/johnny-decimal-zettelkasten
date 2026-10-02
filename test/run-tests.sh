@@ -148,6 +148,7 @@ check "Gemini agents use mcp_ prefix" \
 oc_ok=1
 for f in .opencode/agents/*.md; do
   grep -q '"obsidian-vault-mcp_\*": deny' "$f" || oc_ok=0
+  grep -q '^  task: deny' "$f" || oc_ok=0
 done
 [ "$oc_ok" = 1 ] && pass "OpenCode agents deny the MCP namespace by default" \
   || fail "OpenCode agents deny the MCP namespace by default"
@@ -178,6 +179,11 @@ for src in .agents/agents/*.md; do
   # Claude only lists Write when the capability is declared.
   if grep -q '^tools:.*Write' ".claude/agents/$n.md"; then cw=allow; else cw=deny; fi
   [ "$cw" = "$cw_want" ] || { parity_ok=0; echo "       $n: capabilities imply Write=$cw_want, Claude says $cw"; }
+  if [ "$cw_want" = deny ]; then
+    grep -q '^sandbox_mode = "read-only"' ".codex/agents/$n.toml" || {
+      parity_ok=0; echo "       $n: missing Codex read-only filesystem sandbox"
+    }
+  fi
 done
 [ "$parity_ok" = 1 ] && pass "filesystem write permissions agree across harnesses" \
   || fail "filesystem write permissions agree across harnesses"
@@ -196,8 +202,6 @@ scope_ok=1
 for src in .agents/agents/*.md; do
   grep -qE '^capabilities:.*(write|edit)' "$src" || continue
   n=$(basename "$src" .md)
-  # daily-reviewer writes freely by design; everything else must be scoped.
-  [ "$n" = "daily-reviewer" ] && continue
   grep -q '^write_scope:' "$src" || { scope_ok=0; echo "       $n: has write but declares no write_scope"; }
 done
 [ "$scope_ok" = 1 ] && pass "scoped writers declare a write_scope" \
@@ -228,6 +232,11 @@ for src in .agents/agents/*.md; do
 done
 [ "$ro_ok" = 1 ] && pass "read-only agents hold no mutating MCP tools" \
   || fail "read-only agents hold no mutating MCP tools"
+
+check "daily-reviewer is a read-only specialist" \
+  grep -q '^readonly: true' .agents/agents/daily-reviewer.md
+check "OpenCode can select the reviewer without fallback" \
+  grep -q '^mode: all' .opencode/agents/daily-reviewer.md
 
 # Every status an agent emits must be in the canonical enum. `redirect` was
 # removed, so nothing may reintroduce an undocumented value.
@@ -504,106 +513,26 @@ done
 cp "$CTX_SAVE" scripts/agent-memory-context.sh
 rm -f "$CTX_SAVE"
 
-check "isolated global and local setup workflows" python3 test/test-setup.py
-
-# --- 5. Session compiler ----------------------------------------------------
-section "5. Session compiler"
-
-check "compile-sessions.sh handles no logs" \
-  env AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1
-
-# macOS and other BSD hosts expose date -j/-v rather than GNU date -d. Keep a
-# stub first on PATH so this Linux-run suite also exercises that branch.
-DATE_STUB_DIR=$(mktemp -d)
-cat >"$DATE_STUB_DIR/date" <<'DATE_STUB'
-#!/bin/bash
-if [ "${1:-}" = "-d" ]; then
-  exit 1
+# Reuse the published package for provisioning and snapshot tests. This also
+# exercises the starter notes and Base files through the actual MCP boundary.
+if [ -z "${MCP_SNAPSHOT_RELEASE:-}" ]; then
+  MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.1.0 -c 'command -v obsidian-vault-mcp')
+  MCP_SNAPSHOT_RELEASE=$(node -e 'const fs = require("fs"), p = require("path"); console.log(p.dirname(p.dirname(fs.realpathSync(process.argv[1]))))' "$MCP_EXECUTABLE")
 fi
-case " $* " in
-  *" -j -f %Y-%m-%d 1970-01-01 +%s "*) echo 0 ;;
-  *" -v-1d +%s "*) echo 1700000000 ;;
-  *" -j -f %Y-%m-%d 2026-08-01 +%s "*) echo 1785542400 ;;
-  *" -j -v+1d -f %Y-%m-%d 2026-08-02 +%s "*) echo 1785715200 ;;
-  *) exit 1 ;;
-esac
-DATE_STUB
-chmod +x "$DATE_STUB_DIR/date"
-check "compile-sessions.sh supports BSD relative dates" \
-  env PATH="$DATE_STUB_DIR:$PATH" AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1
-check "compile-sessions.sh supports BSD date ranges" \
-  env PATH="$DATE_STUB_DIR:$PATH" AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 2026-08-01 2026-08-02
-rm -rf "$DATE_STUB_DIR"
-
-# Actually execute the generated wrapper. Checking only that the file exists
-# once let a broken repo-root expression ship: the wrapper resolved to two
-# newline-joined paths and could not exec the compiler at all.
-WRAPPER=.gemini/skills/librarian-vault-manager/scripts/compile-sessions.sh
-out=$(AI_MEMORY_DRY_RUN=1 bash "$WRAPPER" 1 2>&1)
-if echo "$out" | grep -q 'Scanning for agent CLI session logs'; then
-  pass "generated wrapper execs the compiler"
+if [ -n "${SKIP_RAG_INDEX:-}" ]; then
+  check "isolated global and local setup workflows" python3 test/test-setup.py
 else
-  fail "generated wrapper execs the compiler" "$(echo "$out" | tail -1)"
+  check "setup workflows and published MCP starter provisioning" \
+    env MCP_SETUP_RELEASE="$MCP_SNAPSHOT_RELEASE" python3 test/test-setup.py
 fi
 
-# The wrapper must resolve from its own location, not the caller's cwd.
-out=$(cd / && AI_MEMORY_DRY_RUN=1 bash "$WORK_DIR/$WRAPPER" 1 2>&1)
-if echo "$out" | grep -q 'Scanning for agent CLI session logs'; then
-  pass "generated wrapper works from an unrelated cwd"
-else
-  fail "generated wrapper works from an unrelated cwd" "$(echo "$out" | tail -1)"
-fi
+# --- 5. Session compiler and vault consistency ------------------------------
+section "5. Session compiler and vault consistency"
 
-out=$(AI_MEMORY_HOST=bogus AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1 2>&1)
-echo "$out" | grep -q 'No session logs found' && pass "reports empty log set cleanly" \
-  || fail "reports empty log set cleanly" "$out"
-
-# Synthesize a Claude Code transcript and confirm it is extracted.
-mkdir -p "$HOME/.claude/projects/-test"
-cat >"$HOME/.claude/projects/-test/session.jsonl" <<'JSONL'
-{"type":"user","message":{"role":"user","content":"always use pytest for python tests"}}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Understood, pytest it is."}]}}
-{"type":"user","message":{"role":"user","content":[{"tool_use_id":"x","type":"tool_result","content":"noise"}]}}
-JSONL
-comp=$(AI_MEMORY_DRY_RUN=dump bash scripts/compile-sessions.sh 1 2>/dev/null)
-echo "$comp" | grep -q '\[user\] always use pytest' && pass "extracts Claude user turns" \
-  || fail "extracts Claude user turns"
-echo "$comp" | grep -q '\[assistant\] Understood' && pass "extracts Claude assistant turns" \
-  || fail "extracts Claude assistant turns"
-echo "$comp" | grep -q 'tool_result' && fail "filters Claude tool_result noise" \
-  || pass "filters Claude tool_result noise"
-
-# Synthesize an OpenCode SQLite store and confirm it is extracted.
-OCDB="$HOME/.local/share/opencode/opencode.db"
-mkdir -p "$(dirname "$OCDB")"
-NOW_MS=$(( $(date +%s) * 1000 ))
-sqlite3 "$OCDB" "
-  CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT);
-  CREATE TABLE part (id TEXT PRIMARY KEY, message_id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT);
-  INSERT INTO message VALUES ('m1','s1',$NOW_MS,$NOW_MS,'{\"role\":\"user\"}');
-  INSERT INTO part VALUES ('p1','m1','s1',$NOW_MS,$NOW_MS,'{\"type\":\"text\",\"text\":\"prefer vitest in this repo\"}');
-" 2>/dev/null
-comp=$(AI_MEMORY_DRY_RUN=dump bash scripts/compile-sessions.sh 1 2>/dev/null)
-echo "$comp" | grep -q 'prefer vitest in this repo' && pass "extracts OpenCode SQLite turns" \
-  || fail "extracts OpenCode SQLite turns"
-
-out=$(AI_MEMORY_HOST=bogus bash scripts/compile-sessions.sh 1 2>&1)
-echo "$out" | grep -q 'Unsupported AI_MEMORY_HOST' && pass "rejects unknown AI_MEMORY_HOST" \
-  || fail "rejects unknown AI_MEMORY_HOST"
-
-# A transcript holding only tool-call noise must not produce a payload of bare
-# separators, which would look non-empty and invoke a reviewer on nothing.
-rm -rf "$HOME/.claude/projects" "$HOME/.local/share/opencode"
-mkdir -p "$HOME/.claude/projects/-noise"
-echo '{"type":"user","message":{"role":"user","content":[{"tool_use_id":"x","type":"tool_result","content":"noise"}]}}' \
-  >"$HOME/.claude/projects/-noise/s.jsonl"
-out=$(AI_MEMORY_DRY_RUN=1 bash scripts/compile-sessions.sh 1 2>&1)
-if echo "$out" | grep -q 'No session logs found'; then
-  pass "noise-only transcript reports no logs"
-else
-  fail "noise-only transcript reports no logs" "$(echo "$out" | tail -1)"
-fi
-rm -rf "$HOME/.claude/projects"
+check "dated session extraction and proposal-only reviewer commands" \
+  python3 test/test-session-compiler.py
+check "starter, sample, and malformed vault validation" \
+  python3 test/test-vault-validation.py
 
 # --- 6. Migration script ----------------------------------------------------
 section "6. Migration script"
@@ -648,10 +577,6 @@ check "Codex setup uses marketplace upgrade" \
 rm -rf "$STUB_BIN"
 
 section "8. Index snapshot hooks"
-if [ -z "${MCP_SNAPSHOT_RELEASE:-}" ]; then
-  MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.1.0 -c 'command -v obsidian-vault-mcp')
-  MCP_SNAPSHOT_RELEASE=$(node -e 'const fs = require("fs"), p = require("path"); console.log(p.dirname(p.dirname(fs.realpathSync(process.argv[1]))))' "$MCP_EXECUTABLE")
-fi
 if [ -f "$MCP_SNAPSHOT_RELEASE/package.json" ]; then
   check "snapshot hooks and published MCP round trip" \
     env MCP_SNAPSHOT_RELEASE="$MCP_SNAPSHOT_RELEASE" python3 test/test-index-hooks.py

@@ -10,3 +10,5 @@ status: scaffolded
 This system holds durable agent workflow rules. Review candidates from
 `JRNL/AGNT/` while working in this vault's repository before creating rules here.
 Keep personal domain knowledge in its own system.
+
+![[JDEX_AGNT.base]]

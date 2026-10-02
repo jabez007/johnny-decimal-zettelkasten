@@ -36,7 +36,7 @@ The vault is not just for you; it is a "World Model" for your AI agents.
 
 ## Quick start
 
-Install Obsidian, Git, Git LFS, Node.js 20 or later, Python 3.9 or later, `jq`,
+Install Obsidian, Git, Git LFS, Node.js 20 or later, Python 3.9 or later with PyYAML, `jq`,
 and your chosen agent CLI. Clone this repository, then run setup for each
 harness you use:
 
@@ -113,7 +113,9 @@ perform approved crystallization and structural management.
 
 ## **AI-Assisted Vault Maintenance**
 
-The **Librarian** system works identically across all four harnesses. Every agent follows the same doctrine in `references/librarian/`, and the operating stance is always **Proposal-First** for structural work: analyze first, then make deliberate vault changes with clear rationale.
+All four harnesses share the librarian doctrine in `references/librarian/`
+and use proposals before structural work. Their native permission controls
+differ; see [agent permissions](docs/setup.md#agent-permissions).
 
 ### **Single Source of Truth**
 
@@ -141,7 +143,8 @@ Agent bodies reference MCP tools through a `{{MCP_PREFIX}}` placeholder, since e
 
 ### **Specialized Subagents**
 
-For complex tasks, the Librarian delegates to specialized experts. All eight exist in every harness, backed by the same MCP tools.
+The parent session coordinates the specialists directly. The librarian returns
+recommendations; it does not spawn nested agents. All eight exist in every harness.
 
 | Agent                    | Purpose                               | Key Commands                                                |
 | :----------------------- | :------------------------------------ | :---------------------------------------------------------- |
@@ -149,7 +152,7 @@ For complex tasks, the Librarian delegates to specialized experts. All eight exi
 | **@vault-auditor**       | Link health and graph connections.    | _"Audit links in the example vault"_, _"Find orphans"_      |
 | **@vault-cleaner**       | Hygiene, duplicates, and renames.     | _"Clean up my inbox"_, _"Check for duplicate notes"_        |
 | **@vault-scaffolder**    | Building new JD systems/areas.        | _"Create a new WORK system"_, _"Scaffold Area 20"_          |
-| **@daily-reviewer**      | Journal-to-Evergreen crystallization. | _"Review my daily notes from this week"_                    |
+| **@daily-reviewer**      | Read-only journal and session proposals. | _"Review my daily notes from this week"_                    |
 | **@vault-synthesizer**   | Knowledge compounding & bridge notes. | _"Synthesize my notes on Topic X"_, _"Any contradictions?"_ |
 | **@source-distiller**    | Processing articles/transcripts.      | _"Process this article into atomic notes"_                  |
 | **@flashcard-generator** | Spaced-repetition card creation.      | _"Generate flashcards for this note"_                       |
@@ -274,7 +277,10 @@ Notes:
 
 #### **Cross-CLI Session Compilation**
 
-The session compiler reads logs from all four harnesses in one pass — Gemini (`~/.gemini/tmp`), Codex (`~/.codex/sessions`), Claude Code (`~/.claude/projects`), and OpenCode (SQLite at `~/.local/share/opencode/opencode.db`, which requires `sqlite3` on your PATH).
+The session compiler reads Gemini JSON and JSONL logs (`~/.gemini/tmp`), Codex
+(`~/.codex/sessions`), Claude Code (`~/.claude/projects`), and OpenCode SQLite
+(`~/.local/share/opencode/opencode.db`). It uses Python's standard library;
+the compiler does not require a `sqlite3` executable.
 
 ```bash
 # Compile the last 7 days and review with the default host (gemini)
@@ -288,6 +294,27 @@ AI_MEMORY_DRY_RUN=dump ./scripts/compile-sessions.sh 3
 ```
 
 `AI_MEMORY_HOST` accepts `gemini` (default), `codex`, `claude`, or `opencode`. The legacy path under `.gemini/skills/librarian-vault-manager/scripts/compile-sessions.sh` remains as a compatibility wrapper.
+
+Date ranges use local calendar days with an inclusive end date; day counts use
+a rolling window. Every turn is filtered by its own timestamp. Undated turns
+are skipped with a diagnostic. Project, session, timestamp, and source remain
+in the review payload; unavailable project scope is marked unknown. The host
+runs from this repository even when the compiler is invoked elsewhere.
+
+The reviewer returns proposals without applying changes. Review the evidence,
+scope, placement, IDs, and metadata in the selected vault's owning repository
+before approving permanent updates. Original journal evidence stays intact.
+
+Validate template assets or an adopted vault without changing it:
+
+```bash
+python3 scripts/vault_validation.py vaults/example
+python3 scripts/vault_validation.py references/vault-starter
+```
+
+The validator checks IDs, placement, core metadata, navigation, index Base
+embeds, and permanent-note wikilink targets. It does not judge claim quality,
+parse Obsidian filter expressions, or verify heading and block anchors.
 
 ### **Dockerized Obsidian**
 

@@ -4,6 +4,7 @@ mode: subagent
 permission:
   edit: deny
   bash: deny
+  task: deny
   webfetch: deny
   "obsidian-vault-mcp_*": deny
   "obsidian-vault-mcp_obsidian_read_note": allow
@@ -40,3 +41,14 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 3. **Gap Detection:** Find core concepts (especially those in `entities`) not yet covered by existing flashcards.
 4. **Generation:** Create new cards in the approved formats.
 5. **Footnotes:** Suggest adding footnotes to link answers back to their source in the note body.
+
+## Shared scope and authorization
+
+Apply permanent-note metadata, atomicity, and navigation rules to evergreen
+notes. Journals and support templates may be free-form; root and system indexes
+use navigation links and Base embeds rather than claim titles. Existing user
+authorization remains valid for the concrete approved work. Clarify the target
+vault only when it is ambiguous. Preserve source journals as historical evidence.
+Use exact existing metadata labels where appropriate. Scaffolded examples do
+not establish user preferences; newer conflicting evidence requires review.
+The parent session coordinates specialists. Do not spawn nested subagents.

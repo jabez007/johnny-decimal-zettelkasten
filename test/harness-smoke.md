@@ -1,7 +1,7 @@
 # Verify vault use in an authenticated harness
 
 Use a disposable clone and vault. Run its setup script with `--vault smoke`,
-then restart Claude Code, Codex, or OpenCode. Repeat these checks for each
+then restart Claude Code, Codex, Gemini, or OpenCode. Repeat these checks for each
 harness you use. Do not use a personal vault for mutation checks.
 
 1. Start in an unrelated Git repository. Confirm that `jd-vault-research` and
@@ -22,6 +22,11 @@ harness you use. Do not use a personal vault for mutation checks.
    project's history instead of an unrelated recent vault session.
 7. Rerun setup without a vault name. Verify that the selected vault, user
    instructions, unrelated MCP registrations, and existing notes are preserved.
+8. In the vault repository, run the session compiler against a dated fixture
+   transcript. Confirm `daily-reviewer` is selected exactly once, uses MCP read
+   or search tools, retains project/session/time/source, and returns proposals.
+   Verify no vault content changes. For Gemini, check experimental agent support
+   is enabled. For Codex, distinguish filesystem sandboxing from MCP policy.
 
 Record CLI versions, selected vault, loaded skill names, and relevant tool calls.
 Report any blocked step separately. Passing isolated setup tests cannot prove

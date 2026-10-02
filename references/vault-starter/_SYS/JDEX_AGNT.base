@@ -1,0 +1,7 @@
+filters:
+  and:
+    - file.inFolder("AGNT")
+    - '!file.inFolder("AGNT/00-IDX")'
+views:
+  - type: table
+    name: Procedural rules

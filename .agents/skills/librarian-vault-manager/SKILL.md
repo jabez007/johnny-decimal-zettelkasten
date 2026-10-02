@@ -30,7 +30,7 @@ notes. From other projects, research across systems and capture candidates in
 - **Johnny Decimal:** Hierarchical organization (Area -> Category -> ID). `00` is reserved for indices.
 - **Zettelkasten:** Atomic, evergreen notes that evolve from transient observations to durable knowledge.
 - **Agent Memory (AGNT):** A specialized system for Procedural Memory (Rules in `AGNT/`) and Episodic Memory (Logs in `JRNL/AGNT/`). The `AGNT` system is strictly for agent procedural rules, coding standards, and user preferences. It MUST remain entirely isolated from the user's personal knowledge domains (`LIFE`, `WORK`, etc.). An agent must never store facts about the world in `AGNT`, and must never store rules about how to act in the user's personal domains. Procedural rules use strict JD ACID notation and declarative titles.
-- **Journal System (JRNL):** The `JRNL/` system (including `JRNL/AGNT/`) is the transient scratchpad and Episodic Memory. While indexed by the RAG database for historical context and recall, its contents must never be treated as authoritative, crystallized knowledge. If a RAG query returns a conflict between a `JRNL` note and an evergreen `SYS.AC.ID` note, the evergreen note always takes precedence.
+- **Journal System (JRNL):** The `JRNL/` system (including `JRNL/AGNT/`) is the transient scratchpad and Episodic Memory. While indexed by the RAG database for historical context and recall, its contents must never be treated as authoritative, crystallized knowledge. Use evergreen notes as the working reference. Newer conflicting journal evidence requires review against the user's current instructions; do not discard it. Scaffolded examples are not adopted preferences.
 
 ## **MCP Backend**
 
@@ -41,7 +41,7 @@ Vault reads and writes go through the `obsidian-vault-mcp` MCP server ([`jabez00
 
 ## **Mandatory YAML Schema**
 
-Every note must start with YAML frontmatter whose required core fields are:
+Every permanent note must start with YAML frontmatter whose required core fields are:
 
 ```yaml
 ---
@@ -60,7 +60,7 @@ exact-match filter keys, so placeholder text becomes an unusable graph label.
 
 ## **Librarian Specialists (Subagents)**
 
-For complex workflows, delegate to these specialized subagents:
+The parent session coordinates these specialists directly. The librarian returns recommendations and never spawns nested specialists. Use the shared policies below; native tool enforcement differs by harness (see `docs/setup.md`). The daily reviewer returns proposals and cannot apply them:
 
 - `@librarian`: General vault questions, ID lookups, and coordination.
 - `@vault-auditor`: Audit link health, identify orphans, and suggest connections.

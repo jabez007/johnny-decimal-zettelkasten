@@ -1,7 +1,7 @@
 filters:
   and:
-    - file.folder.contains("LIFE")
-    - '!file.folder.contains("00-IDX")'
+    - file.inFolder("LIFE")
+    - '!file.inFolder("LIFE/00-IDX")'
 views:
   - type: table
     name: Table

@@ -14,6 +14,8 @@ import subprocess
 import sys
 import threading
 
+from vault_validation import validate_vault
+
 
 class McpClient:
     """Use structured tool arguments; CLI flags cannot carry leading '---'."""
@@ -85,6 +87,23 @@ def run(*args, capture=False, env=None):
     return result.stdout.strip() if capture else None
 
 
+def selected_id(vault, config, fallback):
+    """Keep established IDs; a disagreement requires an explicit migration."""
+    registered = ROOT / '.obsidian-indexes.json'
+    registration = None
+    if registered.exists():
+        entries = json.loads(registered.read_text()).get('vaults', [])
+        registration = next((v['id'] for v in entries
+                             if v['path'] == str(vault.relative_to(ROOT))), None)
+    configured = config.get('vault_id') if config.get('vault_path') and Path(config['vault_path']).resolve() == vault.resolve() else None
+    if configured and registration and configured != registration:
+        raise ValueError('The configured vault ID differs from its snapshot registration. Resolve the ID migration before setup; the existing selection was preserved.')
+    selected = registration or configured or fallback
+    if not isinstance(selected, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', selected) or '..' in selected:
+        raise ValueError('The selected vault ID is invalid; repair its configuration before setup')
+    return selected
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--vault', metavar='NAME', help='Select vaults/NAME explicitly; switches the global MCP default')
@@ -112,20 +131,25 @@ def main():
     vault = ROOT / 'vaults' / slug
     if vault.resolve().parent != (ROOT / 'vaults').resolve():
         raise ValueError('The vault must be a direct directory under this checkout\'s vaults/')
+    repo_slug = re.sub('[^a-z0-9]+', '-', ROOT.name.lower()).strip('-') or 'vault'
+    preferred_id = selected_id(vault, config, f'{repo_slug}_{slug}')
+    fresh = not vault.exists() or (vault.is_dir() and not any(vault.iterdir()))
+    initializing = vault / '.jd-vault-initializing'
+    if fresh or initializing.exists():
+        issues = validate_vault(ROOT / 'references/vault-starter')
+        if issues:
+            raise ValueError('Starter validation failed: ' + '; '.join(issues))
     if args.check:
         print(f'Vault selection validated: {vault}')
         return
-    fresh = not vault.exists() or (vault.is_dir() and not any(vault.iterdir()))
     vault.mkdir(parents=True, exist_ok=True)
-    initializing = vault / '.jd-vault-initializing'
     if fresh:
         initializing.touch()
     command = shlex.split(os.environ.get('MCP_CMD', f'npx -y {PACKAGE}'))
     if not command:
         raise ValueError('MCP_CMD must name a command')
-    repo_slug = re.sub('[^a-z0-9]+', '-', ROOT.name.lower()).strip('-') or 'vault'
     vault_id = run('node', str(ROOT / 'scripts/index-snapshots.mjs'), 'register',
-                   '--vault', str(vault), '--id', f'{repo_slug}_{slug}', capture=True)
+                   '--vault', str(vault), '--id', preferred_id, capture=True)
     env = os.environ | {'OBSIDIAN_VAULT_PATH': str(vault),
                         'OBSIDIAN_WORKSPACE_PATH': str(ROOT), 'OBSIDIAN_VAULT_ID': vault_id}
 

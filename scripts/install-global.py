@@ -149,6 +149,8 @@ def plan(harness):
             server = {'type': 'local', 'command': ['npx', '-y', PACKAGE], 'enabled': True, 'timeout': 30000}
             raw = jsonc_set(raw, ['mcp', 'obsidian-vault-mcp'], server)
         else:
+            # The compiler delegates to the installed local reviewer definition.
+            raw = jsonc_set(raw, ['experimental', 'enableAgents'], True)
             # Ensure the global policy is loaded even with custom context filenames.
             names = data.get('context', {}).get('fileName', ['GEMINI.md'])
             names = [names] if isinstance(names, str) else names

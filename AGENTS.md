@@ -17,11 +17,15 @@
 - `obsidian_create_note` and `obsidian_move_note` refuse to clobber an existing file. Pass `overwrite: true` only after confirming the destination is genuinely stale — a refusal usually means the ACID ID is already taken, which is a collision to resolve, not an error to force past.
 - Per-call `vault_path` / `workspace_path` overrides are bounded to the configured vault. Widen that boundary through `OBSIDIAN_ALLOWED_VAULTS` in the setup script, never by passing arbitrary paths at call time.
 - Treat `AGNT/` as agent procedural memory only. Do not store user domain facts there.
-- Treat `JRNL/` as transient capture and session history. Evergreen `SYS.AC.ID` notes are authoritative.
+- Treat `JRNL/` as transient capture and session history. Evergreen `SYS.AC.ID` notes are the working reference; newer conflicting evidence requires review against current user instructions. Scaffolded examples do not establish user preferences.
 - Follow Johnny Decimal ACID notation: `SYS.AC.ID`, with hexadecimal area/category/ID ranges.
 - Reserve `00` for indexes. `SYS.00.00.md` is the system index and `00.00.md` is the vault root index.
 
 ## Permanent Notes
+
+These rules apply to evergreen notes. Journals and support templates may be
+free-form. Root and system indexes are navigation documents with Base embeds;
+system indexes link to `[[00.00]]`.
 
 - One claim per note, with a declarative title.
 - Include YAML frontmatter at the top with required core fields `entities`, `communities`, and `status`. Add `aliases` and `tags` when they improve discoverability or actionable intent.

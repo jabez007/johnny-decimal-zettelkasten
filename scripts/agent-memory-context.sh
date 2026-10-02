@@ -54,8 +54,10 @@ operations so path handling, structure, and indexing stay consistent.
 - `AGNT` is strictly for agent procedural memory: coding standards, tooling
   preferences, and behavioral rules. Never store facts about the world or the
   user's personal domains there.
-- `JRNL` is a transient scratchpad and session history. When a JRNL note
-  conflicts with an evergreen `SYS.AC.ID` note, the evergreen note wins.
+- `JRNL` is a transient scratchpad and session history. Evergreen `SYS.AC.ID`
+  notes are the working reference. Review newer conflicting evidence against
+  current user instructions; do not discard it. Scaffolded examples do not
+  establish user preferences. Keep rules scoped to their originating project.
 
 **Golden Rules:**
 1. Atomicity: one declarative claim per title.

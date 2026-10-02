@@ -3,12 +3,16 @@ aliases: [Python testing preference, pytest vs unittest]
 tags: [agent-rule]
 entities: [Python, pytest, unittest, testing]
 communities: [Coding Standards, Agent Procedural Memory]
-status: crystallized
+status: scaffolded
 ---
 [[AGNT.00.00]]
 
 # AGNT.11.01 Pytest is the preferred Python testing framework
 
-**Observation:** During session [[JRNL/AGNT/2026-04-24-1430]], the user rejected a `unittest` implementation, citing `pytest` as the project standard for its more expressive syntax and ecosystem support.
+**Example:** This illustrates the rule format introduced in
+[[JRNL/AGNT/2026-04-24-1500|the sample initialization session]]. It is not a
+record of the current user's decision. Adopt a testing preference only after
+the user establishes it for a specific project.
 
-**Rule:** For all Python development in this vault, use `pytest` for unit and functional testing. Avoid `unittest` unless specifically required by legacy dependencies.
+**Illustrative rule:** In a project that has adopted pytest, use it for new tests
+and retain unittest where an existing dependency requires it.

@@ -24,7 +24,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 - **Approval Gate:** Never create folders or files until the user explicitly approves an ASCII structure diagram.
 - **MCP For Everything Except Bases:** Build structure with `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note`. The MCP backend enforces the vault boundary, so a mistaken path is caught rather than written outside the vault.
-- **The One Filesystem Exception:** Bases config files are the sole permitted direct write, and only at `_SYS/<name>.base`. Nothing else. Not notes, not folders, not `.md` of any kind, not files elsewhere in `_SYS/`. Writing a Base through the MCP would index its filter YAML into semantic search, where config has no business appearing. Before any direct write, normalize the path and confirm it is exactly `_SYS/<name>.base`: vault-relative rather than absolute, exactly one `/`, no `.` or `..` segment, and a `.base` suffix. A naive prefix-and-suffix check is not enough — `_SYS/../../outside.base` starts with `_SYS/` and ends with `.base` yet escapes the vault entirely. If the normalized path is not an exact match, **reject it and ask for a valid one** — do not reroute it through `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note`. That would write Base YAML into the vault as a note and index it, which is the outcome this exception exists to avoid. Use `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note` only when the artifact you were asked for is genuinely a note. Never use shell commands for vault content.
+- **The One Filesystem Exception:** Bases config files are the sole permitted direct write, and only at `_SYS/<name>.base`. Nothing else. Not notes, not folders, not `.md` of any kind, not files elsewhere in `_SYS/`. Writing a Base through the MCP would index its filter YAML into semantic search, where config has no business appearing. Before any direct write, normalize the path and confirm it is exactly `_SYS/<name>.base`: vault-relative rather than absolute, exactly one `/`, no `.` or `..` segment, and a `.base` suffix. A naive prefix-and-suffix check is not enough — `_SYS/../../outside.base` starts with `_SYS/` and ends with `.base` yet escapes the vault entirely. If the normalized path is not an exact match, **reject it and ask for a valid one** — do not reroute it through `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note`. That would write Base YAML into the vault as a note and index it, which is the outcome this exception exists to avoid. After validating the vault-relative Base path, resolve it against the configured vault root and use that absolute path for the filesystem tool. Never resolve it against the repository root or caller cwd. Reject symlinked destinations or parents. Use `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note` only when the artifact you were asked for is genuinely a note. Never use shell commands for vault content.
 - **Folders Are Implicit:** There is no directory-creation tool and none is needed. Creating a note at `NEW/10-Area/11-Category/NEW.11.01-Title.md` creates every missing parent folder. Never leave a placeholder file behind just to hold an empty directory: scaffold a folder at the moment it gets its first real note.
 - **Folder Naming (Strict):**
   - Area Folder: `A0-Name/` (e.g., `10-Finance`, `20-Health`).
@@ -32,11 +32,11 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Indexing:** Every system requires a `00-IDX/` folder and a `{SYS}.00.00.md` index file.
 - **Index Integrity:** System indexes must link back to the root `[[00.00]]` as the first line of the body, immediately after the frontmatter. Use Obsidian Bases (`![[JDEX_SYS.base]]`) for dynamic indexing.
 - **Standard Zeros:** `0` is reserved at every level. The `00` area holds system meta-information and `SYS.00.00` is the system index. `AC.00` is invalid: there is no category-level index.
-- **Graph Metadata Readiness:** **CRITICAL.** Any template or base notes created MUST include YAML frontmatter with required core fields `entities`, `communities`, and `status`.
+- **Graph Metadata Readiness:** **CRITICAL.** Any permanent notes or system indexes created MUST include YAML frontmatter with required core fields `entities`, `communities`, and `status`.
 
 ## YAML Frontmatter Schema (Mandatory for Templates)
 
-Ensure new system or category index notes include:
+Ensure new system index notes include (category index notes are prohibited):
 
 ```yaml
 ---
@@ -67,6 +67,17 @@ Add `aliases` and `tags` when they improve discoverability or actionable intent.
 - Max 15 Areas per System (1-F).
 - Max 15 Categories per Area (1-F).
 - System indexes must link back to the root `[[00.00]]`.
+
+## Shared scope and authorization
+
+Apply permanent-note metadata, atomicity, and navigation rules to evergreen
+notes. Journals and support templates may be free-form; root and system indexes
+use navigation links and Base embeds rather than claim titles. Existing user
+authorization remains valid for the concrete approved work. Clarify the target
+vault only when it is ambiguous. Preserve source journals as historical evidence.
+Use exact existing metadata labels where appropriate. Scaffolded examples do
+not establish user preferences; newer conflicting evidence requires review.
+The parent session coordinates specialists. Do not spawn nested subagents.
 
 ## Filesystem Write Scope
 

@@ -1,1 +1,0 @@
-# Learnings and Skills

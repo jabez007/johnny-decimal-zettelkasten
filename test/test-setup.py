@@ -164,6 +164,30 @@ class SetupTest(unittest.TestCase):
         self.assertFalse((self.home/'.obsidian-mcp.config.json').exists())
         self.assertFalse((self.repo/'vaults').exists())
 
+    def test_adoption_preserves_the_configured_id(self):
+        vault = self.repo/'vaults/existing'
+        vault.mkdir(parents=True)
+        (vault/'00.00.md').write_text('# Existing vault\n')
+        config = self.home/'.obsidian-mcp.config.json'
+        config.write_text(json.dumps({'vault_path': str(vault), 'workspace_path': str(self.repo),
+                                      'vault_id': 'established-id'}))
+        self.setup('opencode', '--skip-index')
+        self.assertEqual(json.loads(config.read_text())['vault_id'], 'established-id')
+        registration = json.loads((self.repo/'.obsidian-indexes.json').read_text())
+        self.assertEqual(registration['vaults'][0]['id'], 'established-id')
+
+    def test_conflicting_ids_stop_before_plugin_or_configuration_changes(self):
+        self.setup('opencode', '--vault', 'mine', '--skip-index')
+        config = self.home/'.obsidian-mcp.config.json'
+        previous = json.loads(config.read_text()) | {'vault_id': 'different-id'}
+        config.write_text(json.dumps(previous))
+        before = len(self.calls())
+        for harness in ['claude', 'codex', 'gemini', 'opencode']:
+            result = self.setup(harness, ok=False)
+            self.assertIn('ID differs', result.stdout)
+        self.assertEqual(len(self.calls()), before)
+        self.assertEqual(json.loads(config.read_text()), previous)
+
     def test_merge_keeps_user_settings_comments_and_instructions(self):
         base = self.home/'.config/opencode'
         base.mkdir(parents=True)
@@ -214,6 +238,7 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(data['context']['fileName'], ['CUSTOM.md', 'GEMINI.md'])
         self.assertEqual(data['hooks']['SessionStart'][0]['hooks'], [{'name': 'keep-me', 'command': '/custom/hook'}])
         self.assertEqual(data['hooks']['SessionStart'][1], {'matcher': 'resume'})
+        self.assertTrue(data['experimental']['enableAgents'])
 
     def test_unowned_skill_and_malformed_settings_fail_before_installation(self):
         target = self.home/'.config/opencode/skills/jd-vault-research/SKILL.md'
@@ -267,9 +292,13 @@ class SetupTest(unittest.TestCase):
         command = shlex.join(['node', str(release/'dist/index.js')])
         result = self.setup('opencode', '--vault', 'real-vault', extra={'MCP_CMD': command})
         self.assertIn('Semantic retrieval returned a note', result.stdout)
-        for relative in ['00.00.md', 'AGNT/00-IDX/AGNT.00.00.md', '_SYS/TMPL/Daily.md']:
-            self.assertEqual((self.repo/'vaults/real-vault'/relative).read_bytes(),
-                             (SOURCE/'references/vault-starter'/relative).read_bytes())
+        starter = SOURCE/'references/vault-starter'
+        for source in starter.rglob('*'):
+            if source.is_file():
+                self.assertEqual((self.repo/'vaults/real-vault'/source.relative_to(starter)).read_bytes(),
+                                 source.read_bytes())
+        self.run_cmd('python3', str(self.repo/'scripts/vault_validation.py'),
+                     str(self.repo/'vaults/real-vault'))
         self.run_cmd('python3', str(self.repo/'scripts/doctor.py'), '--harness', 'opencode',
                      extra={'MCP_CMD': command})
 

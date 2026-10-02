@@ -159,6 +159,7 @@ for src in "$CANONICAL_AGENTS"/*.md; do
   name=$(fm_value "$src" name)
   description=$(fm_value "$src" description)
   readonly_flag=$(fm_value "$src" readonly)
+  standalone_flag=$(fm_value "$src" standalone)
   capabilities=$(unlist "$(fm_value "$src" capabilities)")
   mcp_tools=$(unlist "$(fm_value "$src" mcp_tools)")
   nicknames=$(unlist "$(fm_value "$src" nicknames)")
@@ -229,12 +230,18 @@ direct write; if it does not match, you are using the wrong tool."
   # --- OpenCode: permission map rather than a tool list ---------------------
   # OpenCode has no per-agent tool allowlist, so an agent would otherwise
   # inherit every MCP tool the server exposes. Deny the whole namespace and
-  # re-allow only this agent's declared tools, matching the explicit
-  # allowlists the other three harnesses get.
+  # re-allow only this agent's declared tools. Codex uses instructions for MCP
+  # tool restrictions rather than a per-agent allowlist.
   {
     echo "---"
     echo "description: $description"
-    echo "mode: subagent"
+    # `opencode run --agent` rejects subagent-only definitions and falls back
+    # to the default agent. Standalone reviewers must be selectable directly.
+    if [ "$standalone_flag" = "true" ]; then
+      echo "mode: all"
+    else
+      echo "mode: subagent"
+    fi
     echo "permission:"
     # Derive filesystem permissions from the declared capabilities, not from
     # the readonly flag. An agent that writes only through MCP has no business
@@ -256,6 +263,9 @@ direct write; if it does not match, you are using the wrong tool."
         *)          echo "  bash: deny" ;;
       esac
     fi
+    # Specialists report to the parent coordinator; do not inherit a task tool
+    # that could delegate their restricted work to a more permissive agent.
+    echo "  task: deny"
     echo "  webfetch: deny"
     echo "  \"${OPENCODE_PREFIX}*\": deny"
     for tool in $mcp_tools; do
@@ -272,6 +282,14 @@ direct write; if it does not match, you are using the wrong tool."
   # --- Codex CLI: TOML with developer_instructions -------------------------
   # Codex prose uses bare tool names; the plugin namespaces them at call time.
   codex_body=$(echo "$body" | sed "s/{{MCP_PREFIX}}//g")
+  codex_body="$codex_body
+
+## Declared Tool Policy
+
+Use only these filesystem capabilities: $capabilities.
+Use only these MCP tools: $mcp_tools.
+These are behavioral instructions; the filesystem sandbox does not restrict
+remote MCP writes. Do not use an undeclared tool or delegate to another agent."
   if grep -q '"""' <<<"$codex_body"; then
     echo "Error: $src body contains a TOML multiline delimiter (\"\"\")."
     exit 1
@@ -288,6 +306,10 @@ direct write; if it does not match, you are using the wrong tool."
     echo "# Regenerate with: ./scripts/sync-assets.sh"
     echo "name = \"$name\""
     echo "description = \"${description//\"/\\\"}\""
+    case " $capabilities " in
+      *" write "*|*" edit "*) ;;
+      *) echo 'sandbox_mode = "read-only"' ;;
+    esac
     echo "developer_instructions = \"\"\""
     echo "$codex_body"
     echo "\"\"\""

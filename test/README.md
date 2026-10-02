@@ -9,17 +9,24 @@ Run the setup integration tests without network access or authenticated CLIs:
 
 ```bash
 python3 test/test-setup.py
+python3 test/test-session-compiler.py
+python3 test/test-vault-validation.py
 ```
 
 They use temporary homes and repositories, real setup scripts and Git, and
 deterministic harness and MCP fixtures. They cover global installation for all
 four harnesses, local management scope, user configuration preservation,
 JSONC comments, vault selection, starter recovery, and indexing failures.
+Compiler fixtures cover all four transcript formats, turn-level date filtering,
+source attribution, and proposal-only host commands. Vault fixtures validate
+starter and sample notes and reject malformed metadata, IDs, and links.
+Setup and vault-validation tests require PyYAML (`python3-yaml` or `PyYAML`).
 
 Set `MCP_SETUP_RELEASE` to an installed MCP 2.1.0 package directory to also
 provision a fresh temporary vault through the real server, compare exact starter
 note contents, and verify semantic retrieval. This optional test can download
 the embedding model. It still uses fixture harness CLIs, not model sessions.
+The full Docker/CI suite enables it unless `SKIP_RAG_INDEX=1`.
 
 ```bash
 cd test
@@ -35,7 +42,7 @@ commands with `sudo`.
 ### Without Docker
 
 The suite runs on any machine with Node.js 20 or later, `git`, `jq`, `sqlite3`,
-`git-lfs`, `shellcheck`, and Python 3.11 or later. Point it at a throwaway HOME so it
+`git-lfs`, `shellcheck`, and Python 3.11 or later with PyYAML. Point it at a throwaway HOME so it
 cannot touch your real vault config or plugin state:
 
 ```bash
@@ -47,7 +54,7 @@ env -i PATH="$PATH" HOME="$SANDBOX/home" \
 
 ### Snapshot hook tests only
 
-The snapshot tests require Node.js, Git, Git LFS, and Python:
+The snapshot tests require Node.js, Git, Git LFS, and Python with PyYAML:
 
 ```bash
 python3 test/test-index-hooks.py
@@ -103,7 +110,7 @@ nearly all of it npm fetching onnxruntime.
 | 2. Generation | `sync-assets.sh` runs, is idempotent, and matches what is committed (the CI drift gate); doctrine identical across harnesses; correct MCP prefix per harness; no unsubstituted `{{MCP_PREFIX}}` |
 | 3. MCP server | `obsidian_set_vault` writes the config; `obsidian_list_notes` reads the vault; `obsidian_rag_index --force_reindex` builds an index under `.obsidian-vault-mcp/`; `obsidian_rag_query` returns results with a rendered relevance score |
 | 4. Agent memory | Context emits SOPs and the Recent Activity Map; goal extraction for **both** the inline `**Goal:**` and `## Goal` heading forms; both session hooks emit valid `SessionStart` JSON |
-| 5. Session compiler | Extracts Claude Code turns and filters `tool_result` noise; extracts OpenCode SQLite turns; handles an empty log set; rejects an unknown `AI_MEMORY_HOST` |
+| 5. Session and vault consistency | All four transcript formats; per-turn date selection and provenance; proposal-only commands from unrelated directories; starter/sample validity; invalid IDs, placement, metadata, Base embeds, and link targets |
 | 6. Migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
 | 7. Setup gates | Each `setup-environment.sh` fails fast when its CLI is missing, tested with a restricted PATH so the result does not depend on what is installed |
 | Setup integration | All four complete setup paths with fixture CLIs; global skill installation, local management scope, configuration preservation, selection, diagnostics, and recovery |

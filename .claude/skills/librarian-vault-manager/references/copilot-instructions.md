@@ -26,7 +26,7 @@ This project contains multiple Obsidian vaults in the `vaults/` directory.
 
 - Always ask the user which vault to work with when context is unclear.
 - Accept vault names as the directory name: `[vault-name]` from `vaults/[vault-name]/`.
-- Confirm the selection before performing any operations.
+- Use the configured selection when the task makes it clear. Clarify only when ambiguous.
 
 ### **The AGNT System Boundary**
 The `AGNT` system (Agent Procedural Memory) is strictly reserved for agent configuration, coding standards, and user preferences. **Agents MUST NOT store facts about the world in the `AGNT` system, nor store rules about how to act in the user's personal domains (`LIFE`, `WORK`, etc.).** The boundary between the agent's procedural rules and the user's domain knowledge is absolute.
@@ -40,7 +40,7 @@ The `AGNT` system (Agent Procedural Memory) is strictly reserved for agent confi
   - `ID` is the unique identifier within category (two hex digits).
 - Example: `LIFE.3A.07`.
 - Never use timestamp-based IDs for evergreen notes.
-- Never create notes without valid AC.ID identifiers.
+- Permanent notes require valid ACID identifiers. Journals use dated names; support templates and root indexes have their own names.
 - **MANDATORY YAML Frontmatter:** Every permanent note MUST start with a machine-readable YAML block. The required core fields are `entities`, `communities`, and `status`. `aliases` and `tags` are recommended when they improve discoverability or actionable intent. This metadata is injected into the text for "graph-aware" RAG search.
 
 ```yaml
@@ -56,6 +56,15 @@ status: distilled
 
 Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 
+Reuse exact existing entity and community labels, including casing, when they
+refer to the same concept. Replace placeholders before writing. A scaffolded
+example documents a template, not a user-approved rule.
+
+The metadata schema applies to permanent notes and root/system indexes.
+Atomicity applies to permanent claims. Journals and support templates may be
+free-form. Root and system indexes are navigation documents; their titles do
+not need to express a claim.
+
 ## **Atomicity**
 
 - **One concept per note.** If you can identify two distinct claims, you MUST use two notes.
@@ -63,7 +72,7 @@ Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 - **One idea per link context.** Links MUST explain WHY they exist in the sentence where they are placed.
 - **PROHIBITED**: Merging distinct concepts into single notes for the sake of "completeness".
 - **PROHIBITED**: Overview notes that merely list or duplicate existing content without adding a new, unique synthesis claim.
-- **MANDATORY**: Split multi-concept drafts or daily notes into separate atomic notes during processing.
+- Propose separate atomic permanent notes from multi-concept captures. Preserve the source journal and its attribution.
 
 ## **Titles**
 
@@ -85,10 +94,13 @@ Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 
 ## **Links**
 
-- **Navigation Header (Mandatory)**: All notes MUST carry a link to their parent System Index (e.g., `[[LIFE.00.00]]`) as the first line of the body, immediately after the closing YAML frontmatter delimiter. The frontmatter always comes first in the file.
+- **Navigation Header (Mandatory)**: Permanent notes link to their System Index as the first body line after frontmatter. System indexes link to `[[00.00]]`; the root index embeds its Base. Journals and support templates are exempt.
 - **Contextual Linking**: Place links at the exact point of relevance.
 - **Mandatory Context**: Every link MUST be accompanied by text explaining the relationship (e.g., "This contradicts [[SYS.AC.ID]] because...", "This provides the mechanism for [[SYS.AC.ID]]...").
 - **PROHIBITED**: Bare wiki-links or "See Also" lists at the end of a note.
+
+Navigation headers and index Base embeds are deliberate exceptions to the
+contextual-link rule. Keep prose links contextual.
 
 ## **Hierarchy & Naming Conventions**
 

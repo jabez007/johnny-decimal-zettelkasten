@@ -10,7 +10,7 @@ max_depth = 1
 
 
 [agents."daily-reviewer"]
-description = "Extracts durable knowledge from transient daily notes. Identifies emerging concepts for the JDex."
+description = "Reviews journals and session transcripts for scoped, evidence-backed permanent-note proposals. Returns proposals without changing the vault."
 config_file = "./agents/daily-reviewer.toml"
 nickname_candidates = ["Iris", "Clio"]
 

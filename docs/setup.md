@@ -1,8 +1,11 @@
 # Set up a vault and global access
 
-Install Git, Git LFS, Node.js 20 or later, Python 3.9 or later, `jq`, and the
+Install Git, Git LFS, Node.js 20 or later, Python 3.9 or later with PyYAML, `jq`, and the
 agent CLI you want to use. Clone this template into the repository that will
 own your vault.
+
+Install PyYAML through your Python environment or the `python3-yaml` system
+package. Setup validates canonical starter assets before initializing a vault.
 
 Run setup once for each harness you use. Choose the same vault name each time:
 
@@ -23,6 +26,11 @@ session history from `vaults/example/`. Open `vaults/my-notes/` in Obsidian.
 Setup preserves existing vault content. A failed initial scaffold can be retried
 without overwriting files created or edited in the meantime. Stop running MCP
 sessions before setup, then restart your harness to load its configuration.
+
+Existing registered or configured vault IDs are preserved. If registration and
+configuration disagree about the same vault's ID, setup stops before installing
+plugins or changing selection. Reconcile those records before retrying; do not
+silently rename an index identity.
 
 Setup indexes the vault and checks that semantic retrieval returns a note.
 The first run can download the embedding model. Use `--skip-index` to defer the
@@ -81,6 +89,41 @@ Codex setup uses `AGENTS.override.md` when that file already takes precedence.
 Gemini setup removes the old template-owned `agent-memory-boot` hook registration
 and installs standing global instructions instead. It preserves other hooks.
 The old hook files can remain on disk; they are no longer registered by setup.
+Setup enables Gemini's experimental agent support so the local specialists can
+be selected. Authenticated behavior still needs the smoke checks below.
+
+Existing vault notes are not migrated automatically. Run
+`python3 scripts/vault_validation.py vaults/NAME` to identify inconsistencies,
+then review proposed repairs locally. Starter and example preferences have
+`status: scaffolded`; they do not represent decisions by the new vault's owner.
+
+## Agent permissions
+
+Canonical capabilities are emitted into each harness's native configuration:
+
+| Harness | Controls emitted by this template |
+| --- | --- |
+| Claude Code | Per-agent filesystem and MCP tool lists |
+| Gemini CLI | Per-agent filesystem and MCP tool lists; experimental agents enabled by setup |
+| OpenCode | Filesystem permissions, nested tasks denied, and MCP namespace deny with declared tools allowed |
+| Codex | Read-only filesystem sandbox for agents without write capabilities; declared tool restrictions in instructions |
+
+Codex supports per-agent `sandbox_mode` in its [custom-agent configuration](https://developers.openai.com/codex/subagents).
+That sandbox restricts local command execution, not writes performed by a remote
+MCP server. Codex MCP tool restrictions here are behavioral instructions rather
+than a native per-agent allowlist. Base writes are scoped by instructions;
+OpenCode additionally asks before filesystem edits for scoped writers.
+
+The daily reviewer has read and search tools and returns proposals. The parent
+coordinates specialists and handles approved changes. Session compilation
+never requests mutation permission or bypasses hook trust. Verify actual tool
+discovery, delegation, and permission behavior using
+[the authenticated smoke test](../test/harness-smoke.md).
+
+The canonical reviewer's `standalone: true` emits OpenCode `mode: all`, allowing
+both delegation and direct `opencode run --agent daily-reviewer` selection.
+OpenCode rejects subagent-only definitions for that command and falls back to
+its default agent; see the [CLI implementation](https://github.com/anomalyco/opencode/blob/v1.18.21/packages/opencode/src/cli/cmd/run.ts).
 
 The installer records template-owned vaults in
 `~/.config/jd-vault/vaults.json`, or under `XDG_CONFIG_HOME` when set. The global

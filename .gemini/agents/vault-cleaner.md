@@ -60,3 +60,14 @@ parameters. These match frontmatter labels exactly and are case-sensitive. When
 you are looking for notes related to a known entity or cluster, pass the filter
 rather than relying on semantic similarity to surface them — the filter is exact,
 the similarity is not. Use an unfiltered query only for open-ended discovery.
+
+## Shared scope and authorization
+
+Apply permanent-note metadata, atomicity, and navigation rules to evergreen
+notes. Journals and support templates may be free-form; root and system indexes
+use navigation links and Base embeds rather than claim titles. Existing user
+authorization remains valid for the concrete approved work. Clarify the target
+vault only when it is ambiguous. Preserve source journals as historical evidence.
+Use exact existing metadata labels where appropriate. Scaffolded examples do
+not establish user preferences; newer conflicting evidence requires review.
+The parent session coordinates specialists. Do not spawn nested subagents.

@@ -16,7 +16,7 @@ Johnny Decimal is a system for organizing information using a structured numeric
 
 Systems are the highest level of organization. Each system represents a distinct domain or area of life (e.g. Personal, Jobs, Projects, etc). You can have multiple systems, but each system sub-structure operates independently.
 
-Systems are identified by a short 3-4 letter code (e.g., `HOME`, `JOB`, `LIFE`).
+Systems are identified by a 2-4 uppercase letter code (e.g., `HOME`, `JOB`, `LIFE`).
 
 ### Areas
 
@@ -52,25 +52,32 @@ This allows namespacing multiple systems (e.g., `HOME.32.07` for a home system, 
 
 ## The JDex Index
 
-The JDex is the authoritative index/registry of all IDs in your system. It is a single document listing every ID with its title. The JDex serves as:
+In this template, the filesystem is the registry of allocated IDs. Obsidian Bases
+display that registry through root and system indexes. The JDex serves as:
 
 - A reference to find any item's location
 - A record of what exists in the system
 - The source of truth when creating new IDs
 
-Maintain the index in a plain text file, spreadsheet, or dedicated app. Consult it before creating new items.
+List existing files and check for occupied IDs before proposing new items.
+`00.00.md` embeds `_SYS/JDEX_00.00.base`; each `SYS/00-IDX/SYS.00.00.md`
+embeds `_SYS/JDEX_SYS.base`. Scope system Base queries to the system folder so
+`JRNL/AGNT/` does not appear as permanent AGNT rules. Do not maintain manual
+index lists. Category-level `AC.00` is invalid.
 
 ## Workflow: Creating and Saving Files
 
 1. **Determine the item's nature.** What is this thing about?
 2. **Identify the area and category.** Where does it logically belong?
 3. **Check the index.** Does an ID already exist for this item?
-4. **Create or reuse an ID.** If no ID exists, assign the next available number in the category and add it to the index.
-5. **Use the ID in the filename.** Prefix files with their ID for findability (e.g., `11.05-Some Title.md`).
+4. **Create or reuse an ID.** If no ID exists, propose the next available hexadecimal ID with placement and metadata. Apply approved changes in the owning repository.
+5. **Use the ID in the filename.** Use `SYS/A0-Area/AC-Category/SYS.AC.ID-Declarative-Title.md`. Creating the file updates the dynamic index.
 
 ## Keeping Notes
 
-Notes attach to IDs. Each ID may have one associated note containing all relevant information for that item. Store notes in a consistent location.The ID is the prefix of a note's title.
+Each permanent ID identifies one atomic claim. Journals preserve transient
+capture; they do not need ACID filenames. Allocate folders when they contain
+their first real note rather than using empty placeholder index notes.
 
 ## The Librarian Principle
 
@@ -82,9 +89,9 @@ Adopt the mindset of a librarian: every item must be catalogued before it enters
 2. **Define areas.** Group major domains (limit: 15).
 3. **Define categories.** Subdivide areas into logical groupings (limit: 15 per area).
 4. **Assign IDs.** Create IDs as needed; do not pre-allocate.
-5. **Create the index.** Document every ID.
+5. **Create the index.** Embed a system Base and link back to the root index.
 6. **Migrate files.** Move existing items into the new structure.
-7. **Maintain discipline.** Always consult and update the index.
+7. **Maintain discipline.** Check existing IDs and validate the vault after approved changes.
 
 ## Key Constraints
 
