@@ -16,9 +16,9 @@ class ValidationTest(unittest.TestCase):
         self.vault = Path(self.temp.name) / 'vault'
         shutil.copytree(ROOT/'references/vault-starter', self.vault)
 
-    def validate(self, expected=True, vault=None):
+    def validate(self, expected=True, vault=None, strict=False):
         result = subprocess.run(['python3', str(ROOT/'scripts/vault_validation.py'),
-                                 str(vault or self.vault)], capture_output=True, text=True)
+                                 str(vault or self.vault), *(['--strict-metadata'] if strict else [])], capture_output=True, text=True)
         self.assertEqual(result.returncode == 0, expected, result.stdout + result.stderr)
         return result.stdout
 
@@ -32,8 +32,8 @@ class ValidationTest(unittest.TestCase):
         return path
 
     def test_shipped_assets_follow_the_same_rules(self):
-        self.validate(vault=ROOT/'references/vault-starter')
-        self.validate(vault=ROOT/'vaults/example')
+        self.validate(vault=ROOT/'references/vault-starter', strict=True)
+        self.validate(vault=ROOT/'vaults/example', strict=True)
 
     def test_duplicate_ids_do_not_depend_on_the_title(self):
         self.note()

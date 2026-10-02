@@ -308,13 +308,18 @@ before approving permanent updates. Original journal evidence stays intact.
 Validate template assets or an adopted vault without changing it:
 
 ```bash
-python3 scripts/vault_validation.py vaults/example
-python3 scripts/vault_validation.py references/vault-starter
+python3 scripts/vault_validation.py vaults/example --strict-metadata
+python3 scripts/vault_validation.py references/vault-starter --strict-metadata
 ```
 
 The validator checks IDs, placement, core metadata, navigation, index Base
 embeds, and permanent-note wikilink targets. It does not judge claim quality,
 parse Obsidian filter expressions, or verify heading and block anchors.
+
+Each new vault receives a community catalogue at `_SYS/metadata-catalogue.yaml`.
+Use `scripts/metadata_catalogue.py` to inventory labels, expand search synonyms,
+and produce a review-only normalization plan. Existing vaults adopt it locally;
+setup preserves their content. See [the catalogue guide](docs/metadata-catalogue.md).
 
 ### **Dockerized Obsidian**
 

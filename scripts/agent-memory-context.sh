@@ -67,8 +67,11 @@ operations so path handling, structure, and indexing stay consistent.
 
 ### Boot Sequence (Context Restoration)
 At the start of any significant task:
-1. Query procedural rules with `obsidian_rag_query`, searching the current
-   task's entities within the `Agent Procedural Memory` community.
+1. Read `_SYS/metadata-catalogue.yaml` with `obsidian_read_note` when available.
+   Query procedural rules with `obsidian_rag_query`, using verified task entities
+   and `Agent Procedural Memory` plus its explicit catalogue synonyms. Include
+   verified historical case variants. Unknown labels need verified existing
+   labels or an unfiltered query; the MCP does not expand synonyms automatically.
 2. Review the Recent Activity Map below. If the task continues earlier work,
    read that session's log with `obsidian_read_note` before acting. If the user
    says "continue" or "resume", select the most recent log for this project and task.
@@ -88,6 +91,7 @@ Before concluding a session:
      indexes), IDs `01-FF`.
    - YAML frontmatter with required core fields `entities`, `communities`
      (including `Agent Procedural Memory`), and `status: crystallized`.
+     Use canonical catalogue communities; propose any new labels locally first.
    - `[[AGNT.00.00]]` as the first line after the frontmatter.
    - A link back to the originating `JRNL/AGNT/` log for traceability.
 4. Note-writing MCP tools re-index the changed note inside the server, so no

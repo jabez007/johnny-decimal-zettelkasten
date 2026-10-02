@@ -12,6 +12,7 @@ permission:
   "obsidian-vault-mcp_obsidian_rag_query": allow
   "obsidian-vault-mcp_obsidian_list_notes": allow
   "obsidian-vault-mcp_obsidian_get_links": allow
+  "obsidian-vault-mcp_obsidian_read_note": allow
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
@@ -44,7 +45,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 
 - Identify notes missing the mandatory YAML frontmatter block, or missing any of `entities`, `communities`, or `status`.
 - Flag any `status` outside `distilled|crystallized|synthesized|scaffolded`, and any placeholder `<token>` left unreplaced in `entities` or `communities`.
-- Check for "hallucinated" or inconsistent `communities` (e.g., a note in `LIFE.11` claiming to be in a `WORK` community).
+- Compare communities with catalogue definitions. Report unknown labels and noncanonical synonyms or case variants. Cross-system membership is valid; folder placement and the AGNT procedural/domain boundary are separate checks.
 - Identify "Dead-End Entities": Entities mentioned in YAML that have no corresponding note or other mentions in the vault.
 
 ### 2. Validate Link Health
@@ -96,10 +97,9 @@ Always present findings as **Proposals** with Rationale.
 ## Graph-Aware Querying
 
 `obsidian-vault-mcp_obsidian_rag_query` accepts `entities` and `communities` filter
-parameters. These match frontmatter labels exactly and are case-sensitive. When
-you are looking for notes related to a known entity or cluster, pass the filter
-rather than relying on semantic similarity to surface them — the filter is exact,
-the similarity is not. Use an unfiltered query only for open-ended discovery.
+parameters. These match frontmatter labels exactly and are case-sensitive.
+Expand community filters using the catalogue policy below; entity filters use
+verified literal names. Follow up without filters when labels may omit a connection.
 
 ## Shared scope and authorization
 
@@ -108,6 +108,31 @@ notes. Journals and support templates may be free-form; root and system indexes
 use navigation links and Base embeds rather than claim titles. Existing user
 authorization remains valid for the concrete approved work. Clarify the target
 vault only when it is ambiguous. Preserve source journals as historical evidence.
-Use exact existing metadata labels where appropriate. Scaffolded examples do
-not establish user preferences; newer conflicting evidence requires review.
+Use canonical communities and exact existing entity names where appropriate.
+Scaffolded examples do not establish user preferences; newer conflicting
+evidence requires review.
 The parent session coordinates specialists. Do not spawn nested subagents.
+
+## Community catalogue
+
+Read `_SYS/metadata-catalogue.yaml` with `obsidian-vault-mcp_obsidian_read_note`
+before choosing communities or filtering retrieval. Use its canonical labels
+in permanent-note proposals and writes. Propose missing labels with definitions
+and explicit synonyms; do not infer synonyms from similar spelling or meaning.
+If the catalogue is absent or malformed, report it and use verified existing
+labels while proposing adoption or repair. Do not invent a replacement catalogue.
+
+Communities group knowledge and may span systems. Folder placement follows ACID
+rules independently; the AGNT procedural/domain boundary still applies. Moving
+a note does not itself change its communities. Entities remain extensible;
+reuse exact existing names and disambiguate unclear names. Note `aliases` name
+individual notes and do not define community synonyms.
+
+For community searches, pass the canonical label and all declared synonyms in
+one `communities` array. Include case variants verified in existing notes when
+reviewing legacy content or journals. The backend matches exact strings and
+ORs values within one filter; adding `entities` also constrains the results.
+For unknown labels, use an unfiltered query or labels verified in source notes.
+Follow a thin filtered result with an unfiltered query. Never pass an invented
+label as a filter. Normalization requires a reviewed proposal and local approval;
+preserve journal evidence and change only approved permanent-note fields.

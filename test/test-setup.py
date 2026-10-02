@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import shlex
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -14,6 +15,11 @@ SOURCE = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('installer', SOURCE / 'scripts/install-global.py')
 installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
+sys.path.insert(0, str(SOURCE/'scripts'))
+spec = importlib.util.spec_from_file_location('configurator', SOURCE/'scripts/configure-vault.py')
+configurator = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(configurator)
+from vault_metadata import frontmatter
 
 STUB = r'''#!/usr/bin/env python3
 import json, os, sys
@@ -175,6 +181,35 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(json.loads(config.read_text())['vault_id'], 'established-id')
         registration = json.loads((self.repo/'.obsidian-indexes.json').read_text())
         self.assertEqual(registration['vaults'][0]['id'], 'established-id')
+        self.assertFalse((vault/'_SYS/metadata-catalogue.yaml').exists())
+
+    def test_catalogue_seeding_and_reruns_preserve_user_additions(self):
+        self.setup('opencode', '--vault', 'mine', '--skip-index')
+        path = self.repo/'vaults/mine/_SYS/metadata-catalogue.yaml'
+        self.assertEqual(path.read_bytes(), (SOURCE/'references/vault-starter/_SYS/metadata-catalogue.yaml').read_bytes())
+        path.write_text(path.read_text()+'  User community:\n    description: An approved user grouping.\n')
+        before = path.read_bytes()
+        for harness in ['claude', 'codex', 'gemini', 'opencode']:
+            self.setup(harness, '--skip-index')
+            self.assertEqual(path.read_bytes(), before)
+
+    def test_malformed_starter_catalogue_stops_before_installing_any_harness(self):
+        (self.repo/'references/vault-starter/_SYS/metadata-catalogue.yaml').write_text('version: 99\ncommunities: {}\n')
+        for harness in ['claude', 'codex', 'gemini', 'opencode']:
+            self.assertIn('Starter validation failed', self.setup(harness, '--vault', 'mine', ok=False).stdout)
+        self.assertEqual(self.calls(), [])
+        self.assertFalse((self.repo/'vaults').exists())
+
+    def test_catalogue_creation_uses_mcp_and_retries_preserve_existing_content(self):
+        self.setup('opencode', '--vault', 'mine', '--skip-index', ok=False,
+                   extra={'SETUP_FAIL_CREATE': '_SYS/metadata-catalogue.yaml'})
+        vault = self.repo/'vaults/mine'
+        self.assertTrue((vault/'.jd-vault-initializing').exists())
+        self.assertFalse((vault/'_SYS/metadata-catalogue.yaml').exists())
+        self.setup('opencode', '--skip-index')
+        self.assertEqual((vault/'_SYS/metadata-catalogue.yaml').read_bytes(),
+                         (SOURCE/'references/vault-starter/_SYS/metadata-catalogue.yaml').read_bytes())
+        self.assertFalse((vault/'.jd-vault-initializing').exists())
 
     def test_conflicting_ids_stop_before_plugin_or_configuration_changes(self):
         self.setup('opencode', '--vault', 'mine', '--skip-index')
@@ -264,8 +299,13 @@ class SetupTest(unittest.TestCase):
                    extra={'SETUP_FAIL_CREATE': 'AGNT/00-IDX/AGNT.00.00.md'})
         note = self.repo/'vaults/mine/00.00.md'
         note.write_text('Preserve this user edit during retry.\n')
+        catalogue = self.repo/'vaults/mine/_SYS/metadata-catalogue.yaml'
+        catalogue.parent.mkdir(parents=True, exist_ok=True)
+        catalogue.write_text('version: 1\ncommunities:\n  User grouping:\n    description: Preserve this catalogue.\n')
+        catalogue_before = catalogue.read_bytes()
         self.setup('opencode', '--skip-index')
         self.assertEqual(note.read_text(), 'Preserve this user edit during retry.\n')
+        self.assertEqual(catalogue.read_bytes(), catalogue_before)
         self.assertTrue((self.repo/'vaults/mine/AGNT/00-IDX/AGNT.00.00.md').exists())
         self.assertFalse((self.repo/'vaults/mine/.jd-vault-initializing').exists())
 
@@ -301,6 +341,66 @@ class SetupTest(unittest.TestCase):
                      str(self.repo/'vaults/real-vault'))
         self.run_cmd('python3', str(self.repo/'scripts/doctor.py'), '--harness', 'opencode',
                      extra={'MCP_CMD': command})
+        vault = self.repo/'vaults/real-vault'
+        config = json.loads((self.home/'.obsidian-mcp.config.json').read_text())
+        env = self.env | {'OBSIDIAN_VAULT_PATH': str(vault), 'OBSIDIAN_WORKSPACE_PATH': str(self.repo),
+                          'OBSIDIAN_VAULT_ID': config['vault_id']}
+        client = configurator.McpClient(['node', str(release/'dist/index.js')], env)
+        try:
+            client.request('initialize', {'protocolVersion': '2024-11-05', 'capabilities': {},
+                                          'clientInfo': {'name': 'catalogue-test', 'version': '1'}})
+            client.send({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
+            def call(name, **arguments):
+                result = client.request('tools/call', {'name': name, 'arguments': arguments})
+                return '\n'.join(item['text'] for item in result['content'] if item['type']=='text')
+            catalogue = (vault/'_SYS/metadata-catalogue.yaml').read_text()
+            self.assertEqual(call('obsidian_read_note', file_path='_SYS/metadata-catalogue.yaml'), catalogue)
+            call('obsidian_create_note', file_path='_SYS/runtime-catalogue.yaml', content=catalogue)
+            self.assertEqual(call('obsidian_read_note', file_path='_SYS/runtime-catalogue.yaml'), catalogue)
+            body = '[[AGNT.00.00]]\n\nCataloguefixture conventions guide software development.\n'
+            paths = []
+            for number, community in [('01', 'Coding Standards'), ('02', 'Coding Conventions')]:
+                path = f'AGNT/10-Procedural_Rules/11-Coding/AGNT.11.{number}-Conventions-guide-development.md'
+                paths.append(path)
+                content = '---\nentities: [Cataloguefixture]\ncommunities: '+json.dumps([community])+\
+                          '\nstatus: distilled\naliases: [Original title '+number+']\ntags: [to-note]\n---\n'+body
+                call('obsidian_create_note', file_path=path, content=content)
+            def query(communities):
+                return call('obsidian_rag_query', query='Cataloguefixture conventions',
+                            entities=['Cataloguefixture'], communities=communities, limit=10)
+            canonical = query(['Coding Standards'])
+            self.assertIn(paths[0], canonical)
+            self.assertNotIn(paths[1], canonical)
+            filters = json.loads(self.run_cmd('python3', str(self.repo/'scripts/metadata_catalogue.py'),
+                                              'filters', str(vault), 'Coding Conventions').stdout)
+            expanded = query(filters['communities'])
+            self.assertTrue(all(path in expanded for path in paths), expanded)
+            plan = json.loads(self.run_cmd('python3', str(self.repo/'scripts/metadata_catalogue.py'),
+                                           'plan', str(vault)).stdout)
+            self.assertEqual(len(plan['changes']), 1)
+            change = plan['changes'][0]
+            before, before_body = frontmatter(call('obsidian_read_note', file_path=change['file_path']))
+            call('obsidian_update_frontmatter', file_path=change['file_path'], updates=change['after'])
+            after, after_body = frontmatter(call('obsidian_read_note', file_path=change['file_path']))
+            self.assertEqual(after['communities'], ['Coding Standards'])
+            self.assertEqual(before_body, after_body)
+            self.assertEqual({k: v for k, v in before.items() if k!='communities'},
+                             {k: v for k, v in after.items() if k!='communities'})
+            canonical = query(['Coding Standards'])
+            self.assertTrue(all(path in canonical for path in paths), canonical)
+            # Exercise full indexing too; YAML must be excluded on both paths.
+            call('obsidian_rag_index')
+        finally:
+            client.close()
+        code = '''const {createRequire}=require('node:module'); const r=createRequire(process.argv[1]+'/package.json');
+        (async()=>{const db=await r('@lancedb/lancedb').connect(process.argv[2]);const table=await db.openTable('notes');
+        const rows=await table.query().toArray();console.log(JSON.stringify(rows.map(row=>row.path)));
+        table.close();db.close()})().catch(e=>{console.error(e);process.exitCode=1})'''
+        rows = json.loads(self.run_cmd('node', '-e', code, str(release),
+                                       str(self.repo/'.obsidian-vault-mcp/vaults'/config['vault_id']/'lancedb')).stdout)
+        self.assertTrue(all(path in rows for path in paths), rows)
+        self.assertFalse(any(path.endswith('.yaml') or path.endswith('.base') for path in rows), rows)
+        self.run_cmd('python3', str(self.repo/'scripts/vault_validation.py'), str(vault), '--strict-metadata')
 
 
 class JsoncTest(unittest.TestCase):

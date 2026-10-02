@@ -1,0 +1,10 @@
+version: 1
+communities:
+  Agent Procedural Memory:
+    description: Rules governing how agents work, with their originating project scope.
+  Vault Navigation:
+    description: Root and system indexes used to navigate the vault.
+  Coding Standards:
+    description: Agreed conventions for software development.
+    synonyms:
+      - Coding Conventions

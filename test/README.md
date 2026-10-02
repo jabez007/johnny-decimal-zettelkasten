@@ -11,6 +11,7 @@ Run the setup integration tests without network access or authenticated CLIs:
 python3 test/test-setup.py
 python3 test/test-session-compiler.py
 python3 test/test-vault-validation.py
+python3 test/test-metadata-catalogue.py
 ```
 
 They use temporary homes and repositories, real setup scripts and Git, and
@@ -20,7 +21,12 @@ JSONC comments, vault selection, starter recovery, and indexing failures.
 Compiler fixtures cover all four transcript formats, turn-level date filtering,
 source attribution, and proposal-only host commands. Vault fixtures validate
 starter and sample notes and reject malformed metadata, IDs, and links.
-Setup and vault-validation tests require PyYAML (`python3-yaml` or `PyYAML`).
+Setup, vault-validation, and catalogue tests require PyYAML (`python3-yaml` or `PyYAML`).
+Catalogue fixtures verify warning-based adoption, strict validation, synonym
+ambiguity, read-only inventories, and normalization proposals that preserve
+unknown labels and journals. The published MCP setup test also verifies YAML
+reading and exclusion from indexing, expanded exact filters, and canonical
+retrieval after a frontmatter update preserves other fields and the body.
 
 Set `MCP_SETUP_RELEASE` to an installed MCP 2.1.0 package directory to also
 provision a fresh temporary vault through the real server, compare exact starter

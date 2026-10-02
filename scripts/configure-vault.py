@@ -15,6 +15,7 @@ import sys
 import threading
 
 from vault_validation import validate_vault
+from metadata_catalogue import CATALOGUE_PATH
 
 
 class McpClient:
@@ -136,7 +137,7 @@ def main():
     fresh = not vault.exists() or (vault.is_dir() and not any(vault.iterdir()))
     initializing = vault / '.jd-vault-initializing'
     if fresh or initializing.exists():
-        issues = validate_vault(ROOT / 'references/vault-starter')
+        issues = validate_vault(ROOT / 'references/vault-starter', strict_metadata=True)
         if issues:
             raise ValueError('Starter validation failed: ' + '; '.join(issues))
     if args.check:
@@ -177,7 +178,7 @@ def main():
                 relative = source.relative_to(starter)
                 if (vault / relative).exists():
                     continue
-                if source.suffix == '.md':
+                if source.suffix == '.md' or relative == CATALOGUE_PATH:
                     client.request('tools/call', {'name': 'obsidian_create_note', 'arguments': {
                         'file_path': str(relative), 'content': source.read_text(),
                         'vault_path': str(vault), 'workspace_path': str(ROOT), 'vault_id': vault_id}})

@@ -533,6 +533,8 @@ check "dated session extraction and proposal-only reviewer commands" \
   python3 test/test-session-compiler.py
 check "starter, sample, and malformed vault validation" \
   python3 test/test-vault-validation.py
+check "community catalogue adoption and read-only tooling" \
+  python3 test/test-metadata-catalogue.py
 
 # --- 6. Migration script ----------------------------------------------------
 section "6. Migration script"

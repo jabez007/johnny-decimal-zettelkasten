@@ -23,6 +23,11 @@ Setup creates `vaults/my-notes/` with starter indexes, a daily-note template,
 and Obsidian daily notes under `JRNL/`. It does not copy sample preferences or
 session history from `vaults/example/`. Open `vaults/my-notes/` in Obsidian.
 
+New vaults also receive `_SYS/metadata-catalogue.yaml` with canonical community
+names. Existing catalogues and notes remain user-owned. See
+[community catalogue adoption](metadata-catalogue.md) for inventory, search
+synonyms, review-only normalization, and strict validation.
+
 Setup preserves existing vault content. A failed initial scaffold can be retried
 without overwriting files created or edited in the meantime. Stop running MCP
 sessions before setup, then restart your harness to load its configuration.

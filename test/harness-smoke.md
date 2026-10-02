@@ -27,6 +27,14 @@ harness you use. Do not use a personal vault for mutation checks.
    or search tools, retains project/session/time/source, and returns proposals.
    Verify no vault content changes. For Gemini, check experimental agent support
    is enabled. For Codex, distinguish filesystem sandboxing from MCP policy.
+9. In the disposable vault, approve a test note with the legacy community
+   `Coding Conventions`. Ask for research on `Coding Standards`. Verify that the
+   agent reads `_SYS/metadata-catalogue.yaml` through MCP and passes both labels
+   in the community filter. Ask the cleaner or reviewer for normalization.
+   Verify that the proposal changes only the permanent note's community, leaves
+   journals intact, and makes no writes until approval. Apply the approved change
+   locally, then verify canonical filtering finds the note. Add a user community
+   to the catalogue and rerun setup; verify that the addition survives.
 
 Record CLI versions, selected vault, loaded skill names, and relevant tool calls.
 Report any blocked step separately. Passing isolated setup tests cannot prove

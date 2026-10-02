@@ -50,7 +50,7 @@ Every permanent note must start with YAML frontmatter whose required core fields
 ```yaml
 ---
 entities: [<entity-1>, <entity-2>, <entity-3>]
-communities: [<jd-category-or-cluster>]
+communities: [<canonical-community>]
 status: distilled
 ---
 ```
@@ -61,6 +61,44 @@ Replace every `<token>` before writing a note. `entities` and `communities` are
 exact-match filter keys, so placeholder text becomes an unusable graph label.
 
 `aliases` and `tags` may also be included when they add useful synonyms or actionable intent.
+
+
+## Community catalogue
+
+Read `_SYS/metadata-catalogue.yaml` with `obsidian_read_note`
+before choosing communities or filtering retrieval. Use its canonical labels
+in permanent-note proposals and writes. Propose missing labels with definitions
+and explicit synonyms; do not infer synonyms from similar spelling or meaning.
+If the catalogue is absent or malformed, report it and use verified existing
+labels while proposing adoption or repair. Do not invent a replacement catalogue.
+
+Communities group knowledge and may span systems. Folder placement follows ACID
+rules independently; the AGNT procedural/domain boundary still applies. Moving
+a note does not itself change its communities. Entities remain extensible;
+reuse exact existing names and disambiguate unclear names. Note `aliases` name
+individual notes and do not define community synonyms.
+
+For community searches, pass the canonical label and all declared synonyms in
+one `communities` array. Include case variants verified in existing notes when
+reviewing legacy content or journals. The backend matches exact strings and
+ORs values within one filter; adding `entities` also constrains the results.
+For unknown labels, use an unfiltered query or labels verified in source notes.
+Follow a thin filtered result with an unfiltered query. Never pass an invented
+label as a filter. Normalization requires a reviewed proposal and local approval;
+preserve journal evidence and change only approved permanent-note fields.
+
+Keep the template core labels `Agent Procedural Memory` and `Vault Navigation`
+stable. Each vault owns its catalogue and can add approved communities. A new
+system does not require a new community. Start with an inventory of existing
+labels and source notes when adopting a catalogue; entity registration is optional.
+
+For a normalization proposal, record each note's current and proposed community
+arrays and identify unknown labels separately. Re-read the catalogue and notes
+before applying approved changes. Use `obsidian_update_frontmatter` to change
+only `communities`; it also reindexes the note. Preserve note aliases, tags,
+status, entities, body, and source journals. Catalogue creation or edits require
+the local proposal workflow. The read-only helper commands and schema are
+documented in `docs/metadata-catalogue.md` for repository maintenance.
 
 ## **Librarian Specialists (Subagents)**
 

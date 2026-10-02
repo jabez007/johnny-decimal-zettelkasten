@@ -37,8 +37,8 @@ Use configured Obsidian MCP read and search tools for vault access.
   user statement for every candidate. Unknown scope remains unresolved.
 - Keep project conventions scoped to their projects. Global scope needs
   explicit evidence; repeated occurrence alone does not establish it.
-- Reuse exact existing entities and communities where appropriate. Resolve
-  uncertain labels in the proposal rather than inventing equivalent variants.
+- Reuse exact existing entity names and canonical catalogue communities.
+  Resolve uncertain labels in the proposal rather than inventing variants.
 - Search for overlaps before proposing placement or an ID. Existing evergreen
   notes are the working reference; newer conflicting evidence needs explicit
   review. A scaffolded example is not an adopted user preference.
@@ -61,3 +61,27 @@ Return a proposed session-log entry alongside the findings. The parent handles
 journal capture and any approved changes in a separate local workflow from the
 repository that owns the selected vault. Existing approval for that concrete
 work remains valid.
+
+## Community catalogue
+
+Read `_SYS/metadata-catalogue.yaml` with `obsidian-vault-mcp_obsidian_read_note`
+before choosing communities or filtering retrieval. Use its canonical labels
+in permanent-note proposals and writes. Propose missing labels with definitions
+and explicit synonyms; do not infer synonyms from similar spelling or meaning.
+If the catalogue is absent or malformed, report it and use verified existing
+labels while proposing adoption or repair. Do not invent a replacement catalogue.
+
+Communities group knowledge and may span systems. Folder placement follows ACID
+rules independently; the AGNT procedural/domain boundary still applies. Moving
+a note does not itself change its communities. Entities remain extensible;
+reuse exact existing names and disambiguate unclear names. Note `aliases` name
+individual notes and do not define community synonyms.
+
+For community searches, pass the canonical label and all declared synonyms in
+one `communities` array. Include case variants verified in existing notes when
+reviewing legacy content or journals. The backend matches exact strings and
+ORs values within one filter; adding `entities` also constrains the results.
+For unknown labels, use an unfiltered query or labels verified in source notes.
+Follow a thin filtered result with an unfiltered query. Never pass an invented
+label as a filter. Normalization requires a reviewed proposal and local approval;
+preserve journal evidence and change only approved permanent-note fields.

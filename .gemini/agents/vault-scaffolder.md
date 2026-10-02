@@ -29,8 +29,8 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ## Core Rules
 
 - **Approval Gate:** Never create folders or files until the user explicitly approves an ASCII structure diagram.
-- **MCP For Everything Except Bases:** Build structure with `mcp_obsidian-vault-mcp_obsidian_create_note`. The MCP backend enforces the vault boundary, so a mistaken path is caught rather than written outside the vault.
-- **The One Filesystem Exception:** Bases config files are the sole permitted direct write, and only at `_SYS/<name>.base`. Nothing else. Not notes, not folders, not `.md` of any kind, not files elsewhere in `_SYS/`. Writing a Base through the MCP would index its filter YAML into semantic search, where config has no business appearing. Before any direct write, normalize the path and confirm it is exactly `_SYS/<name>.base`: vault-relative rather than absolute, exactly one `/`, no `.` or `..` segment, and a `.base` suffix. A naive prefix-and-suffix check is not enough — `_SYS/../../outside.base` starts with `_SYS/` and ends with `.base` yet escapes the vault entirely. If the normalized path is not an exact match, **reject it and ask for a valid one** — do not reroute it through `mcp_obsidian-vault-mcp_obsidian_create_note`. That would write Base YAML into the vault as a note and index it, which is the outcome this exception exists to avoid. After validating the vault-relative Base path, resolve it against the configured vault root and use that absolute path for the filesystem tool. Never resolve it against the repository root or caller cwd. Reject symlinked destinations or parents. Use `mcp_obsidian-vault-mcp_obsidian_create_note` only when the artifact you were asked for is genuinely a note. Never use shell commands for vault content.
+- **MCP for notes and catalogues:** Create notes and an approved missing `_SYS/metadata-catalogue.yaml` with `mcp_obsidian-vault-mcp_obsidian_create_note`. The MCP enforces the configured vault boundary and refuses existing destinations. YAML configuration is readable through MCP and excluded from Markdown indexing. Hand edits to an existing catalogue to the parent; do not overwrite it.
+- **Base filesystem scope:** Direct filesystem writes remain restricted to `_SYS/<name>.base`. Normalize the vault-relative path and require exactly one `/`, no `.` or `..` segment, and a `.base` suffix. Resolve against the configured vault root, never the repository root or cwd. Reject symlinked parents or destinations. Never use shell commands for vault content. Catalogue YAML is not part of this filesystem exception.
 - **Folders Are Implicit:** There is no directory-creation tool and none is needed. Creating a note at `NEW/10-Area/11-Category/NEW.11.01-Title.md` creates every missing parent folder. Never leave a placeholder file behind just to hold an empty directory: scaffold a folder at the moment it gets its first real note.
 - **Folder Naming (Strict):**
   - Area Folder: `A0-Name/` (e.g., `10-Finance`, `20-Health`).
@@ -47,7 +47,7 @@ Ensure new system index notes include (category index notes are prohibited):
 ```yaml
 ---
 entities: [<entity-1>, <entity-2>, <entity-3>]
-communities: [<jd-category-or-cluster>]
+communities: [<canonical-community>]
 status: scaffolded
 ---
 ```
@@ -81,9 +81,34 @@ notes. Journals and support templates may be free-form; root and system indexes
 use navigation links and Base embeds rather than claim titles. Existing user
 authorization remains valid for the concrete approved work. Clarify the target
 vault only when it is ambiguous. Preserve source journals as historical evidence.
-Use exact existing metadata labels where appropriate. Scaffolded examples do
-not establish user preferences; newer conflicting evidence requires review.
+Use canonical communities and exact existing entity names where appropriate.
+Scaffolded examples do not establish user preferences; newer conflicting
+evidence requires review.
 The parent session coordinates specialists. Do not spawn nested subagents.
+
+## Community catalogue
+
+Read `_SYS/metadata-catalogue.yaml` with `mcp_obsidian-vault-mcp_obsidian_read_note`
+before choosing communities or filtering retrieval. Use its canonical labels
+in permanent-note proposals and writes. Propose missing labels with definitions
+and explicit synonyms; do not infer synonyms from similar spelling or meaning.
+If the catalogue is absent or malformed, report it and use verified existing
+labels while proposing adoption or repair. Do not invent a replacement catalogue.
+
+Communities group knowledge and may span systems. Folder placement follows ACID
+rules independently; the AGNT procedural/domain boundary still applies. Moving
+a note does not itself change its communities. Entities remain extensible;
+reuse exact existing names and disambiguate unclear names. Note `aliases` name
+individual notes and do not define community synonyms.
+
+For community searches, pass the canonical label and all declared synonyms in
+one `communities` array. Include case variants verified in existing notes when
+reviewing legacy content or journals. The backend matches exact strings and
+ORs values within one filter; adding `entities` also constrains the results.
+For unknown labels, use an unfiltered query or labels verified in source notes.
+Follow a thin filtered result with an unfiltered query. Never pass an invented
+label as a filter. Normalization requires a reviewed proposal and local approval;
+preserve journal evidence and change only approved permanent-note fields.
 
 ## Filesystem Write Scope
 

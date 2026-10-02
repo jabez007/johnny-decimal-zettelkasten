@@ -45,6 +45,31 @@ notes. Journals and support templates may be free-form; root and system indexes
 use navigation links and Base embeds rather than claim titles. Existing user
 authorization remains valid for the concrete approved work. Clarify the target
 vault only when it is ambiguous. Preserve source journals as historical evidence.
-Use exact existing metadata labels where appropriate. Scaffolded examples do
-not establish user preferences; newer conflicting evidence requires review.
+Use canonical communities and exact existing entity names where appropriate.
+Scaffolded examples do not establish user preferences; newer conflicting
+evidence requires review.
 The parent session coordinates specialists. Do not spawn nested subagents.
+
+## Community catalogue
+
+Read `_SYS/metadata-catalogue.yaml` with `mcp_obsidian-vault-mcp_obsidian_read_note`
+before choosing communities or filtering retrieval. Use its canonical labels
+in permanent-note proposals and writes. Propose missing labels with definitions
+and explicit synonyms; do not infer synonyms from similar spelling or meaning.
+If the catalogue is absent or malformed, report it and use verified existing
+labels while proposing adoption or repair. Do not invent a replacement catalogue.
+
+Communities group knowledge and may span systems. Folder placement follows ACID
+rules independently; the AGNT procedural/domain boundary still applies. Moving
+a note does not itself change its communities. Entities remain extensible;
+reuse exact existing names and disambiguate unclear names. Note `aliases` name
+individual notes and do not define community synonyms.
+
+For community searches, pass the canonical label and all declared synonyms in
+one `communities` array. Include case variants verified in existing notes when
+reviewing legacy content or journals. The backend matches exact strings and
+ORs values within one filter; adding `entities` also constrains the results.
+For unknown labels, use an unfiltered query or labels verified in source notes.
+Follow a thin filtered result with an unfiltered query. Never pass an invented
+label as a filter. Normalization requires a reviewed proposal and local approval;
+preserve journal evidence and change only approved permanent-note fields.

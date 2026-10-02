@@ -29,6 +29,8 @@ system indexes link to `[[00.00]]`.
 
 - One claim per note, with a declarative title.
 - Include YAML frontmatter at the top with required core fields `entities`, `communities`, and `status`. Add `aliases` and `tags` when they improve discoverability or actionable intent.
+- Read the selected vault's `_SYS/metadata-catalogue.yaml` through MCP before choosing community labels or filters. Write canonical communities; expand searches with explicit synonyms and verified historical case variants. Missing or unknown labels require inventory and a local proposal, with unfiltered retrieval as a fallback.
+- Communities may span systems and do not determine folder placement. Entities remain extensible; reuse exact names and disambiguate them. Note aliases are separate from catalogue synonyms. See `CONTEXT.md` and `docs/metadata-catalogue.md`.
 - Put a system-index wikilink immediately after the frontmatter.
 - Use contextual wikilinks in sentences. Do not add bare "see also" link dumps.
 

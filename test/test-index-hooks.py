@@ -24,7 +24,7 @@ class IndexHooksTest(unittest.TestCase):
                     'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull,
                     'GIT_TERMINAL_PROMPT': '0', 'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1'}
         Path(self.env['HOME']).mkdir()
-        for relative in ['.gitignore', 'scripts/index-snapshot-attributes.gitattributes', 'scripts/configure-vault.sh', 'scripts/configure-vault.py', 'scripts/vault_validation.py', 'scripts/configure-index-git.sh',
+        for relative in ['.gitignore', 'scripts/index-snapshot-attributes.gitattributes', 'scripts/configure-vault.sh', 'scripts/configure-vault.py', 'scripts/vault_validation.py', 'scripts/vault_metadata.py', 'scripts/metadata_catalogue.py', 'scripts/configure-index-git.sh',
                          'scripts/check-index-snapshot.sh', 'scripts/prepare-index-snapshot.sh',
                          'scripts/install-index-snapshot.sh', 'scripts/index-snapshots.mjs',
                          'scripts/receive-index-snapshot.sh', 'scripts/hooks/post-merge.sh',

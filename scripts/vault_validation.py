@@ -6,48 +6,27 @@ from pathlib import Path
 import re
 import sys
 
-try:
-    import yaml
-except ImportError:
-    raise SystemExit('Vault validation requires PyYAML. Install python3-yaml or PyYAML in this Python environment.')
+from vault_metadata import UniqueKeysLoader, frontmatter, yaml
+from metadata_catalogue import CATALOGUE_PATH, load_catalogue
 
 STATUSES = {'distilled', 'crystallized', 'synthesized', 'scaffolded'}
 IDENTITY = re.compile(r'^([A-Z]{2,4})\.([0-9A-F]{2})\.([0-9A-F]{2})(?:-.+)?$')
 LINK = re.compile(r'\[\[([^\]]+)\]\]')
 
 
-class UniqueKeysLoader(yaml.SafeLoader):
-    pass
-
-
-def unique_mapping(loader, node, deep=False):
-    values = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in values:
-            raise ValueError(f'Duplicate YAML key: {key}')
-        values[key] = loader.construct_object(value_node, deep=deep)
-    return values
-
-
-UniqueKeysLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping)
-
-
-def frontmatter(text):
-    match = re.match(r'\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)', text, re.S)
-    if not match:
-        raise ValueError('Missing YAML frontmatter')
-    data = yaml.load(match[1], Loader=UniqueKeysLoader)
-    if not isinstance(data, dict):
-        raise ValueError('Frontmatter must be a mapping')
-    return data, text[match.end():].lstrip()
-
-
-def validate_vault(root):
+def validate_vault(root, *, strict_metadata=False, warnings=None):
     root = Path(root)
     issues = []
     if not root.is_dir():
         return [f'Vault directory does not exist: {root}']
+    warnings = warnings if warnings is not None else []
+    catalogue = None
+    try:
+        catalogue = load_catalogue(root)
+        if catalogue is None:
+            (issues if strict_metadata else warnings).append(f'Missing {CATALOGUE_PATH}; inventory existing labels before adopting a catalogue')
+    except ValueError as error:
+        issues.append(str(error))
     notes, targets, identities, labels = {}, defaultdict(set), defaultdict(list), {}
     def issue(file, message):
         issues.append(f'{file.relative_to(root)}: {message}')
@@ -89,6 +68,14 @@ def validate_vault(root):
                 issue(file, f'{field} must be a nonempty list of labels without placeholders')
             else:
                 for value in values:
+                    if field == 'communities':
+                        if catalogue is not None:
+                            canonical = catalogue.resolve(value)
+                            if canonical != value:
+                                message = (f'Unknown community {value!r}; propose a catalogue addition'
+                                           if canonical is None else f'Noncanonical community {value!r}; use {canonical!r}')
+                                (issues if strict_metadata else warnings).append(f'{relative}: {message}')
+                        continue
                     key = field, value.casefold()
                     if key in labels and labels[key] != value:
                         issue(file, f'Inconsistent {field} casing: {value!r}; existing label is {labels[key]!r}')
@@ -154,8 +141,12 @@ def validate_vault(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('vault', type=Path)
+    parser.add_argument('--strict-metadata', action='store_true', help='Require a catalogue and canonical community values; journals remain free-form')
     args = parser.parse_args()
-    issues = validate_vault(args.vault)
+    warnings = []
+    issues = validate_vault(args.vault, strict_metadata=args.strict_metadata, warnings=warnings)
+    for warning in warnings:
+        print(f'WARN: {warning}')
     for issue in issues:
         print(f'FAIL: {issue}')
     if not issues:

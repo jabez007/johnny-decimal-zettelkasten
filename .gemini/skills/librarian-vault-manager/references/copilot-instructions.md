@@ -49,16 +49,35 @@ The `AGNT` system (Agent Procedural Memory) is strictly reserved for agent confi
 # aliases: []
 # tags: []
 entities: [<entity-1>, <entity-2>, <entity-3>]
-communities: [<jd-category-or-cluster>]
+communities: [<canonical-community>]
 status: distilled
 ---
 ```
 
 Allowed values: `distilled`, `crystallized`, `synthesized`, `scaffolded`.
 
-Reuse exact existing entity and community labels, including casing, when they
-refer to the same concept. Replace placeholders before writing. A scaffolded
-example documents a template, not a user-approved rule.
+Read the selected vault's `_SYS/metadata-catalogue.yaml` through MCP before
+choosing communities. Use canonical labels from its versioned vocabulary.
+Propose new labels with a definition and explicit synonyms before adding them.
+Communities group related knowledge across systems; folder placement and the
+AGNT procedural/domain boundary remain separate rules. Moving a note does not
+itself change its communities.
+
+Reuse exact existing entity names, including casing, for the same concept.
+Entities remain extensible; disambiguate unclear names without registering every
+entity. Note `aliases` name individual notes; catalogue `synonyms` name communities.
+For exact community filters, include the canonical name, declared synonyms,
+and case variants verified in legacy notes. Values within one filter are ORed;
+entity and community filters together are ANDed. Unknown labels require an
+unfiltered query or verified existing labels, never a guessed filter.
+
+Inventory labels before catalogue adoption or normalization. Missing catalogues
+and noncanonical communities are warnings during adoption; strict validation is
+explicit. Malformed or ambiguous catalogues require repair. Apply only approved
+local changes with MCP frontmatter tools, preserving other fields, bodies, and
+source journals. See `docs/metadata-catalogue.md` for schema and read-only commands.
+Replace placeholders before writing. A scaffolded example documents a template,
+not a user-approved rule.
 
 The metadata schema applies to permanent notes and root/system indexes.
 Atomicity applies to permanent claims. Journals and support templates may be
