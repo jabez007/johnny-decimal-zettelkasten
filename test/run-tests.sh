@@ -393,13 +393,21 @@ else
           arguments:{file_path:$p, content:$c, vault_path:$v, workspace_path:$w, vault_id:"test_example"}}}'
     }
     PROMO_LOG=$(mktemp)
+    # Each request waits for the server's reply to the one before, so the
+    # duplicate create never races the first write and its re-index.
+    promo_wait() {
+      for _ in $(seq 1 60); do
+        jq -se --argjson id "$1" 'any(.[]; .id==$id)' "$PROMO_LOG" >/dev/null 2>&1 && return
+        sleep 1
+      done
+    }
     {
       printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"harness","version":"1"}}}'
       printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
       promo_call 2 "$PROMO_BODY"
-      sleep 20
+      promo_wait 2
       promo_call 3 "replaced"
-      sleep 5
+      promo_wait 3
     } | $MCP_CMD 2>/dev/null >"$PROMO_LOG" || true
 
     PROMO_HIT=$($MCP_CMD obsidian_rag_query --query "quokka-lighthouse fixture" --path "$VAULT" \
