@@ -24,6 +24,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Vault Constitution:** `references/librarian/copilot-instructions.md`
 - **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
 - **Zettelkasten Method:** `references/librarian/zettelkasten.md`
+- **Knowledge Promotion:** `references/librarian/knowledge-promotion.md`
 
 ## Core Mandates
 
@@ -62,6 +63,7 @@ so placeholder text becomes an unusable label in the graph.
 - Maintain the JDex index and prevent ID collisions.
 - Guide users in resolving ambiguous note placement.
 - Identify when a concept is ready to move from a daily log to a permanent note.
+- **Promotion:** When a session produces durable knowledge, offer once to file it. Run Discover and Propose from `references/librarian/knowledge-promotion.md`; after the user approves, hand the proposal to a specialist that holds the write tools.
 - Coordinate with specialist subagents (`@vault-auditor`, `@vault-cleaner`, etc.) to audit graph connectivity and metadata health.
 
 ## Philosophy

@@ -109,11 +109,21 @@ fi
 
 for h in claude gemini; do
   ok=1
-  for f in copilot-instructions johnny-decimal philosophy zettelkasten; do
-    cmp -s "references/librarian/$f.md" ".$h/skills/librarian-vault-manager/references/$f.md" || ok=0
+  for f in references/librarian/*.md; do
+    cmp -s "$f" ".$h/skills/librarian-vault-manager/references/$(basename "$f")" || ok=0
   done
   [ "$ok" = 1 ] && pass "doctrine identical in .$h/skills/" || fail "doctrine identical in .$h/skills/"
 done
+
+# Promotion is the only route from a session into the vault, so every entry
+# point that can file knowledge must point at it.
+promo_ok=1
+for f in AGENTS.md .agents/skills/librarian-vault-manager/SKILL.md \
+         .agents/agents/librarian.md references/librarian/copilot-instructions.md; do
+  grep -q 'knowledge-promotion.md' "$f" || { promo_ok=0; echo "       $f does not reference knowledge-promotion.md"; }
+done
+[ "$promo_ok" = 1 ] && pass "promotion doctrine is referenced from every entry point" \
+  || fail "promotion doctrine is referenced from every entry point"
 
 for d in .claude/agents .gemini/agents .opencode/agents .codex/agents; do
   n=$(find "$d" -type f | wc -l)
@@ -369,6 +379,45 @@ else
     else
       fail "obsidian_rag_query returns results" "$(tail -3 "$QUERY_LOG" | tr '\n' ' ')"
     fi
+
+    # The Publish step of knowledge promotion, driven over MCP stdio the way an
+    # agent calls it. The CLI cannot carry frontmatter: it reads any value that
+    # starts with "--" as the next flag. An approved note is indexed on write
+    # and found by the next query, and a second create at the same ID is
+    # refused rather than overwritten.
+    PROMO="LIFE/20-Personal Development/21-Learnings and Skills/LIFE.21.0F.md"
+    PROMO_BODY=$'---\nentities: [harness-fixture, knowledge-promotion]\ncommunities: [LIFE.21]\nstatus: distilled\n---\n[[LIFE.00.00]]\n\n# Approved promotions are indexed on write\n\nThe quokka-lighthouse fixture proves that an approved note is searchable\nas soon as it is written.\n'
+    promo_call() {
+      jq -nc --argjson id "$1" --arg c "$2" --arg p "$PROMO" --arg v "$VAULT" --arg w "$WORK_DIR" \
+        '{jsonrpc:"2.0", id:$id, method:"tools/call", params:{name:"obsidian_create_note",
+          arguments:{file_path:$p, content:$c, vault_path:$v, workspace_path:$w, vault_id:"test_example"}}}'
+    }
+    PROMO_LOG=$(mktemp)
+    {
+      printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"harness","version":"1"}}}'
+      printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+      promo_call 2 "$PROMO_BODY"
+      sleep 20
+      promo_call 3 "replaced"
+      sleep 5
+    } | $MCP_CMD 2>/dev/null >"$PROMO_LOG" || true
+
+    PROMO_HIT=$($MCP_CMD obsidian_rag_query --query "quokka-lighthouse fixture" --path "$VAULT" \
+                  --workspace_path "$WORK_DIR" --vault_id test_example 2>/dev/null | grep '^File:' | head -1)
+    if jq -se 'any(.[]; .id==2 and .result.isError != true)' "$PROMO_LOG" >/dev/null 2>&1 \
+       && cmp -s <(printf '%s' "$PROMO_BODY") "$VAULT/$PROMO" \
+       && [[ "$PROMO_HIT" == *LIFE.21.0F* ]]; then
+      pass "promoted note is written and ranked first by rag_query"
+    else
+      fail "promoted note is written and ranked first by rag_query" "top hit: ${PROMO_HIT:-none}"
+    fi
+    if jq -se 'any(.[]; .id==3 and .result.isError == true)' "$PROMO_LOG" >/dev/null 2>&1 \
+       && cmp -s <(printf '%s' "$PROMO_BODY") "$VAULT/$PROMO"; then
+      pass "promotion refuses to overwrite an existing ID"
+    else
+      fail "promotion refuses to overwrite an existing ID"
+    fi
+    rm -f "$PROMO_LOG" "${VAULT:?}/${PROMO:?}"
   else
     fail "obsidian_rag_index --force_reindex true" "$(tail -5 "$INDEX_LOG" | tr '\n' ' ')"
   fi

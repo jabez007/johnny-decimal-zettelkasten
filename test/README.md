@@ -84,8 +84,8 @@ nearly all of it npm fetching onnxruntime.
 | Section | Checks |
 | :--- | :--- |
 | 1. Static | shellcheck across all scripts; JSON and TOML parse; 8 agents registered in `.codex/config.toml` |
-| 2. Generation | `sync-assets.sh` runs, is idempotent, and matches what is committed (the CI drift gate); doctrine identical across harnesses; correct MCP prefix per harness; no unsubstituted `{{MCP_PREFIX}}` |
-| 3. MCP server | `obsidian_set_vault` writes the config; `obsidian_list_notes` reads the vault; `obsidian_rag_index --force_reindex` builds an index under `.obsidian-vault-mcp/`; `obsidian_rag_query` returns results with a rendered relevance score |
+| 2. Generation | `sync-assets.sh` runs, is idempotent, and matches what is committed (the CI drift gate); doctrine identical across harnesses; the promotion doctrine is referenced from every entry point; correct MCP prefix per harness; no unsubstituted `{{MCP_PREFIX}}` |
+| 3. MCP server | `obsidian_set_vault` writes the config; `obsidian_list_notes` reads the vault; `obsidian_rag_index --force_reindex` builds an index under `.obsidian-vault-mcp/`; `obsidian_rag_query` returns results with a rendered relevance score; a promoted note created over MCP stdio is ranked first by the next query, and a second create at the same ID is refused |
 | 4. Agent memory is retired | Retired hooks, context script, and compiler are gone; no harness registers a `SessionStart` hook; no agent asset asks for session logging or references a memory provider; `legacy-hooks` removes only the old Gemini hook; `migrate-agent-memory.sh` inventories, refuses unsafe archives, archives by scope with `git mv`, leaves journals and curated notes untouched, and restores the original tree |
 | 5. Harness parity | Every `setup-environment.sh` honours the shared setup contract |
 | 6. v2 migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |

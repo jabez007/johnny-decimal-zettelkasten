@@ -45,3 +45,4 @@ The vault is the user's curated library, not agent memory. Consult it when a tas
 - Confirm which vault under `vaults/` you are operating on when the target is ambiguous.
 - Prefer updating existing evergreen notes over creating near-duplicates.
 - Write to the vault only after the user approves a specific proposal in the current conversation.
+- When a session produces durable knowledge worth keeping, offer to file it through `references/librarian/knowledge-promotion.md`.
