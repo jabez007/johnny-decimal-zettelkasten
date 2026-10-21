@@ -858,6 +858,32 @@ cp "$MIG/saved.tsv" "$GM"
 rm -f "$MIG/private/victim.md"
 migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after a path refusal"
 
+# A symlinked folder on either side of a move stops the run before anything
+# goes through it: JRNL/AGNT in the vault, a folder in the private archive,
+# or .archive before archive creates it.
+OUTSIDE="$MIG/outside"
+mkdir -p "$OUTSIDE"
+migrate "${LOGS[@]}"
+ln -s "$OUTSIDE" "$MV/JRNL/AGNT"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply
+rc_vault=$?
+rm "$MV/JRNL/AGNT"
+mv "$PRIV/JRNL/AGNT" "$OUTSIDE/AGNT" && ln -s "$OUTSIDE/AGNT" "$PRIV/JRNL/AGNT"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply
+rc_private=$?
+rm "$PRIV/JRNL/AGNT" && mv "$OUTSIDE/AGNT" "$PRIV/JRNL/AGNT"
+outside_empty=$(find "$OUTSIDE" -mindepth 1 | wc -l)
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after a symlink refusal"
+ln -s "$OUTSIDE" "$MV/.archive"
+migrate archive --vault "$MV" --scope rules --apply
+rc_archive=$?
+rm "$MV/.archive"
+[ "$rc_vault" = 2 ] && [ "$rc_private" = 2 ] && [ "$rc_archive" = 2 ] && [ "$outside_empty" = 0 ] \
+  && [ -z "$(find "$OUTSIDE" -mindepth 1)" ] && at_base \
+  && pass "archive and restore refuse to move files through a symlinked folder" \
+  || fail "archive and restore refuse to move files through a symlinked folder" \
+       "vault $rc_vault, private $rc_private, archive $rc_archive, outside $outside_empty"
+
 # A live process holding the lock blocks both commands.
 sleep 30 &
 LIVE=$!

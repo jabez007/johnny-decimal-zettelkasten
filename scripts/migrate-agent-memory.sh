@@ -490,6 +490,25 @@ check_manifest_path() {
   exit 2
 }
 
+# Refuse when a folder on the way from BASE to BASE/REL is a symbolic link.
+# mkdir -p, cp, mv, and rm follow a linked folder, and Git can check one out,
+# so a link would send a copy or a delete outside BASE. Callers check while
+# planning and again just before each write. The lock keeps other runs of
+# this script out. A process that swaps in a link between the last check and
+# the write is beyond what a shell script can prevent.
+check_no_symlinks() {
+  local base=$1 rel=$2 dir="" part parts=()
+  [ "$(dirname "$rel")" = "." ] && return 0
+  IFS=/ read -r -a parts <<<"$(dirname "$rel")"
+  for part in "${parts[@]}"; do
+    dir="$dir/$part"
+    if [ -L "$base$dir" ]; then
+      echo "Refused: $base$dir is a symbolic link, so a move through it could leave $base." >&2
+      exit 2
+    fi
+  done
+}
+
 # SHA-256 of a file, or nothing when it does not exist.
 hash_if_present() {
   if [ -e "$1" ]; then sha256 "$1"; fi
@@ -498,9 +517,10 @@ hash_if_present() {
 # Copy a file so the destination is either absent or complete: write to a
 # temporary name, check it, then rename it into place.
 copy_verified() {
-  local src=$1 dst=$2 want=$3
+  local src=$1 dst=$2 want=$3 base=$4
   local tmp
   tmp="$(dirname "$dst")/.$(basename "$dst").agent-memory-partial"
+  check_no_symlinks "$base" "${dst#"$base"/}"
   mkdir -p "$(dirname "$dst")"
   cp -p "$src" "$tmp"
   if [ "$(sha256 "$tmp")" != "$want" ]; then
@@ -508,6 +528,7 @@ copy_verified() {
     echo "Error: the copy of $src does not match its checksum. Nothing was replaced." >&2
     exit 1
   fi
+  check_no_symlinks "$base" "${dst#"$base"/}"
   mv "$tmp" "$dst"
 }
 
@@ -560,10 +581,12 @@ cmd_archive() {
         echo "needs the private archive. Retry with the same options, or run restore first." >&2
         blocked=1
       fi
+      [ -n "$PRIVATE_DIR" ] && check_no_symlinks "$PRIVATE_DIR" "$rel"
       private_files+=("$rel"); private_reasons+=("$reason"); private_states+=("$state")
       private_listed+=("${listed:+yes}")
       private_copied+=("")
     else
+      check_no_symlinks "$VAULT" "$ARCHIVE_REL/$rel"
       git_files+=("$rel")
     fi
   done <<<"$files"
@@ -665,6 +688,7 @@ cmd_archive() {
       printf 'file\t%s\t%s\n' "$(sha256 "$VAULT/$rel")" "$rel" >>"$manifest"
     done
     for rel in "${git_files[@]}"; do
+      check_no_symlinks "$VAULT" "$ARCHIVE_REL/$rel"
       mkdir -p "$(dirname "$dest/$rel")"
       git -C "$VAULT" mv -- "$rel" "$ARCHIVE_REL/$rel"
     done
@@ -702,7 +726,7 @@ cmd_archive() {
     for i in "${!private_files[@]}"; do
       rel=${private_files[$i]}
       hash=$(sha256 "$VAULT/$rel")
-      [ -n "${private_copied[$i]}" ] || copy_verified "$VAULT/$rel" "$PRIVATE_DIR/$rel" "$hash"
+      [ -n "${private_copied[$i]}" ] || copy_verified "$VAULT/$rel" "$PRIVATE_DIR/$rel" "$hash" "$PRIVATE_DIR"
       # Record the copy before the original goes, so restore can always find it.
       [ -n "${private_listed[$i]}" ] || \
         printf 'file\t%s\t%s\t%s\t%s\n' "$hash" "${private_states[$i]}" "${private_reasons[$i]}" "$rel" >>"$pmanifest"
@@ -710,6 +734,7 @@ cmd_archive() {
         git -C "$VAULT" rm -q --cached -f -- "$rel"
         untracked_from_git+=("$rel")
       fi
+      check_no_symlinks "$VAULT" "$rel"
       rm -f "$VAULT/$rel"
     done
     umask "$old_umask"
@@ -788,6 +813,8 @@ cmd_restore() {
     while IFS=$'\t' read -r kind hash path; do
       [ "$kind" = "file" ] || continue
       check_manifest_path "$path"
+      check_no_symlinks "$VAULT" "$path"
+      check_no_symlinks "$VAULT" "$ARCHIVE_REL/$path"
       where=$(locate "$hash" "$VAULT/$path" "$dest/$path")
       case "$where" in
         archived) git_moves+=("$path"); to_move=$((to_move + 1))
@@ -802,6 +829,8 @@ cmd_restore() {
     while IFS=$'\t' read -r kind hash state reason path; do
       [ "$kind" = "file" ] || continue
       check_manifest_path "$path"
+      check_no_symlinks "$VAULT" "$path"
+      check_no_symlinks "$PRIVATE_DIR" "$path"
       where=$(locate "$hash" "$VAULT/$path" "$PRIVATE_DIR/$path")
       case "$where" in
         archived) private_moves+=("$path"); to_move=$((to_move + 1))
@@ -824,6 +853,7 @@ cmd_restore() {
   fi
 
   for path in ${git_moves[@]+"${git_moves[@]}"}; do
+    check_no_symlinks "$VAULT" "$path"
     mkdir -p "$(dirname "$VAULT/$path")"
     git -C "$VAULT" mv -- "$ARCHIVE_REL/$path" "$path"
   done
@@ -836,10 +866,12 @@ cmd_restore() {
   local was_tracked=() i
   for i in ${private_moves[@]+"${!private_moves[@]}"}; do
     path=${private_moves[$i]}
-    copy_verified "$PRIVATE_DIR/$path" "$VAULT/$path" "$(manifest_hash "$pmanifest" "$path")"
+    copy_verified "$PRIVATE_DIR/$path" "$VAULT/$path" "$(manifest_hash "$pmanifest" "$path")" "$VAULT"
+    check_no_symlinks "$PRIVATE_DIR" "$path"
     rm -f "$PRIVATE_DIR/$path"
   done
   for path in ${private_drops[@]+"${private_drops[@]}"}; do
+    check_no_symlinks "$PRIVATE_DIR" "$path"
     rm -f "$PRIVATE_DIR/$path"
   done
   if [ "$have_private" = "1" ]; then
