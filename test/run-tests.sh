@@ -400,14 +400,17 @@ else
         jq -se --argjson id "$1" 'any(.[]; .id==$id)' "$PROMO_LOG" >/dev/null 2>&1 && return
         sleep 1
       done
+      return 1
     }
+    # A wait that times out ends the input, so no later request goes out
+    # before the server has answered the one before it.
     {
       printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"harness","version":"1"}}}'
       printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
       promo_call 2 "$PROMO_BODY"
-      promo_wait 2
+      promo_wait 2 || exit
       promo_call 3 "replaced"
-      promo_wait 3
+      promo_wait 3 || exit
     } | $MCP_CMD 2>/dev/null >"$PROMO_LOG" || true
 
     PROMO_HIT=$($MCP_CMD obsidian_rag_query --query "quokka-lighthouse fixture" --path "$VAULT" \
@@ -642,6 +645,18 @@ echo "$OUT" | grep -qF '[requested] AGNT/00-IDX/AGNT.00.00.md' \
   && pass "archive --private sends a requested folder to the private archive" \
   || fail "archive --private sends a requested folder to the private archive" "$(echo "$OUT" | tr '\n' '|')"
 
+# A folder name in the middle of a legacy path, or an empty value, matches
+# nothing that private_reason would send to the private archive.
+rcs=""
+for p in 00-IDX ""; do
+  HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --private-dir "$PRIV" --private "$p" \
+    --allow-inbound-links >/dev/null 2>&1
+  rcs="$rcs $?"
+done
+[ "$rcs" = " 1 1" ] && [ "$(tree_sum)" = "$BASE_TREE" ] \
+  && pass "archive --private accepts only a vault-relative path prefix" \
+  || fail "archive --private accepts only a vault-relative path prefix" "exits:$rcs"
+
 HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --scope logs --apply --allow-inbound-links \
   --private-dir "$PRIV" </dev/null >/dev/null 2>&1
 rc=$?
@@ -832,6 +847,24 @@ rc_restore=$?
 kill "$LIVE" 2>/dev/null
 wait "$LIVE" 2>/dev/null
 rm -rf "$LOCK_DIR"
+
+# A second vault with the same folder name, pointed at the first vault's
+# private archive, is refused before it reads or writes anything there.
+migrate "${LOGS[@]}"
+OTHER="$MIG/other/demo"
+mkdir -p "$OTHER/JRNL/AGNT"
+printf '# Session log\n\nAnother vault.\n' >"$OTHER/JRNL/AGNT/2026-05-01-0800.md"
+PSUM=$(cd "$PRIV" && find . -type f | LC_ALL=C sort | xargs sha256sum | sha256sum)
+migrate archive --vault "$OTHER" --private-dir "$PRIV" --apply --yes
+rc_archive=$?
+migrate restore --vault "$OTHER" --private-dir "$PRIV" --apply
+rc_restore=$?
+[ "$rc_archive" = 2 ] && [ "$rc_restore" = 2 ] && [ -f "$OTHER/JRNL/AGNT/2026-05-01-0800.md" ] \
+  && [ ! -e "$OTHER/JRNL/AGNT/2026-04-24-1500.md" ] \
+  && [ "$(cd "$PRIV" && find . -type f | LC_ALL=C sort | xargs sha256sum | sha256sum)" = "$PSUM" ] \
+  && pass "a private archive refuses a vault that did not write it" \
+  || fail "a private archive refuses a vault that did not write it" "archive $rc_archive, restore $rc_restore"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after an owner refusal"
 
 rm -rf "$MIG"
 

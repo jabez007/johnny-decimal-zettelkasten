@@ -186,11 +186,30 @@ check_private_paths() {
     p=${PRIVATE_PATHS[$i]#./}
     p=${p%/}
     PRIVATE_PATHS[i]=$p
-    if ! printf '%s\n' "$all" | grep -qxF -e "$p" && ! printf '%s\n' "$all" | grep -qF -e "$p/"; then
-      echo "Error: --private '$p' matches no legacy file." >&2
+    # The same match as private_reason: the path itself or a folder prefix.
+    # ENVIRON keeps awk from reading backslashes in the path as escapes.
+    if [ -z "$p" ] || ! printf '%s\n' "$all" | P="$p" awk '
+        $0 == ENVIRON["P"] || index($0, ENVIRON["P"] "/") == 1 { found = 1; exit }
+        END { exit !found }'; then
+      echo "Error: --private '$p' matches no legacy file. Give a path relative to the vault." >&2
       exit 1
     fi
   done
+}
+
+# Refuse a private archive that another vault wrote. Two vaults with the same
+# folder name would otherwise share one, and restore would copy one vault's
+# private files into the other.
+check_private_owner() {
+  local pm=$1 owner
+  [ -n "$pm" ] && [ -f "$pm" ] || return 0
+  owner=$(awk -F'\t' '$1 == "# vault" { print $2; exit }' "$pm")
+  if [ "$owner" != "$VAULT" ]; then
+    echo "Refused: $pm belongs to vault '${owner:-unknown}', not $VAULT." >&2
+    echo "Use a separate --private-dir for each vault. If you moved this vault, edit" >&2
+    echo "the '# vault' line of that manifest to the new path." >&2
+    exit 2
+  fi
 }
 
 # Markdown notes outside the legacy roots and outside hidden paths: the notes
@@ -494,6 +513,7 @@ cmd_archive() {
   local dest="$VAULT/$ARCHIVE_REL"
   local manifest="$dest/$MANIFEST_NAME"
   local pmanifest="${PRIVATE_DIR:+$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME}"
+  check_private_owner "$pmanifest"
 
   local roots files="" root_list=()
   roots=$(present_roots)
@@ -730,6 +750,7 @@ cmd_restore() {
   local dest="$VAULT/$ARCHIVE_REL"
   local manifest="$dest/$MANIFEST_NAME"
   local pmanifest="${PRIVATE_DIR:+$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME}"
+  check_private_owner "$pmanifest"
   local have_git=0 have_private=0
   [ -f "$manifest" ] && have_git=1
   [ -n "$pmanifest" ] && [ -f "$pmanifest" ] && have_private=1

@@ -154,10 +154,12 @@ P=~/agent-memory-archive/<name>
 
 1. Refuses with exit code 2 if a curated note links to legacy content (step 5),
    if a file needs the private archive and `--private-dir` is missing or inside
-   a Git repository, or if a destination file already exists.
+   a Git repository, if `--private-dir` already holds another vault's archive,
+   or if a destination file already exists.
 2. Prints the plan: which files stay in Git, and which leave it and why.
-3. Before moving any file out of the vault, asks you to type `yes`. Without a
-   terminal, it refuses unless you pass `--yes`.
+3. Before moving any file into `--private-dir`, asks you to type `yes`. Without
+   a terminal, it refuses unless you pass `--yes`. Moves into the Git archive
+   do not ask, because they are staged and you review them before you commit.
 4. Moves the Git archive files with `git mv` into `<vault>/.archive/agent-memory/`,
    keeping their relative paths, and records each file's SHA-256 in
    `.archive/agent-memory/MANIFEST.tsv`.
@@ -174,7 +176,10 @@ vault. Otherwise, run `obsidian_rag_index` once.
 
 ### Undo the archive
 
+Use the same private archive folder you archived to:
+
 ```bash
+P=~/agent-memory-archive/<name>
 ./scripts/migrate-agent-memory.sh restore --private-dir "$P"           # preview
 ./scripts/migrate-agent-memory.sh restore --private-dir "$P" --apply
 ```
@@ -205,8 +210,9 @@ or run `restore` to undo what it did.
   moves anything. If a file is missing, changed, or present in two places with
   different content, it stops with exit code 2 and changes nothing.
 - Only one `archive` or `restore` with `--apply` can run on a vault at a time.
-  The lock lives in the repository's `.git` folder. A lock left by a process
-  that no longer exists is removed on the next run.
+  The lock lives in the repository's Git directory, or at
+  `<vault>/.agent-memory-migrate.lock` when the vault is not in Git. The next
+  run removes a lock left by a process that no longer exists.
 
 ### Merge the update into your fork
 
