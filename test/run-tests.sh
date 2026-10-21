@@ -456,6 +456,14 @@ else
   pass "Gemini setup installs no global hook"
 fi
 
+# The sample vault demonstrates the knowledge system only.
+if [ -z "$(find vaults/example -path '*AGNT*' -print -quit)" ] \
+   && ! grep -rq 'Agent Staff Report' vaults/example; then
+  pass "sample vault carries no agent-memory content"
+else
+  fail "sample vault carries no agent-memory content"
+fi
+
 # Nothing that ships agent instructions may tell an agent to write session logs
 # or procedural rules into the vault. The migration doctrine may name the
 # legacy folders, so it is the one place they can appear.
