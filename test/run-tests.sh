@@ -582,6 +582,7 @@ status: distilled
 NOTE
 (cd "$MIG/repo" && git init -q . && git config user.email t@example.com && git config user.name T \
   && git add -A && git commit -qm base)
+BASE_COMMIT=$(git -C "$MIG/repo" rev-parse HEAD)
 printf '# Session log\n\nA private client conversation.\n' >"$MV/JRNL/AGNT/2026-04-25-0900.md"
 DRAFT_BLOB=$(git -C "$MIG/repo" hash-object "$MV/JRNL/AGNT/2026-04-25-0900.md")
 SECRET_BLOB=$(git -C "$MIG/repo" rev-parse HEAD:vaults/demo/JRNL/AGNT/2026-04-24-1500.md)
@@ -707,6 +708,131 @@ if [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$MV/.archive" ] && [ ! -e "$PRIV"
 else
   fail "restore returns both archives to the original tree" "$(git -C "$MIG/repo" status --short | head -3 | tr '\n' ' ')"
 fi
+
+# --- 4c. Interrupted migrations ---
+# A stand-in command kills the migration script with SIGKILL, as a crash or a
+# power cut would, on the Nth call whose arguments contain a marker. No trap
+# runs, so the lock is left behind too.
+crash_on() {
+  local real
+  real=$(command -v "$1")
+  CRASH_BIN=$(mktemp -d)
+  cat >"$CRASH_BIN/$1" <<SHIM
+#!/bin/bash
+if [[ " \$* " == *"$2"* ]]; then
+  n=\$(( \$(cat "$CRASH_BIN/count" 2>/dev/null || echo 0) + 1 ))
+  echo "\$n" >"$CRASH_BIN/count"
+  [ "\$n" = "$3" ] && { kill -9 "\$PPID"; exit 137; }
+fi
+exec "$real" "\$@"
+SHIM
+  chmod +x "$CRASH_BIN/$1"
+}
+crashed() { (PATH="$CRASH_BIN:$PATH" HOME="$MIG" bash "$MIGRATE" "$@") >/dev/null 2>&1; }
+migrate() { HOME="$MIG" bash "$MIGRATE" "$@" >/dev/null 2>&1; }
+LOCK_DIR="$MIG/repo/.git/agent-memory-migrate.lock"
+# The vault matches the base commit, with the restore hint for the one
+# tracked private file applied.
+at_base() {
+  git -C "$MIG/repo" add -- vaults/demo/JRNL/AGNT/2026-04-24-1500.md 2>/dev/null
+  [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$MV/.archive" ] && [ ! -e "$PRIV" ] \
+    && [ ! -e "$LOCK_DIR" ] && git -C "$MIG/repo" diff --cached --quiet "$BASE_COMMIT" \
+    && [ "$(git -C "$MIG/repo" status --porcelain | grep '^??')" = "$BASE_STATUS" ]
+}
+LOGS=(archive --vault "$MV" --scope logs --private-dir "$PRIV" --allow-inbound-links --apply --yes)
+git -C "$MIG/repo" reset -q "$BASE_COMMIT"
+
+crash_on git " mv " 2
+crashed archive --vault "$MV" --scope rules --apply
+rc=$?
+[ "$rc" = 137 ] && [ -d "$LOCK_DIR" ] \
+  && [ "$(find "$MV/.archive/agent-memory" -type f ! -name MANIFEST.tsv | wc -l)" = 1 ] \
+  && migrate restore --vault "$MV" --apply && at_base \
+  && pass "restore undoes an archive killed between git mv calls" \
+  || fail "restore undoes an archive killed between git mv calls" "exit $rc"
+rm -rf "$CRASH_BIN"
+
+crash_on git " mv " 2
+crashed archive --vault "$MV" --scope rules --apply
+rc=$?
+migrate archive --vault "$MV" --scope rules --apply
+if [ "$rc" = 137 ] && [ ! -e "$MV/AGNT" ] && [ ! -e "$MV/_SYS/JDEX_AGNT.base" ] \
+   && [ "$(grep -c '^file' "$MV/.archive/agent-memory/MANIFEST.tsv")" = 3 ] \
+   && [ "$(git -C "$MIG/repo" diff --cached --name-status | grep -c '^R100')" = 3 ]; then
+  pass "re-running archive finishes a Git archive killed midway"
+else
+  fail "re-running archive finishes a Git archive killed midway"
+fi
+migrate restore --vault "$MV" --apply && at_base || fail "restore after a resumed Git archive"
+rm -rf "$CRASH_BIN"
+
+# Killed after the private copy of a tracked log is recorded and unstaged,
+# before the original is deleted, so both copies exist.
+crash_on rm "JRNL/AGNT/2026-04-24-1500.md" 1
+crashed "${LOGS[@]}"
+rc=$?
+[ "$rc" = 137 ] && [ -f "$MV/JRNL/AGNT/2026-04-24-1500.md" ] && [ -f "$PRIV/JRNL/AGNT/2026-04-24-1500.md" ] \
+  && migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base \
+  && pass "restore undoes an archive killed before a private original was removed" \
+  || fail "restore undoes an archive killed before a private original was removed" "exit $rc"
+rm -rf "$CRASH_BIN"
+
+crash_on rm "JRNL/AGNT/2026-04-24-1500.md" 1
+crashed "${LOGS[@]}"
+rc=$?
+migrate "${LOGS[@]}"
+if [ "$rc" = 137 ] && [ ! -e "$MV/JRNL/AGNT" ] && [ -f "$PRIV/JRNL/AGNT/2026-04-24-1500.md" ] \
+   && [ -f "$PRIV/JRNL/AGNT/2026-04-25-0900.md" ] \
+   && [ "$(grep -c '^file' "$PRIV/PRIVATE-MANIFEST.tsv")" = 2 ] \
+   && (cd "$PRIV" && awk -F'\t' '$1 == "file" { print $2 "  " $5 }' PRIVATE-MANIFEST.tsv | sha256sum -c --quiet) \
+   && ! git -C "$MIG/repo" ls-files --error-unmatch vaults/demo/JRNL/AGNT/2026-04-24-1500.md >/dev/null 2>&1; then
+  pass "re-running archive finishes a private archive killed midway"
+else
+  fail "re-running archive finishes a private archive killed midway"
+fi
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after a resumed private archive"
+rm -rf "$CRASH_BIN"
+
+# Killed while the second private copy still has its temporary name.
+crash_on mv ".agent-memory-partial" 2
+crashed "${LOGS[@]}"
+rc=$?
+[ "$rc" = 137 ] && [ -n "$(find "$PRIV" -name '*.agent-memory-partial')" ] \
+  && [ ! -e "$PRIV/JRNL/AGNT/2026-04-25-0900.md" ] \
+  && migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base \
+  && pass "restore undoes an archive killed mid-copy and removes the partial copy" \
+  || fail "restore undoes an archive killed mid-copy and removes the partial copy" "exit $rc"
+rm -rf "$CRASH_BIN"
+
+# One altered archive file stops the restore before anything moves.
+migrate "${LOGS[@]}"
+ARCHIVED="$MV/.archive/agent-memory/JRNL/AGNT/2026-04-23-1000.md"
+cp "$ARCHIVED" "$MIG/saved.md"
+echo "edited" >>"$ARCHIVED"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply
+rc=$?
+[ "$rc" = 2 ] && [ ! -e "$MV/JRNL/AGNT" ] && [ -f "$PRIV/JRNL/AGNT/2026-04-24-1500.md" ] \
+  && [ -f "$PRIV/PRIVATE-MANIFEST.tsv" ] && [ -f "$MV/.archive/agent-memory/MANIFEST.tsv" ] \
+  && pass "restore checks every checksum before it moves anything" \
+  || fail "restore checks every checksum before it moves anything" "exit $rc"
+cp "$MIG/saved.md" "$ARCHIVED"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after a checksum refusal"
+
+# A live process holding the lock blocks both commands.
+sleep 30 &
+LIVE=$!
+mkdir "$LOCK_DIR" && echo "$LIVE" >"$LOCK_DIR/pid"
+migrate "${LOGS[@]}"
+rc_archive=$?
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply
+rc_restore=$?
+[ "$rc_archive" = 2 ] && [ "$rc_restore" = 2 ] && [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$PRIV" ] \
+  && pass "a running migration blocks a second archive or restore" \
+  || fail "a running migration blocks a second archive or restore" "archive $rc_archive, restore $rc_restore"
+kill "$LIVE" 2>/dev/null
+wait "$LIVE" 2>/dev/null
+rm -rf "$LOCK_DIR"
+
 rm -rf "$MIG"
 
 # --- 5. Harness parity -----------------------------------------------------

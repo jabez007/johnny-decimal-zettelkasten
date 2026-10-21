@@ -15,6 +15,9 @@
 #     --private-dir, which must sit outside any Git repository, and never enter
 #     Git. Moving them needs --apply and a typed "yes", or --yes.
 # Both archives record SHA-256 checksums and `restore` reverses both.
+# archive and restore are safe to re-run: after an interruption, run the same
+# command to finish, or restore to undo. restore checks every checksum before
+# it moves anything. One --apply run per vault holds a lock at a time.
 #
 # Usage:
 #   ./scripts/migrate-agent-memory.sh inventory    [--vault DIR] [--format text|tsv]
@@ -413,35 +416,121 @@ cmd_inventory() {
   echo "  3. Apply it:             add --apply to the same command"
 }
 
+# One archive or restore at a time per vault. The lock lives in the Git
+# directory, or as a hidden folder in a vault outside Git, so it never shows
+# up as a vault change. A lock whose process has exited is stale and removed.
+acquire_lock() {
+  if [ -n "$GIT_ROOT" ]; then
+    LOCK="$(git -C "$VAULT" rev-parse --absolute-git-dir)/agent-memory-migrate.lock"
+  else
+    LOCK="$VAULT/.agent-memory-migrate.lock"
+  fi
+  local attempt pid
+  for attempt in 1 2; do
+    if mkdir "$LOCK" 2>/dev/null; then
+      echo "$$" >"$LOCK/pid"
+      trap 'rm -rf "$LOCK"' EXIT
+      trap 'exit 130' INT TERM
+      return 0
+    fi
+    pid=$(cat "$LOCK/pid" 2>/dev/null || true)
+    # An empty pid file means another run is between mkdir and writing it.
+    if [ -z "$pid" ] || kill -0 "$pid" 2>/dev/null; then
+      echo "Refused: another archive or restore (pid ${pid:-unknown}) holds $LOCK." >&2
+      echo "Wait for it to finish. If no migration is running, remove that folder." >&2
+      exit 2
+    fi
+    [ "$attempt" = 1 ] && echo "Removing a stale lock left by pid $pid, which is no longer running." >&2
+    rm -rf "$LOCK"
+  done
+  echo "Refused: could not take the lock at $LOCK." >&2
+  exit 2
+}
+
+# Checksum recorded for a path in a manifest, or nothing. The path is the
+# last column in both manifest formats.
+manifest_hash() {
+  [ -n "$1" ] && [ -f "$1" ] || return 0
+  awk -F'\t' -v p="$2" '$1 == "file" && $NF == p { print $2; exit }' "$1"
+}
+
+# SHA-256 of a file, or nothing when it does not exist.
+hash_if_present() {
+  if [ -e "$1" ]; then sha256 "$1"; fi
+}
+
+# Copy a file so the destination is either absent or complete: write to a
+# temporary name, check it, then rename it into place.
+copy_verified() {
+  local src=$1 dst=$2 want=$3
+  local tmp
+  tmp="$(dirname "$dst")/.$(basename "$dst").agent-memory-partial"
+  mkdir -p "$(dirname "$dst")"
+  cp -p "$src" "$tmp"
+  if [ "$(sha256 "$tmp")" != "$want" ]; then
+    rm -f "$tmp"
+    echo "Error: the copy of $src does not match its checksum. Nothing was replaced." >&2
+    exit 1
+  fi
+  mv "$tmp" "$dst"
+}
+
+# A partial copy is never the only copy, so leftovers are safe to delete.
+remove_partials() {
+  if [ -d "$1" ]; then
+    find "$1" -type f -name '.*.agent-memory-partial' -delete 2>/dev/null || true
+  fi
+}
+
+# archive is safe to re-run. After an interruption, running the same command
+# finishes the job: files already moved are skipped, a private copy that
+# matches its original is reused, and a private original whose copy is
+# recorded is removed. `restore` undoes a finished or interrupted run.
 cmd_archive() {
   resolve_vault
   resolve_private_dir
   check_private_paths
+  [ "$APPLY" = "1" ] && acquire_lock
   local dest="$VAULT/$ARCHIVE_REL"
+  local manifest="$dest/$MANIFEST_NAME"
+  local pmanifest="${PRIVATE_DIR:+$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME}"
 
-  local roots files root_list=()
+  local roots files="" root_list=()
   roots=$(present_roots)
-  if [ -z "$roots" ]; then
+  if [ -z "$roots" ] && [ ! -f "$manifest" ]; then
     echo "No legacy agent-memory content in scope '$SCOPE'. Nothing to archive."
     return 0
   fi
-  while IFS= read -r rel; do root_list+=("$rel"); done <<<"$roots"
-  files=$(legacy_files "${root_list[@]}")
+  if [ -n "$roots" ]; then
+    while IFS= read -r rel; do root_list+=("$rel"); done <<<"$roots"
+    files=$(legacy_files "${root_list[@]}")
+  fi
 
   # Sort every file into the Git archive or the private archive.
   local git_files=() private_files=() private_reasons=() private_states=()
-  local rel state reason
+  local private_copied=() private_listed=()
+  local rel state reason listed blocked=0
   while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
     state=$(git_state "$rel")
     reason=$(private_reason "$rel" "$state")
+    listed=$(manifest_hash "$pmanifest" "$rel")
+    # A file an interrupted run already copied stays on the private path.
+    [ -n "$listed" ] && [ -z "$reason" ] && reason="resumed"
     if [ -n "$reason" ]; then
+      if [ -n "$(manifest_hash "$manifest" "$rel")" ]; then
+        echo "Refused: an interrupted run listed $rel for the Git archive, and it now" >&2
+        echo "needs the private archive. Retry with the same options, or run restore first." >&2
+        blocked=1
+      fi
       private_files+=("$rel"); private_reasons+=("$reason"); private_states+=("$state")
+      private_listed+=("${listed:+yes}")
+      private_copied+=("")
     else
       git_files+=("$rel")
     fi
   done <<<"$files"
 
-  local blocked=0
   if [ ${#private_files[@]} -gt 0 ] && [ -z "$PRIVATE_DIR" ]; then
     echo "Refused: ${#private_files[@]} legacy files must stay out of Git, and no --private-dir" >&2
     echo "was given. Pass a folder outside every Git repository, for example:" >&2
@@ -452,6 +541,7 @@ cmd_archive() {
   CURATED=$(curated_notes)
   local linked=""
   while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
     local l
     l=$(inbound_links "$rel")
     [ -n "$l" ] && linked+="  $rel <- $(echo "$l" | paste -sd ',' - | sed 's/,/, /g')"$'\n'
@@ -464,28 +554,38 @@ cmd_archive() {
     blocked=1
   fi
 
+  local want
   for rel in ${git_files[@]+"${git_files[@]}"}; do
     if [ -e "$dest/$rel" ]; then
-      echo "Refused: $dest/$rel already exists." >&2
+      echo "Refused: $rel is in the vault and in $ARCHIVE_REL/. Remove one copy." >&2
+      blocked=1
+    fi
+    want=$(manifest_hash "$manifest" "$rel")
+    if [ -n "$want" ] && [ "$want" != "$(sha256 "$VAULT/$rel")" ]; then
+      echo "Refused: $rel changed after an interrupted run recorded it. Run restore first." >&2
       blocked=1
     fi
   done
+  local i
   if [ -n "$PRIVATE_DIR" ]; then
-    for rel in ${private_files[@]+"${private_files[@]}"}; do
-      if [ -e "$PRIVATE_DIR/$rel" ]; then
-        echo "Refused: $PRIVATE_DIR/$rel already exists." >&2
+    for i in ${private_files[@]+"${!private_files[@]}"}; do
+      rel=${private_files[$i]}
+      [ -e "$PRIVATE_DIR/$rel" ] || continue
+      if [ "$(sha256 "$PRIVATE_DIR/$rel")" = "$(sha256 "$VAULT/$rel")" ]; then
+        private_copied[i]=yes
+      else
+        echo "Refused: $PRIVATE_DIR/$rel exists and differs from the vault copy." >&2
         blocked=1
       fi
     done
   fi
 
-  local i
   echo "Archive plan for $VAULT (scope: $SCOPE)"
   echo "Keep in Git: ${#git_files[@]} files, moved with git mv to $ARCHIVE_REL/"
   for rel in ${git_files[@]+"${git_files[@]}"}; do echo "  $rel"; done
   echo "Move out of Git: ${#private_files[@]} files, to ${PRIVATE_DIR:-the --private-dir}"
   for i in ${private_files[@]+"${!private_files[@]}"}; do
-    echo "  [${private_reasons[$i]}] ${private_files[$i]}"
+    echo "  [${private_reasons[$i]}] ${private_files[$i]}${private_copied[$i]:+ (already copied)}"
   done
   echo "Note content is not modified."
   [ -n "$linked" ] && echo "Inbound links that will break: $(printf '%s' "$linked" | wc -l | tr -d ' ')"
@@ -517,28 +617,30 @@ cmd_archive() {
 
   if [ ${#git_files[@]} -gt 0 ]; then
     mkdir -p "$dest"
-    local manifest="$dest/$MANIFEST_NAME"
     # Append, so separately archived scopes share one manifest and one restore.
     if [ ! -f "$manifest" ]; then
       printf '# Legacy agent memory archived by scripts/migrate-agent-memory.sh\n' >"$manifest"
       printf '# kind\tsha256\tpath\n' >>"$manifest"
     fi
+    # Record every file before the first move, so restore can always find it.
     for rel in "${git_files[@]}"; do
+      [ -n "$(manifest_hash "$manifest" "$rel")" ] && continue
       printf 'file\t%s\t%s\n' "$(sha256 "$VAULT/$rel")" "$rel" >>"$manifest"
     done
     for rel in "${git_files[@]}"; do
       mkdir -p "$(dirname "$dest/$rel")"
       git -C "$VAULT" mv -- "$rel" "$ARCHIVE_REL/$rel"
     done
+  fi
+  if [ -f "$manifest" ] && [ -n "$GIT_ROOT" ]; then
     git -C "$VAULT" add -- "$ARCHIVE_REL/$MANIFEST_NAME"
-
-    # Verify every file arrived unchanged before reporting success.
+    # Verify every archived file before reporting success.
     local bad=0 kind hash path
     while IFS=$'\t' read -r kind hash path; do
       [ "$kind" = "file" ] || continue
       [ -e "$dest/$path" ] || continue
       if [ "$(sha256 "$dest/$path")" != "$hash" ]; then
-        echo "Error: $path changed during the move." >&2
+        echo "Error: $ARCHIVE_REL/$path does not match its checksum." >&2
         bad=1
       fi
     done <"$manifest"
@@ -553,44 +655,37 @@ cmd_archive() {
     umask 077
     mkdir -p "$PRIVATE_DIR"
     chmod 700 "$PRIVATE_DIR"
-    local pmanifest="$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME"
+    remove_partials "$PRIVATE_DIR"
     if [ ! -f "$pmanifest" ]; then
       printf '# Legacy agent memory kept out of Git by scripts/migrate-agent-memory.sh\n' >"$pmanifest"
       printf '# vault\t%s\n' "$VAULT" >>"$pmanifest"
       printf '# kind\tsha256\tgit_state\treason\tpath\n' >>"$pmanifest"
     fi
-    local hash copy
+    local hash
     for i in "${!private_files[@]}"; do
       rel=${private_files[$i]}
-      copy="$PRIVATE_DIR/$rel"
       hash=$(sha256 "$VAULT/$rel")
-      mkdir -p "$(dirname "$copy")"
-      cp -p "$VAULT/$rel" "$copy"
-      if [ "$(sha256 "$copy")" != "$hash" ]; then
-        rm -f "$copy"
-        echo "Error: the copy of $rel does not match the original. It was left in place." >&2
-        exit 1
-      fi
+      [ -n "${private_copied[$i]}" ] || copy_verified "$VAULT/$rel" "$PRIVATE_DIR/$rel" "$hash"
       # Record the copy before the original goes, so restore can always find it.
-      printf 'file\t%s\t%s\t%s\t%s\n' "$hash" "${private_states[$i]}" "${private_reasons[$i]}" "$rel" >>"$pmanifest"
-      case "${private_states[$i]}" in
-        tracked|modified)
-          git -C "$VAULT" rm -q --cached -f -- "$rel"
-          untracked_from_git+=("$rel") ;;
-      esac
+      [ -n "${private_listed[$i]}" ] || \
+        printf 'file\t%s\t%s\t%s\t%s\n' "$hash" "${private_states[$i]}" "${private_reasons[$i]}" "$rel" >>"$pmanifest"
+      if [ -n "$GIT_ROOT" ] && git -C "$VAULT" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+        git -C "$VAULT" rm -q --cached -f -- "$rel"
+        untracked_from_git+=("$rel")
+      fi
       rm -f "$VAULT/$rel"
     done
     umask "$old_umask"
   fi
 
-  for rel in "${root_list[@]}"; do prune_empty_dirs "$VAULT/$rel"; done
+  for rel in ${root_list[@]+"${root_list[@]}"}; do prune_empty_dirs "$VAULT/$rel"; done
 
   echo ""
   if [ ${#git_files[@]} -gt 0 ]; then
     echo "Moved ${#git_files[@]} files to $ARCHIVE_REL/ and staged the move."
   fi
   if [ ${#private_files[@]} -gt 0 ]; then
-    echo "Moved ${#private_files[@]} files to $PRIVATE_DIR. Checksums: $PRIVATE_DIR/$PRIVATE_MANIFEST_NAME"
+    echo "Moved ${#private_files[@]} files to $PRIVATE_DIR. Checksums: $pmanifest"
     echo "That folder is not backed up by Git. Back it up yourself or delete it when you are done."
   fi
   if [ ${#untracked_from_git[@]} -gt 0 ]; then
@@ -605,9 +700,33 @@ cmd_archive() {
   echo "The next commit's index hook drops the archived notes from search."
 }
 
+# Where an archived file is now, judged by its recorded checksum:
+#   archived  only the archive copy exists and matches
+#   restored  only the vault copy exists and matches
+#   both      both exist and both match (an interrupted private move)
+#   error     a copy differs from its checksum, or neither copy exists
+locate() {
+  local want=$1 vault_copy=$2 archive_copy=$3 v a
+  v=$(hash_if_present "$vault_copy")
+  a=$(hash_if_present "$archive_copy")
+  if [ -n "$a" ] && [ -n "$v" ]; then
+    if [ "$a" = "$want" ] && [ "$v" = "$want" ]; then echo both; else echo error; fi
+  elif [ -n "$a" ]; then
+    if [ "$a" = "$want" ]; then echo archived; else echo error; fi
+  elif [ -n "$v" ]; then
+    if [ "$v" = "$want" ]; then echo restored; else echo error; fi
+  else
+    echo error
+  fi
+}
+
+# restore checks every archived file against its checksum before it moves
+# anything, and it is safe to re-run: files already back in the vault are
+# skipped. It also undoes an interrupted archive.
 cmd_restore() {
   resolve_vault
   resolve_private_dir
+  [ "$APPLY" = "1" ] && acquire_lock
   local dest="$VAULT/$ARCHIVE_REL"
   local manifest="$dest/$MANIFEST_NAME"
   local pmanifest="${PRIVATE_DIR:+$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME}"
@@ -624,24 +743,38 @@ cmd_restore() {
     exit 2
   fi
 
-  local kind hash state reason path blocked=0
+  local kind hash state reason path where blocked=0 to_move=0 in_place=0
+  local git_moves=() private_moves=() private_drops=()
   echo "Restore plan for $VAULT"
   if [ "$have_git" = "1" ]; then
     while IFS=$'\t' read -r kind hash path; do
       [ "$kind" = "file" ] || continue
-      echo "  git mv $ARCHIVE_REL/$path -> $path"
-      if [ -e "$VAULT/$path" ]; then echo "Refused: $VAULT/$path already exists." >&2; blocked=1; fi
-      if [ ! -e "$dest/$path" ]; then echo "Refused: $dest/$path is missing from the archive." >&2; blocked=1; fi
+      where=$(locate "$hash" "$VAULT/$path" "$dest/$path")
+      case "$where" in
+        archived) git_moves+=("$path"); to_move=$((to_move + 1))
+                  echo "  git mv $ARCHIVE_REL/$path -> $path" ;;
+        restored) in_place=$((in_place + 1)) ;;
+        *) echo "Refused: $path does not match its checksum in the vault or $ARCHIVE_REL/, or is missing." >&2
+           blocked=1 ;;
+      esac
     done <"$manifest"
   fi
   if [ "$have_private" = "1" ]; then
     while IFS=$'\t' read -r kind hash state reason path; do
       [ "$kind" = "file" ] || continue
-      echo "  copy $PRIVATE_DIR/$path -> $path"
-      if [ -e "$VAULT/$path" ]; then echo "Refused: $VAULT/$path already exists." >&2; blocked=1; fi
-      if [ ! -e "$PRIVATE_DIR/$path" ]; then echo "Refused: $PRIVATE_DIR/$path is missing from the archive." >&2; blocked=1; fi
+      where=$(locate "$hash" "$VAULT/$path" "$PRIVATE_DIR/$path")
+      case "$where" in
+        archived) private_moves+=("$path"); to_move=$((to_move + 1))
+                  echo "  copy $PRIVATE_DIR/$path -> $path" ;;
+        both) private_drops+=("$path"); in_place=$((in_place + 1))
+              echo "  keep $path, drop its private copy" ;;
+        restored) in_place=$((in_place + 1)) ;;
+        *) echo "Refused: $path does not match its checksum in the vault or $PRIVATE_DIR, or is missing." >&2
+           blocked=1 ;;
+      esac
     done <"$pmanifest"
   fi
+  echo "Checked every archived file: $to_move to move back, $in_place already in the vault."
   [ "$blocked" = "0" ] || exit 2
 
   if [ "$APPLY" != "1" ]; then
@@ -650,39 +783,35 @@ cmd_restore() {
     return 0
   fi
 
-  local bad=0
+  for path in ${git_moves[@]+"${git_moves[@]}"}; do
+    mkdir -p "$(dirname "$VAULT/$path")"
+    git -C "$VAULT" mv -- "$ARCHIVE_REL/$path" "$path"
+  done
   if [ "$have_git" = "1" ]; then
-    while IFS=$'\t' read -r kind hash path; do
-      [ "$kind" = "file" ] || continue
-      mkdir -p "$(dirname "$VAULT/$path")"
-      git -C "$VAULT" mv -- "$ARCHIVE_REL/$path" "$path"
-      if [ "$(sha256 "$VAULT/$path")" != "$hash" ]; then
-        echo "Error: $path does not match its archived checksum." >&2
-        bad=1
-      fi
-    done <"$manifest"
-    [ "$bad" = "0" ] || exit 1
-    git -C "$VAULT" rm -q --cached -- "$ARCHIVE_REL/$MANIFEST_NAME" 2>/dev/null || true
+    git -C "$VAULT" rm -q --cached --ignore-unmatch -- "$ARCHIVE_REL/$MANIFEST_NAME"
     rm -f "$manifest"
     prune_empty_dirs "$VAULT/.archive"
   fi
 
-  local was_tracked=()
+  local was_tracked=() i
+  for i in ${private_moves[@]+"${!private_moves[@]}"}; do
+    path=${private_moves[$i]}
+    copy_verified "$PRIVATE_DIR/$path" "$VAULT/$path" "$(manifest_hash "$pmanifest" "$path")"
+    rm -f "$PRIVATE_DIR/$path"
+  done
+  for path in ${private_drops[@]+"${private_drops[@]}"}; do
+    rm -f "$PRIVATE_DIR/$path"
+  done
   if [ "$have_private" = "1" ]; then
-    while IFS=$'\t' read -r kind hash state reason path; do
-      [ "$kind" = "file" ] || continue
-      mkdir -p "$(dirname "$VAULT/$path")"
-      cp -p "$PRIVATE_DIR/$path" "$VAULT/$path"
-      if [ "$(sha256 "$VAULT/$path")" != "$hash" ]; then
-        echo "Error: $path does not match its archived checksum. The archived copy was kept." >&2
-        bad=1
-        continue
-      fi
-      rm -f "$PRIVATE_DIR/$path"
-      case "$state" in tracked|modified) was_tracked+=("$path") ;; esac
-    done <"$pmanifest"
-    [ "$bad" = "0" ] || exit 1
+    if [ -n "$GIT_ROOT" ]; then
+      while IFS= read -r path; do
+        if ! git -C "$VAULT" ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+          was_tracked+=("$path")
+        fi
+      done < <(awk -F'\t' '$1 == "file" && ($3 == "tracked" || $3 == "modified") { print $NF }' "$pmanifest")
+    fi
     rm -f "$pmanifest"
+    remove_partials "$PRIVATE_DIR"
     prune_empty_dirs "$PRIVATE_DIR"
   fi
 

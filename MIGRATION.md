@@ -188,6 +188,26 @@ Restored private files are not staged. `restore` lists the ones Git tracked
 before, with the `git add` command for each, so you decide whether they go
 back into Git. Commit the result.
 
+### If a run is interrupted
+
+`archive` and `restore` are both safe to run again. If one stops partway,
+from Ctrl-C, a crash, or a full disk, run the same command again to finish it,
+or run `restore` to undo what it did.
+
+- `archive` records each file's checksum before it moves the file. On the next
+  run it skips files already archived and reuses a private copy that matches
+  its original. It finishes removing any original whose copy is already
+  recorded.
+- Private copies are written under a temporary name and renamed when their
+  checksum matches. A half-written copy never takes the real name, and the
+  next run deletes it.
+- `restore` checks every file in both archives against its checksum before it
+  moves anything. If a file is missing, changed, or present in two places with
+  different content, it stops with exit code 2 and changes nothing.
+- Only one `archive` or `restore` with `--apply` can run on a vault at a time.
+  The lock lives in the repository's `.git` folder. A lock left by a process
+  that no longer exists is removed on the next run.
+
 ### Merge the update into your fork
 
 If your vault repository started from this template, merge the update from the
