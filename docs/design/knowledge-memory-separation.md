@@ -87,9 +87,12 @@ Dependency rules:
 - The librarian approval gates already exist. Promotion is written as doctrine
   in `references/librarian/knowledge-promotion.md` and referenced by the skill
   and the agents.
-- The MCP indexer skips hidden paths. The migration archives legacy content into
-  `<vault>/.archive/agent-memory/` with `git mv`, which removes it from search
-  and from Obsidian while keeping it in Git history.
+- The MCP indexer skips hidden paths. The migration archives committed, clean
+  legacy content into `<vault>/.archive/agent-memory/` with `git mv`, which
+  removes it from search and from Obsidian while keeping it in Git history.
+  Untracked, modified, or credential-shaped files, and any the owner names, go
+  to a private folder outside every Git repository instead, so the migration
+  never commits content that was not already committed.
 
 ## Migration risks
 
@@ -97,7 +100,7 @@ Dependency rules:
 | :--- | :--- |
 | Legacy notes contain personal knowledge worth keeping | `inventory` lists candidates and nothing moves until `archive --apply` |
 | Human notes embed or link legacy logs | `inventory` reports inbound links; `archive` refuses while any exist unless told otherwise |
-| Untracked logs lose history when moved | `archive` refuses untracked or modified files |
+| Untracked or sensitive logs enter Git history when archived | `archive` moves them to a private folder outside Git, with checksums and a typed confirmation, and never commits them |
 | A global Gemini hook keeps telling agents to write logs | Gemini setup removes it; `inventory` reports any that remain |
 | Forks keep the old Claude hook | Pulling this change deletes `.claude/settings.json` and the hook scripts |
 | Secrets in session logs | `inventory` flags credential-shaped lines; the promotion doctrine forbids publishing them |

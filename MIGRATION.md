@@ -56,7 +56,7 @@ you can sort or load into a spreadsheet. The report lists:
 - legacy indexes and Bases, such as `_SYS/JDEX_AGNT.base`
 - curated notes that link to or embed legacy notes
 - lines that look like credentials, for you to review by hand
-- legacy files that Git does not track or that have uncommitted changes
+- the files bound for the private archive, outside Git, and why
 - the legacy Gemini hook, if it is still registered
 
 ### 2. Remove the Gemini hook
@@ -94,16 +94,37 @@ Sort each legacy note into one of three groups:
 Review every file the inventory flags as possibly sensitive before you promote
 anything from it.
 
-### 4. Commit untracked logs
+### 4. Decide what stays in Git
 
-The archive step refuses legacy files that Git does not track or that have
-uncommitted changes, because moving them would lose their history. Commit them
-to the vault repository first:
+Session logs and rules can hold credentials, customer data, private
+conversations, and proprietary code. Anything you commit stays in the
+repository's history, even after you move or delete it. Do not commit
+untracked legacy files to get them archived.
+
+`archive` sorts each legacy file into one of two places:
+
+| Destination | Files | How they move |
+| :--- | :--- | :--- |
+| Git archive, `<vault>/.archive/agent-memory/` | Committed, unmodified, and free of credential-shaped text | `git mv`, staged for you to commit |
+| Private archive, the folder you pass as `--private-dir` | Untracked or modified in Git, credential-shaped, named with `--private`, or in a vault that is not a Git repository | Copied, checked against its SHA-256, then removed from the vault |
+
+The credential check is a pattern match, so it misses customer names, private
+conversations, and proprietary code. Read the inventory and name anything else
+that should leave Git with `--private`, either a file or a whole folder:
 
 ```bash
-git -C vaults/<name> add JRNL/AGNT AGNT
-git -C vaults/<name> commit -m "chore: commit remaining agent session logs"
+./scripts/migrate-agent-memory.sh inventory --private JRNL/AGNT
 ```
+
+The private archive folder must sit outside the vault and outside every Git
+repository. The script refuses any other folder. It creates the folder so only
+your user can open it. It does not back the folder up, so back it up yourself,
+or delete it once you no longer need the files.
+
+A file that Git already tracks stays in earlier commits after it moves to the
+private archive. If it holds a credential, rotate the credential. Removing the
+file from history, for example with `git filter-repo`, is a separate step that
+rewrites every later commit. This guide does not cover it.
 
 ### 5. Resolve inbound links
 
@@ -115,27 +136,36 @@ case. For each inbound link the inventory lists, pick one:
 - Edit the linking note. Point the link at the promoted note, or replace the
   embed with a sentence.
 - Accept the broken link and pass `--allow-inbound-links` to `archive`. The
-  target stays in `.archive/agent-memory/` and in Git history.
+  target stays in whichever archive it moved to.
 
 ### 6. Archive
 
-Archive the session logs and the rules together, or one group at a time:
+Archive the session logs and the rules together, or one group at a time. Use a
+private archive folder per vault:
 
 ```bash
-./scripts/migrate-agent-memory.sh archive --scope logs            # preview
-./scripts/migrate-agent-memory.sh archive --scope logs --apply
-./scripts/migrate-agent-memory.sh archive --scope rules --apply   # later, after promotion
+P=~/agent-memory-archive/<name>
+./scripts/migrate-agent-memory.sh archive --scope logs --private-dir "$P"            # preview
+./scripts/migrate-agent-memory.sh archive --scope logs --private-dir "$P" --apply
+./scripts/migrate-agent-memory.sh archive --scope rules --private-dir "$P" --apply   # later, after promotion
 ```
 
 `--scope all` is the default and archives both groups. The command:
 
-1. Refuses with exit code 2 if a precondition from steps 4 or 5 fails, or if
-   the destination already exists.
-2. Moves `AGNT/`, `JRNL/AGNT/`, and `_SYS/JDEX_AGNT.base` with `git mv` into
-   `<vault>/.archive/agent-memory/`, keeping their relative paths.
-3. Records each file's SHA-256 in `.archive/agent-memory/MANIFEST.tsv` and
-   checks every file against it after the move.
-4. Stages the result without committing it.
+1. Refuses with exit code 2 if a curated note links to legacy content (step 5),
+   if a file needs the private archive and `--private-dir` is missing or inside
+   a Git repository, or if a destination file already exists.
+2. Prints the plan: which files stay in Git, and which leave it and why.
+3. Before moving any file out of the vault, asks you to type `yes`. Without a
+   terminal, it refuses unless you pass `--yes`.
+4. Moves the Git archive files with `git mv` into `<vault>/.archive/agent-memory/`,
+   keeping their relative paths, and records each file's SHA-256 in
+   `.archive/agent-memory/MANIFEST.tsv`.
+5. Copies each private file into the private archive and checks it against its
+   SHA-256 before removing it from the vault. It records the checksums in
+   `PRIVATE-MANIFEST.tsv` inside that folder, never in the vault. For a file Git
+   tracked, it stages the removal.
+6. Stages the result without committing it.
 
 Review the staged change with `git status`, then commit it. Obsidian and the
 MCP indexer skip hidden folders, so archived notes leave search and the file
@@ -145,15 +175,18 @@ vault. Otherwise, run `obsidian_rag_index` once.
 ### Undo the archive
 
 ```bash
-./scripts/migrate-agent-memory.sh restore           # preview
-./scripts/migrate-agent-memory.sh restore --apply
+./scripts/migrate-agent-memory.sh restore --private-dir "$P"           # preview
+./scripts/migrate-agent-memory.sh restore --private-dir "$P" --apply
 ```
 
-`restore` moves every archived path back with `git mv`, checks each file
-against its recorded checksum, and removes the manifest. It works before or
-after you commit the archive, and it reverses every scope you archived. Commit
-the result. If you already committed the archive and have made no later
-changes to those files, `git revert` on the archive commit works too.
+`restore` moves every Git archive file back with `git mv` and copies every
+private file back into the vault. It checks each file against its recorded
+checksum, then removes the manifests and the emptied archive folders. It works
+before or after you commit, and it reverses every scope you archived.
+
+Restored private files are not staged. `restore` lists the ones Git tracked
+before, with the `git add` command for each, so you decide whether they go
+back into Git. Commit the result.
 
 ### Merge the update into your fork
 

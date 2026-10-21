@@ -5,29 +5,44 @@
 # rules, JRNL/AGNT/ session logs, and the hooks that used to write them.
 #
 # Every command is read-only unless --apply is given. Nothing here edits note
-# content, deletes a note, or contacts a memory provider. Archiving uses
-# `git mv`, so history is preserved and `restore` reverses it.
+# content, commits, or contacts a memory provider.
+#
+# archive sorts each legacy file into one of two places:
+#   - Git archive: committed, unmodified files with no credential-shaped text.
+#     `git mv` moves them to <vault>/.archive/agent-memory/ and Git keeps them.
+#   - Private archive: untracked, modified, or credential-shaped files, files
+#     named with --private, and every file in a vault outside Git. They move to
+#     --private-dir, which must sit outside any Git repository, and never enter
+#     Git. Moving them needs --apply and a typed "yes", or --yes.
+# Both archives record SHA-256 checksums and `restore` reverses both.
 #
 # Usage:
 #   ./scripts/migrate-agent-memory.sh inventory    [--vault DIR] [--format text|tsv]
+#                                                  [--private PATH]...
 #   ./scripts/migrate-agent-memory.sh archive      [--vault DIR] [--scope all|logs|rules]
-#                                                  [--apply] [--allow-inbound-links]
-#   ./scripts/migrate-agent-memory.sh restore      [--vault DIR] [--apply]
+#                                                  [--private-dir DIR] [--private PATH]...
+#                                                  [--apply] [--yes] [--allow-inbound-links]
+#   ./scripts/migrate-agent-memory.sh restore      [--vault DIR] [--private-dir DIR] [--apply]
 #   ./scripts/migrate-agent-memory.sh legacy-hooks [--apply]
 #
 # --vault defaults to vault_path in ~/.obsidian-mcp.config.json.
 # --scope logs archives JRNL/AGNT/ only; rules archives AGNT/ and its Base.
+# --private PATH sends a vault-relative legacy file or folder to the private
+#   archive even when Git could keep it. Repeat it for more paths.
 # Scopes can be archived separately; restore reverses everything archived.
 #
 # Exit codes: 0 success, 1 usage or environment error, 2 refused because a
-# precondition failed (untracked files, inbound links, existing archive).
+# precondition failed (inbound links, missing or unsafe --private-dir, no
+# confirmation, existing archive).
 
 set -euo pipefail
+# Legacy paths are file names, never globs.
+export GIT_LITERAL_PATHSPECS=1
 
 ARCHIVE_REL=".archive/agent-memory"
 MANIFEST_NAME="MANIFEST.tsv"
-# Roots of the legacy convention, relative to the vault. Order matters for
-# restore only in that each is moved as one unit.
+PRIVATE_MANIFEST_NAME="PRIVATE-MANIFEST.tsv"
+# Roots of the legacy convention, relative to the vault.
 LEGACY_ROOTS=("AGNT" "JRNL/AGNT" "_SYS/JDEX_AGNT.base")
 GEMINI_HOOK_NAME="agent-memory-boot"
 # Credential-shaped text. Matches are a prompt for human review, not proof.
@@ -39,11 +54,14 @@ COMMAND=${1:-}
 VAULT_ARG=""
 APPLY=0
 ALLOW_INBOUND=0
+ASSUME_YES=0
 FORMAT="text"
 SCOPE="all"
+PRIVATE_DIR_ARG=""
+PRIVATE_PATHS=()
 
 usage() {
-  sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
+  awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print; next } NR > 2 { exit }' "$0"
 }
 
 while [ $# -gt 0 ]; do
@@ -52,6 +70,11 @@ while [ $# -gt 0 ]; do
     --vault=*) VAULT_ARG=${1#--vault=}; shift ;;
     --apply) APPLY=1; shift ;;
     --allow-inbound-links) ALLOW_INBOUND=1; shift ;;
+    --yes) ASSUME_YES=1; shift ;;
+    --private-dir) PRIVATE_DIR_ARG=${2:-}; shift 2 ;;
+    --private-dir=*) PRIVATE_DIR_ARG=${1#--private-dir=}; shift ;;
+    --private) PRIVATE_PATHS+=("${2:-}"); shift 2 ;;
+    --private=*) PRIVATE_PATHS+=("${1#--private=}"); shift ;;
     --format) FORMAT=${2:-}; shift 2 ;;
     --format=*) FORMAT=${1#--format=}; shift ;;
     --scope) SCOPE=${2:-}; shift 2 ;;
@@ -95,6 +118,37 @@ resolve_vault() {
   GIT_ROOT=$(git -C "$VAULT" rev-parse --show-toplevel 2>/dev/null || true)
 }
 
+# The private archive must be somewhere Git cannot pick it up: outside the
+# vault and outside every Git work tree. The directory may not exist yet, so
+# the nearest existing ancestor decides.
+resolve_private_dir() {
+  PRIVATE_DIR=""
+  [ -n "$PRIVATE_DIR_ARG" ] || return 0
+  local dir=$PRIVATE_DIR_ARG
+  # --private-dir=~/x reaches the script with the tilde unexpanded.
+  case "$dir" in \~) dir=$HOME ;; \~/*) dir="$HOME/${dir#\~/}" ;; esac
+  case "$dir" in /*) ;; *) dir="$PWD/$dir" ;; esac
+  dir=${dir%/}
+  if [ -e "$dir" ] && [ ! -d "$dir" ]; then
+    echo "Error: --private-dir '$dir' is a file, not a directory." >&2
+    exit 1
+  fi
+  local probe=$dir
+  while [ ! -d "$probe" ]; do probe=$(dirname "$probe"); done
+  probe=$(cd "$probe" && pwd -P)
+  case "$probe/" in
+    "$VAULT/"*)
+      echo "Refused: --private-dir '$dir' is inside the vault." >&2
+      exit 2 ;;
+  esac
+  if git -C "$probe" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Refused: --private-dir '$dir' is inside the Git repository at" >&2
+    echo "$(git -C "$probe" rev-parse --show-toplevel). Choose a folder outside every Git repository." >&2
+    exit 2
+  fi
+  PRIVATE_DIR=$dir
+}
+
 # Every file under the given legacy roots (default: all), vault-relative.
 legacy_files() {
   local root roots=("$@")
@@ -121,6 +175,21 @@ present_roots() {
   return 0
 }
 
+# Normalize --private paths and reject any that name no legacy file.
+check_private_paths() {
+  local i p all
+  all=$(legacy_files)
+  for i in "${!PRIVATE_PATHS[@]}"; do
+    p=${PRIVATE_PATHS[$i]#./}
+    p=${p%/}
+    PRIVATE_PATHS[i]=$p
+    if ! printf '%s\n' "$all" | grep -qxF -e "$p" && ! printf '%s\n' "$all" | grep -qF -e "$p/"; then
+      echo "Error: --private '$p' matches no legacy file." >&2
+      exit 1
+    fi
+  done
+}
+
 # Markdown notes outside the legacy roots and outside hidden paths: the notes
 # a person curates and the MCP indexes.
 curated_notes() {
@@ -141,16 +210,16 @@ kind_of() {
   esac
 }
 
-# tracked | untracked | modified | no-git
+# tracked | untracked | modified | no-git. An ignored file counts as untracked.
 git_state() {
   if [ -z "$GIT_ROOT" ]; then echo "no-git"; return; fi
-  local status
-  status=$(git -C "$VAULT" status --porcelain=v1 --untracked-files=all -- "$1" 2>/dev/null | head -n 1)
-  case "$status" in
-    "") echo "tracked" ;;
-    "??"*) echo "untracked" ;;
-    *) echo "modified" ;;
-  esac
+  if ! git -C "$VAULT" ls-files --error-unmatch -- "$1" >/dev/null 2>&1; then
+    echo "untracked"
+  elif [ -n "$(git -C "$VAULT" status --porcelain=v1 -- "$1" 2>/dev/null)" ]; then
+    echo "modified"
+  else
+    echo "tracked"
+  fi
 }
 
 # Short description: a session log's goal, otherwise the first heading.
@@ -170,6 +239,16 @@ is_sensitive() {
   grep -Eiq "$SENSITIVE_REGEX" "$VAULT/$1" 2>/dev/null
 }
 
+# Why a legacy file must stay out of Git, or nothing when Git may keep it.
+private_reason() {
+  local rel=$1 state=$2 p
+  case "$state" in no-git|untracked|modified) echo "$state"; return ;; esac
+  if is_sensitive "$rel"; then echo "sensitive"; return; fi
+  for p in ${PRIVATE_PATHS[@]+"${PRIVATE_PATHS[@]}"}; do
+    case "$rel" in "$p"|"$p"/*) echo "requested"; return ;; esac
+  done
+}
+
 # Curated notes that link to or embed the given legacy file.
 inbound_links() {
   local rel=$1 base noext relnoext
@@ -185,6 +264,13 @@ inbound_links() {
   [ -n "$CURATED" ] || return 0
   (cd "$VAULT" && printf '%s\n' "$CURATED" | tr '\n' '\0' \
     | xargs -0 grep -lF "${patterns[@]}" 2>/dev/null) || true
+}
+
+# Delete empty directories under a path, never anything with content.
+prune_empty_dirs() {
+  if [ -d "$1" ]; then
+    find "$1" -depth -type d -empty -delete 2>/dev/null || true
+  fi
 }
 
 # Legacy hook leftovers: the global Gemini hook and repo-local hook files.
@@ -210,19 +296,23 @@ report_hooks() {
 
 cmd_inventory() {
   resolve_vault
+  check_private_paths
   CURATED=$(curated_notes)
   local files
   files=$(legacy_files)
 
   if [ "$FORMAT" = "tsv" ]; then
-    printf 'path\tkind\tgit_state\tinbound_links\tsensitive\tdescription\n'
+    printf 'path\tkind\tgit_state\tinbound_links\tsensitive\tarchive_to\tdescription\n'
     [ -z "$files" ] && return 0
     while IFS= read -r rel; do
-      local links sens
+      local links sens state reason dest=git
       links=$(inbound_links "$rel" | wc -l | tr -d ' ')
       if is_sensitive "$rel"; then sens=yes; else sens=no; fi
-      printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$rel" "$(kind_of "$rel")" "$(git_state "$rel")" \
-        "$links" "$sens" "$(describe "$rel")"
+      state=$(git_state "$rel")
+      reason=$(private_reason "$rel" "$state")
+      [ -n "$reason" ] && dest="private:$reason"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$rel" "$(kind_of "$rel")" "$state" \
+        "$links" "$sens" "$dest" "$(describe "$rel")"
     done <<<"$files"
     return 0
   fi
@@ -233,7 +323,7 @@ cmd_inventory() {
   echo ""
 
   if [ -f "$VAULT/$ARCHIVE_REL/$MANIFEST_NAME" ]; then
-    echo "An archive already exists at $ARCHIVE_REL/. Use 'restore' to reverse it."
+    echo "A Git archive already exists at $ARCHIVE_REL/. Use 'restore' to reverse it."
     echo ""
   fi
 
@@ -245,15 +335,19 @@ cmd_inventory() {
     return 0
   fi
 
-  local rules=0 logs=0 other=0 untracked=0 sensitive=0 referenced=0
-  local section_rules="" section_logs="" section_other="" section_links="" section_sens=""
+  local rules=0 logs=0 other=0 private=0 sensitive=0 referenced=0
+  local section_rules="" section_logs="" section_other="" section_links="" section_sens="" section_private=""
   while IFS= read -r rel; do
-    local kind state desc links
+    local kind state desc links reason
     kind=$(kind_of "$rel")
     state=$(git_state "$rel")
     desc=$(describe "$rel")
     links=$(inbound_links "$rel")
-    [ "$state" != "tracked" ] && untracked=$((untracked + 1))
+    reason=$(private_reason "$rel" "$state")
+    if [ -n "$reason" ]; then
+      private=$((private + 1))
+      section_private+="  [$reason] $rel"$'\n'
+    fi
     local line="  [$state] $rel"
     [ "$desc" != "-" ] && [ -n "$desc" ] && line="$line :: $desc"
     case "$kind" in
@@ -299,32 +393,30 @@ cmd_inventory() {
     printf '%s' "$section_sens"
   fi
   echo ""
-  echo "Not tracked or modified in Git: $untracked"
-  if [ "$untracked" -gt 0 ]; then
-    echo "  Commit these before archiving so their history is kept."
+  echo "Bound for the private archive, outside Git: $private"
+  if [ "$private" -gt 0 ]; then
+    echo "  Do not commit these. archive moves them to --private-dir. A file that"
+    echo "  Git already tracks stays in earlier commits, so rotate any credential"
+    echo "  it holds. Name more files or folders with --private PATH."
+    printf '%s' "$section_private"
   fi
   echo ""
   echo "Legacy hooks:"
   report_hooks
   echo ""
+  local example_dir
+  example_dir="$HOME/agent-memory-archive/$(basename "$VAULT")"
   echo "Next steps:"
   echo "  1. Promote any knowledge worth keeping with the librarian's promotion"
   echo "     workflow (references/librarian/knowledge-promotion.md)."
-  echo "  2. Preview the archive:  $0 archive --vault \"$VAULT\""
-  echo "  3. Apply it:             $0 archive --vault \"$VAULT\" --apply"
-}
-
-require_git() {
-  if [ -z "$GIT_ROOT" ]; then
-    echo "Refused: $VAULT is not inside a Git repository, so a move could not be" >&2
-    echo "reversed from history. Commit the vault to Git first." >&2
-    exit 2
-  fi
+  echo "  2. Preview the archive:  $0 archive --vault \"$VAULT\" --private-dir $example_dir"
+  echo "  3. Apply it:             add --apply to the same command"
 }
 
 cmd_archive() {
   resolve_vault
-  require_git
+  resolve_private_dir
+  check_private_paths
   local dest="$VAULT/$ARCHIVE_REL"
 
   local roots files root_list=()
@@ -336,14 +428,24 @@ cmd_archive() {
   while IFS= read -r rel; do root_list+=("$rel"); done <<<"$roots"
   files=$(legacy_files "${root_list[@]}")
 
-  local blocked=0 rel
-  # Untracked or modified files would lose history or uncommitted edits.
-  local dirty
-  dirty=$(cd "$VAULT" && git status --porcelain=v1 --untracked-files=all -- "${root_list[@]}" 2>/dev/null || true)
-  if [ -n "$dirty" ]; then
-    echo "Refused: these legacy files are untracked or have uncommitted changes:" >&2
-    echo "$dirty" | sed 's/^/  /' >&2
-    echo "Commit them first so the archive keeps their history." >&2
+  # Sort every file into the Git archive or the private archive.
+  local git_files=() private_files=() private_reasons=() private_states=()
+  local rel state reason
+  while IFS= read -r rel; do
+    state=$(git_state "$rel")
+    reason=$(private_reason "$rel" "$state")
+    if [ -n "$reason" ]; then
+      private_files+=("$rel"); private_reasons+=("$reason"); private_states+=("$state")
+    else
+      git_files+=("$rel")
+    fi
+  done <<<"$files"
+
+  local blocked=0
+  if [ ${#private_files[@]} -gt 0 ] && [ -z "$PRIVATE_DIR" ]; then
+    echo "Refused: ${#private_files[@]} legacy files must stay out of Git, and no --private-dir" >&2
+    echo "was given. Pass a folder outside every Git repository, for example:" >&2
+    echo "  --private-dir $HOME/agent-memory-archive/$(basename "$VAULT")" >&2
     blocked=1
   fi
 
@@ -362,20 +464,31 @@ cmd_archive() {
     blocked=1
   fi
 
-  for rel in "${root_list[@]}"; do
+  for rel in ${git_files[@]+"${git_files[@]}"}; do
     if [ -e "$dest/$rel" ]; then
       echo "Refused: $dest/$rel already exists." >&2
       blocked=1
     fi
   done
+  if [ -n "$PRIVATE_DIR" ]; then
+    for rel in ${private_files[@]+"${private_files[@]}"}; do
+      if [ -e "$PRIVATE_DIR/$rel" ]; then
+        echo "Refused: $PRIVATE_DIR/$rel already exists." >&2
+        blocked=1
+      fi
+    done
+  fi
 
+  local i
   echo "Archive plan for $VAULT (scope: $SCOPE)"
-  echo "  Destination: $ARCHIVE_REL/ (hidden, so Obsidian and the MCP index skip it)"
-  while IFS= read -r rel; do
-    echo "  move $rel -> $ARCHIVE_REL/$rel"
-  done <<<"$roots"
-  echo "  $(echo "$files" | wc -l | tr -d ' ') files; note content is not modified."
-  [ -n "$linked" ] && echo "  Inbound links that will break: $(printf '%s' "$linked" | wc -l | tr -d ' ')"
+  echo "Keep in Git: ${#git_files[@]} files, moved with git mv to $ARCHIVE_REL/"
+  for rel in ${git_files[@]+"${git_files[@]}"}; do echo "  $rel"; done
+  echo "Move out of Git: ${#private_files[@]} files, to ${PRIVATE_DIR:-the --private-dir}"
+  for i in ${private_files[@]+"${!private_files[@]}"}; do
+    echo "  [${private_reasons[$i]}] ${private_files[$i]}"
+  done
+  echo "Note content is not modified."
+  [ -n "$linked" ] && echo "Inbound links that will break: $(printf '%s' "$linked" | wc -l | tr -d ' ')"
 
   if [ "$blocked" = "1" ]; then
     exit 2
@@ -386,70 +499,149 @@ cmd_archive() {
     return 0
   fi
 
-  mkdir -p "$dest"
-  local manifest="$dest/$MANIFEST_NAME"
-  # Append, so separately archived scopes share one manifest and one restore.
-  if [ ! -f "$manifest" ]; then
-    printf '# Legacy agent memory archived by scripts/migrate-agent-memory.sh\n' >"$manifest"
-    printf '# kind\tsha256-or-dash\tpath\n' >>"$manifest"
-  fi
-  {
-    while IFS= read -r rel; do
-      printf 'root\t-\t%s\n' "$rel"
-    done <<<"$roots"
-    while IFS= read -r rel; do
-      printf 'file\t%s\t%s\n' "$(sha256 "$VAULT/$rel")" "$rel"
-    done <<<"$files"
-  } >>"$manifest"
-
-  while IFS= read -r rel; do
-    mkdir -p "$(dirname "$dest/$rel")"
-    git -C "$VAULT" mv -- "$rel" "$ARCHIVE_REL/$rel"
-  done <<<"$roots"
-  git -C "$VAULT" add -- "$ARCHIVE_REL/$MANIFEST_NAME"
-
-  # Verify every file arrived unchanged before reporting success.
-  local bad=0 kind hash path
-  while IFS=$'\t' read -r kind hash path; do
-    [ "$kind" = "file" ] || continue
-    if [ "$(sha256 "$dest/$path")" != "$hash" ]; then
-      echo "Error: $path changed during the move." >&2
-      bad=1
+  # Moving files out of the repository needs a second, explicit yes.
+  if [ ${#private_files[@]} -gt 0 ] && [ "$ASSUME_YES" != "1" ]; then
+    if [ ! -t 0 ]; then
+      echo "Refused: moving files out of Git needs confirmation. Run in a terminal, or pass --yes." >&2
+      exit 2
     fi
-  done <"$manifest"
-  [ "$bad" = "0" ] || exit 1
+    local answer=""
+    printf 'Move %s files out of the vault to %s? Type yes to continue: ' \
+      "${#private_files[@]}" "$PRIVATE_DIR"
+    read -r answer || true
+    if [ "$answer" != "yes" ]; then
+      echo "Cancelled. Nothing moved."
+      exit 2
+    fi
+  fi
+
+  if [ ${#git_files[@]} -gt 0 ]; then
+    mkdir -p "$dest"
+    local manifest="$dest/$MANIFEST_NAME"
+    # Append, so separately archived scopes share one manifest and one restore.
+    if [ ! -f "$manifest" ]; then
+      printf '# Legacy agent memory archived by scripts/migrate-agent-memory.sh\n' >"$manifest"
+      printf '# kind\tsha256\tpath\n' >>"$manifest"
+    fi
+    for rel in "${git_files[@]}"; do
+      printf 'file\t%s\t%s\n' "$(sha256 "$VAULT/$rel")" "$rel" >>"$manifest"
+    done
+    for rel in "${git_files[@]}"; do
+      mkdir -p "$(dirname "$dest/$rel")"
+      git -C "$VAULT" mv -- "$rel" "$ARCHIVE_REL/$rel"
+    done
+    git -C "$VAULT" add -- "$ARCHIVE_REL/$MANIFEST_NAME"
+
+    # Verify every file arrived unchanged before reporting success.
+    local bad=0 kind hash path
+    while IFS=$'\t' read -r kind hash path; do
+      [ "$kind" = "file" ] || continue
+      [ -e "$dest/$path" ] || continue
+      if [ "$(sha256 "$dest/$path")" != "$hash" ]; then
+        echo "Error: $path changed during the move." >&2
+        bad=1
+      fi
+    done <"$manifest"
+    [ "$bad" = "0" ] || exit 1
+  fi
+
+  local untracked_from_git=()
+  if [ ${#private_files[@]} -gt 0 ]; then
+    # Only the owner can read the private archive.
+    local old_umask
+    old_umask=$(umask)
+    umask 077
+    mkdir -p "$PRIVATE_DIR"
+    chmod 700 "$PRIVATE_DIR"
+    local pmanifest="$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME"
+    if [ ! -f "$pmanifest" ]; then
+      printf '# Legacy agent memory kept out of Git by scripts/migrate-agent-memory.sh\n' >"$pmanifest"
+      printf '# vault\t%s\n' "$VAULT" >>"$pmanifest"
+      printf '# kind\tsha256\tgit_state\treason\tpath\n' >>"$pmanifest"
+    fi
+    local hash copy
+    for i in "${!private_files[@]}"; do
+      rel=${private_files[$i]}
+      copy="$PRIVATE_DIR/$rel"
+      hash=$(sha256 "$VAULT/$rel")
+      mkdir -p "$(dirname "$copy")"
+      cp -p "$VAULT/$rel" "$copy"
+      if [ "$(sha256 "$copy")" != "$hash" ]; then
+        rm -f "$copy"
+        echo "Error: the copy of $rel does not match the original. It was left in place." >&2
+        exit 1
+      fi
+      # Record the copy before the original goes, so restore can always find it.
+      printf 'file\t%s\t%s\t%s\t%s\n' "$hash" "${private_states[$i]}" "${private_reasons[$i]}" "$rel" >>"$pmanifest"
+      case "${private_states[$i]}" in
+        tracked|modified)
+          git -C "$VAULT" rm -q --cached -f -- "$rel"
+          untracked_from_git+=("$rel") ;;
+      esac
+      rm -f "$VAULT/$rel"
+    done
+    umask "$old_umask"
+  fi
+
+  for rel in "${root_list[@]}"; do prune_empty_dirs "$VAULT/$rel"; done
 
   echo ""
-  echo "Archived and staged. Review with 'git -C \"$VAULT\" status', then commit, e.g.:"
-  echo "  git -C \"$VAULT\" commit -m \"Archive legacy agent memory\""
-  echo "Undo before committing with: $0 restore --vault \"$VAULT\" --apply"
+  if [ ${#git_files[@]} -gt 0 ]; then
+    echo "Moved ${#git_files[@]} files to $ARCHIVE_REL/ and staged the move."
+  fi
+  if [ ${#private_files[@]} -gt 0 ]; then
+    echo "Moved ${#private_files[@]} files to $PRIVATE_DIR. Checksums: $PRIVATE_DIR/$PRIVATE_MANIFEST_NAME"
+    echo "That folder is not backed up by Git. Back it up yourself or delete it when you are done."
+  fi
+  if [ ${#untracked_from_git[@]} -gt 0 ]; then
+    echo "Staged the removal of ${#untracked_from_git[@]} files Git tracked. Earlier commits still hold"
+    echo "them, so rotate any credential they contain. Rewriting history is a separate step."
+  fi
+  if [ -n "$GIT_ROOT" ]; then
+    echo "Review with 'git -C \"$VAULT\" status', then commit, e.g.:"
+    echo "  git -C \"$VAULT\" commit -m \"Archive legacy agent memory\""
+  fi
+  echo "Undo with: $0 restore --vault \"$VAULT\"${PRIVATE_DIR:+ --private-dir \"$PRIVATE_DIR\"} --apply"
   echo "The next commit's index hook drops the archived notes from search."
 }
 
 cmd_restore() {
   resolve_vault
-  require_git
+  resolve_private_dir
   local dest="$VAULT/$ARCHIVE_REL"
   local manifest="$dest/$MANIFEST_NAME"
-  if [ ! -f "$manifest" ]; then
-    echo "No archive manifest at $manifest. Nothing to restore."
+  local pmanifest="${PRIVATE_DIR:+$PRIVATE_DIR/$PRIVATE_MANIFEST_NAME}"
+  local have_git=0 have_private=0
+  [ -f "$manifest" ] && have_git=1
+  [ -n "$pmanifest" ] && [ -f "$pmanifest" ] && have_private=1
+  if [ "$have_git" = "0" ] && [ "$have_private" = "0" ]; then
+    echo "No archive manifest at $manifest${pmanifest:+ or $pmanifest}. Nothing to restore."
+    [ -z "$PRIVATE_DIR" ] && echo "Pass --private-dir to restore files kept out of Git."
     return 0
   fi
+  if [ "$have_git" = "1" ] && [ -z "$GIT_ROOT" ]; then
+    echo "Refused: $VAULT is not inside a Git repository, so the Git archive cannot be moved back." >&2
+    exit 2
+  fi
 
-  local roots kind hash path blocked=0
-  roots=$(awk -F'\t' '$1 == "root" { print $3 }' "$manifest")
+  local kind hash state reason path blocked=0
   echo "Restore plan for $VAULT"
-  while IFS= read -r path; do
-    echo "  move $ARCHIVE_REL/$path -> $path"
-    if [ -e "$VAULT/$path" ]; then
-      echo "Refused: $VAULT/$path already exists." >&2
-      blocked=1
-    fi
-    if [ ! -e "$dest/$path" ]; then
-      echo "Refused: $dest/$path is missing from the archive." >&2
-      blocked=1
-    fi
-  done <<<"$roots"
+  if [ "$have_git" = "1" ]; then
+    while IFS=$'\t' read -r kind hash path; do
+      [ "$kind" = "file" ] || continue
+      echo "  git mv $ARCHIVE_REL/$path -> $path"
+      if [ -e "$VAULT/$path" ]; then echo "Refused: $VAULT/$path already exists." >&2; blocked=1; fi
+      if [ ! -e "$dest/$path" ]; then echo "Refused: $dest/$path is missing from the archive." >&2; blocked=1; fi
+    done <"$manifest"
+  fi
+  if [ "$have_private" = "1" ]; then
+    while IFS=$'\t' read -r kind hash state reason path; do
+      [ "$kind" = "file" ] || continue
+      echo "  copy $PRIVATE_DIR/$path -> $path"
+      if [ -e "$VAULT/$path" ]; then echo "Refused: $VAULT/$path already exists." >&2; blocked=1; fi
+      if [ ! -e "$PRIVATE_DIR/$path" ]; then echo "Refused: $PRIVATE_DIR/$path is missing from the archive." >&2; blocked=1; fi
+    done <"$pmanifest"
+  fi
   [ "$blocked" = "0" ] || exit 2
 
   if [ "$APPLY" != "1" ]; then
@@ -458,28 +650,51 @@ cmd_restore() {
     return 0
   fi
 
-  while IFS= read -r path; do
-    mkdir -p "$(dirname "$VAULT/$path")"
-    git -C "$VAULT" mv -- "$ARCHIVE_REL/$path" "$path"
-  done <<<"$roots"
-
   local bad=0
-  while IFS=$'\t' read -r kind hash path; do
-    [ "$kind" = "file" ] || continue
-    if [ "$(sha256 "$VAULT/$path")" != "$hash" ]; then
-      echo "Error: $path does not match its archived checksum." >&2
-      bad=1
-    fi
-  done <"$manifest"
-  [ "$bad" = "0" ] || exit 1
+  if [ "$have_git" = "1" ]; then
+    while IFS=$'\t' read -r kind hash path; do
+      [ "$kind" = "file" ] || continue
+      mkdir -p "$(dirname "$VAULT/$path")"
+      git -C "$VAULT" mv -- "$ARCHIVE_REL/$path" "$path"
+      if [ "$(sha256 "$VAULT/$path")" != "$hash" ]; then
+        echo "Error: $path does not match its archived checksum." >&2
+        bad=1
+      fi
+    done <"$manifest"
+    [ "$bad" = "0" ] || exit 1
+    git -C "$VAULT" rm -q --cached -- "$ARCHIVE_REL/$MANIFEST_NAME" 2>/dev/null || true
+    rm -f "$manifest"
+    prune_empty_dirs "$VAULT/.archive"
+  fi
 
-  git -C "$VAULT" rm -q --cached -- "$ARCHIVE_REL/$MANIFEST_NAME" 2>/dev/null || true
-  rm -f "$manifest"
-  # Remove now-empty archive directories, never anything with content.
-  find "$VAULT/.archive" -depth -type d -empty -delete 2>/dev/null || true
+  local was_tracked=()
+  if [ "$have_private" = "1" ]; then
+    while IFS=$'\t' read -r kind hash state reason path; do
+      [ "$kind" = "file" ] || continue
+      mkdir -p "$(dirname "$VAULT/$path")"
+      cp -p "$PRIVATE_DIR/$path" "$VAULT/$path"
+      if [ "$(sha256 "$VAULT/$path")" != "$hash" ]; then
+        echo "Error: $path does not match its archived checksum. The archived copy was kept." >&2
+        bad=1
+        continue
+      fi
+      rm -f "$PRIVATE_DIR/$path"
+      case "$state" in tracked|modified) was_tracked+=("$path") ;; esac
+    done <"$pmanifest"
+    [ "$bad" = "0" ] || exit 1
+    rm -f "$pmanifest"
+    prune_empty_dirs "$PRIVATE_DIR"
+  fi
 
   echo ""
-  echo "Restored and staged. Review with 'git -C \"$VAULT\" status', then commit."
+  echo "Restored. Files from the private archive are back in the vault but not staged."
+  if [ ${#was_tracked[@]} -gt 0 ]; then
+    echo "Git tracked these before the archive. To track them again:"
+    for path in "${was_tracked[@]}"; do echo "  git -C \"$VAULT\" add -- \"$path\""; done
+  fi
+  if [ -n "$GIT_ROOT" ]; then
+    echo "Review with 'git -C \"$VAULT\" status', then commit."
+  fi
 }
 
 cmd_legacy_hooks() {

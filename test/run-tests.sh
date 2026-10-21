@@ -534,11 +534,12 @@ fi
 rm -rf "$HOOK_HOME"
 
 # --- 4b. Legacy content migration ---
-# A synthetic vault with every legacy shape: rules, a session log with a
-# credential-shaped line, a Base, a human daily note that embeds the log, and a
-# curated note that must not move.
+# A synthetic vault with every legacy shape: rules, a clean session log, a
+# session log with a credential-shaped line, a log Git never tracked, a Base, a
+# human daily note that embeds a log, and a curated note that must not move.
 MIG=$(mktemp -d)
 MV="$MIG/repo/vaults/demo"
+PRIV="$MIG/private/demo"
 mkdir -p "$MV/AGNT/00-IDX" "$MV/AGNT/10-Procedural_Rules/11-Coding" "$MV/JRNL/AGNT" \
          "$MV/JRNL/2026/04" "$MV/_SYS" "$MV/LIFE/00-IDX" "$MV/LIFE/20-Personal Development/21-Learnings"
 printf '[[00.00]]\n\n# AGNT System Index\n' >"$MV/AGNT/00-IDX/AGNT.00.00.md"
@@ -552,6 +553,7 @@ status: crystallized
 
 # AGNT.11.01 Pytest is preferred
 NOTE
+printf '# Session log\n\n**Goal:** Sketch the demo vault.\n' >"$MV/JRNL/AGNT/2026-04-23-1000.md"
 cat >"$MV/JRNL/AGNT/2026-04-24-1500.md" <<'NOTE'
 # Session log
 
@@ -580,53 +582,95 @@ status: distilled
 NOTE
 (cd "$MIG/repo" && git init -q . && git config user.email t@example.com && git config user.name T \
   && git add -A && git commit -qm base)
+printf '# Session log\n\nA private client conversation.\n' >"$MV/JRNL/AGNT/2026-04-25-0900.md"
+DRAFT_BLOB=$(git -C "$MIG/repo" hash-object "$MV/JRNL/AGNT/2026-04-25-0900.md")
+SECRET_BLOB=$(git -C "$MIG/repo" rev-parse HEAD:vaults/demo/JRNL/AGNT/2026-04-24-1500.md)
 MIGRATE="$WORK_DIR/scripts/migrate-agent-memory.sh"
 tree_sum() { (cd "$MV" && find . -type f -not -path './.archive/*' | LC_ALL=C sort | while IFS= read -r f; do sha256sum "$f"; done | sha256sum); }
-# Content hashes of every tracked file, optionally ignoring one blob.
-blob_sum() { git -C "$MIG/repo" ls-files -s | awk -v skip="${1:-}" '$2 != skip {print $2}' | LC_ALL=C sort | sha256sum; }
+# Content hashes of every tracked file, ignoring the blobs named as arguments.
+blob_sum() { git -C "$MIG/repo" ls-files -s | awk -v skip=" $* " 'index(skip, " " $2 " ") == 0 {print $2}' | LC_ALL=C sort | sha256sum; }
 BASE_TREE=$(tree_sum)
-BASE_BLOBS=$(blob_sum)
+BASE_STATUS=$(git -C "$MIG/repo" status --porcelain)
 DAILY_SUM=$(sha256sum <"$MV/JRNL/2026/04/2026-04-24.md")
 LIFE_SUM=$(sha256sum <"$MV/LIFE/20-Personal Development/21-Learnings/LIFE.21.01-Tests-document-intent.md")
 
 INV=$(HOME="$MIG" bash "$MIGRATE" inventory --vault "$MV" 2>&1)
 if echo "$INV" | grep -q 'Procedural rules (AGNT/): 1' \
-   && echo "$INV" | grep -q 'Session logs (JRNL/AGNT/): 1' \
+   && echo "$INV" | grep -q 'Session logs (JRNL/AGNT/): 3' \
    && echo "$INV" | grep -q 'JRNL/AGNT/2026-04-24-1500.md <- JRNL/2026/04/2026-04-24.md' \
-   && echo "$INV" | grep -q 'Possible credentials or private data: 1'; then
-  pass "inventory classifies rules, logs, inbound links, and credentials"
+   && echo "$INV" | grep -q 'Possible credentials or private data: 1' \
+   && echo "$INV" | grep -q 'Bound for the private archive, outside Git: 2' \
+   && ! echo "$INV" | grep -q 'Commit these before archiving'; then
+  pass "inventory classifies rules, logs, inbound links, credentials, and private files"
 else
-  fail "inventory classifies rules, logs, inbound links, and credentials" "$(echo "$INV" | head -20 | tr '\n' ' ')"
+  fail "inventory classifies rules, logs, inbound links, credentials, and private files" "$(echo "$INV" | head -20 | tr '\n' ' ')"
 fi
 TSV=$(HOME="$MIG" bash "$MIGRATE" inventory --vault "$MV" --format tsv 2>&1)
-[ "$(echo "$TSV" | head -1 | cut -f1-3)" = "$(printf 'path\tkind\tgit_state')" ] && [ "$(echo "$TSV" | wc -l)" -eq 5 ] \
-  && pass "inventory --format tsv emits one row per legacy file" \
-  || fail "inventory --format tsv emits one row per legacy file" "$(echo "$TSV" | tr '\n' '|')"
+[ "$(echo "$TSV" | head -1 | cut -f1-3)" = "$(printf 'path\tkind\tgit_state')" ] && [ "$(echo "$TSV" | wc -l)" -eq 7 ] \
+  && echo "$TSV" | awk -F'\t' '$1 == "JRNL/AGNT/2026-04-25-0900.md" && $3 == "untracked" && $6 == "private:untracked"' | grep -q . \
+  && pass "inventory --format tsv emits one row per legacy file with its destination" \
+  || fail "inventory --format tsv emits one row per legacy file with its destination" "$(echo "$TSV" | tr '\n' '|')"
 
-HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" >/dev/null 2>&1
+HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --private-dir "$PRIV" >/dev/null 2>&1
 rc=$?
-[ "$(tree_sum)" = "$BASE_TREE" ] && [ -z "$(git -C "$MIG/repo" status --porcelain)" ] \
+[ "$(tree_sum)" = "$BASE_TREE" ] && [ "$(git -C "$MIG/repo" status --porcelain)" = "$BASE_STATUS" ] \
+  && [ ! -e "$MIG/private" ] \
   && pass "inventory and archive dry run change nothing" \
   || fail "inventory and archive dry run change nothing"
 [ "$rc" = 2 ] && pass "archive refuses while curated notes link to legacy content" \
   || fail "archive refuses while curated notes link to legacy content" "exit $rc"
 
-echo "draft" >"$MV/JRNL/AGNT/2026-04-25-0900.md"
-HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --apply --allow-inbound-links >/dev/null 2>&1
+OUT=$(HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --apply --allow-inbound-links 2>&1)
 rc=$?
-[ "$rc" = 2 ] && [ -f "$MV/JRNL/AGNT/2026-04-24-1500.md" ] \
-  && pass "archive refuses untracked legacy files" \
-  || fail "archive refuses untracked legacy files" "exit $rc"
-rm -f "$MV/JRNL/AGNT/2026-04-25-0900.md"
+[ "$rc" = 2 ] && [ "$(tree_sum)" = "$BASE_TREE" ] && echo "$OUT" | grep -q 'no --private-dir' \
+  && pass "archive refuses files that must leave Git when no --private-dir is given" \
+  || fail "archive refuses files that must leave Git when no --private-dir is given" "exit $rc"
 
-HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --scope logs --apply --allow-inbound-links >/dev/null 2>&1
-if [ ! -e "$MV/JRNL/AGNT" ] && [ -f "$MV/.archive/agent-memory/JRNL/AGNT/2026-04-24-1500.md" ] \
-   && [ -d "$MV/AGNT" ]; then
-  pass "archive --scope logs moves only session logs"
+HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --apply --allow-inbound-links --yes \
+  --private-dir "$MIG/repo/agent-archive" >/dev/null 2>&1
+rc=$?
+[ "$rc" = 2 ] && [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$MIG/repo/agent-archive" ] \
+  && pass "archive refuses a --private-dir inside a Git repository" \
+  || fail "archive refuses a --private-dir inside a Git repository" "exit $rc"
+
+OUT=$(HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --private-dir "$PRIV" --private AGNT \
+  --allow-inbound-links 2>&1)
+echo "$OUT" | grep -qF '[requested] AGNT/00-IDX/AGNT.00.00.md' \
+  && echo "$OUT" | grep -qF '[untracked] JRNL/AGNT/2026-04-25-0900.md' \
+  && echo "$OUT" | grep -qF '[sensitive] JRNL/AGNT/2026-04-24-1500.md' \
+  && pass "archive --private sends a requested folder to the private archive" \
+  || fail "archive --private sends a requested folder to the private archive" "$(echo "$OUT" | tr '\n' '|')"
+
+HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --scope logs --apply --allow-inbound-links \
+  --private-dir "$PRIV" </dev/null >/dev/null 2>&1
+rc=$?
+[ "$rc" = 2 ] && [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$MIG/private" ] \
+  && pass "moving files out of Git needs explicit confirmation" \
+  || fail "moving files out of Git needs explicit confirmation" "exit $rc"
+
+HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --scope logs --apply --allow-inbound-links \
+  --private-dir "$PRIV" --yes >/dev/null 2>&1
+if [ ! -e "$MV/JRNL/AGNT" ] && [ -d "$MV/AGNT" ] \
+   && [ -f "$MV/.archive/agent-memory/JRNL/AGNT/2026-04-23-1000.md" ] \
+   && [ ! -e "$MV/.archive/agent-memory/JRNL/AGNT/2026-04-24-1500.md" ] \
+   && [ -f "$PRIV/JRNL/AGNT/2026-04-24-1500.md" ] && [ -f "$PRIV/JRNL/AGNT/2026-04-25-0900.md" ]; then
+  pass "archive --scope logs keeps clean logs in Git and moves the rest to the private archive"
 else
-  fail "archive --scope logs moves only session logs"
+  fail "archive --scope logs keeps clean logs in Git and moves the rest to the private archive"
 fi
+[ "$(stat -c %a "$PRIV" 2>/dev/null || stat -f %Lp "$PRIV")" = 700 ] \
+  && (cd "$PRIV" && awk -F'\t' '$1 == "file" { print $2 "  " $5 }' PRIVATE-MANIFEST.tsv | sha256sum -c --quiet) \
+  && pass "private archive is owner-only and matches its checksums" \
+  || fail "private archive is owner-only and matches its checksums"
 (cd "$MIG/repo" && git commit -qm "archive logs")
+if ! git -C "$MIG/repo" cat-file -e "$DRAFT_BLOB" 2>/dev/null \
+   && ! git -C "$MIG/repo" ls-tree -r HEAD | grep -q -e "$SECRET_BLOB" -e '2026-04-25-0900' \
+   && ! git -C "$MIG/repo" ls-tree -r HEAD --name-only | grep -q 'agent-archive\|private'; then
+  pass "untracked and credential-shaped logs never enter a commit"
+else
+  fail "untracked and credential-shaped logs never enter a commit"
+fi
+
 HOME="$MIG" bash "$MIGRATE" archive --vault "$MV" --scope rules --apply >/dev/null 2>&1
 if [ ! -e "$MV/AGNT" ] && [ ! -e "$MV/_SYS/JDEX_AGNT.base" ] \
    && git -C "$MIG/repo" diff --cached --name-status | grep -q '^R100'; then
@@ -643,9 +687,9 @@ else
   fail "personal journals and curated notes are untouched by the archive"
 fi
 MANIFEST_BLOB=$(git -C "$MIG/repo" rev-parse HEAD:vaults/demo/.archive/agent-memory/MANIFEST.tsv)
-[ "$(blob_sum "$MANIFEST_BLOB")" = "$BASE_BLOBS" ] \
-  && pass "every archived file keeps identical content" \
-  || fail "every archived file keeps identical content"
+[ "$(blob_sum "$MANIFEST_BLOB")" = "$(git -C "$MIG/repo" ls-tree -r HEAD~2 | awk -v s="$SECRET_BLOB" '$3 != s {print $3}' | LC_ALL=C sort | sha256sum)" ] \
+  && pass "every file kept in Git keeps identical content" \
+  || fail "every file kept in Git keeps identical content"
 
 # Hidden paths are outside the MCP's index and Obsidian's file list.
 if [ -z "$(cd "$MV" && find . -mindepth 1 -name '.*' -prune -o -path './AGNT/*' -print -o -path './JRNL/AGNT/*' -print)" ]; then
@@ -654,12 +698,14 @@ else
   fail "no legacy note remains on an indexed path"
 fi
 
-HOME="$MIG" bash "$MIGRATE" restore --vault "$MV" --apply >/dev/null 2>&1
-if [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$MV/.archive" ] \
-   && [ -z "$(git -C "$MIG/repo" diff --cached --stat HEAD~2)" ]; then
-  pass "restore returns the vault to its original tree"
+HOME="$MIG" bash "$MIGRATE" restore --vault "$MV" --private-dir "$PRIV" --apply >/dev/null 2>&1
+git -C "$MIG/repo" add -- vaults/demo/JRNL/AGNT/2026-04-24-1500.md
+if [ "$(tree_sum)" = "$BASE_TREE" ] && [ ! -e "$MV/.archive" ] && [ ! -e "$PRIV" ] \
+   && [ -z "$(git -C "$MIG/repo" diff --cached --stat HEAD~2)" ] \
+   && [ "$(git -C "$MIG/repo" status --porcelain | grep '^??')" = "$BASE_STATUS" ]; then
+  pass "restore returns both archives to the original tree"
 else
-  fail "restore returns the vault to its original tree" "$(git -C "$MIG/repo" status --short | head -3 | tr '\n' ' ')"
+  fail "restore returns both archives to the original tree" "$(git -C "$MIG/repo" status --short | head -3 | tr '\n' ' ')"
 fi
 rm -rf "$MIG"
 
