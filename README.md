@@ -1,9 +1,15 @@
 # **Second Brain: A Compounding Knowledge System**
 
 Most notes are transient—written and forgotten. This system makes knowledge compound over time. Each note you write becomes part of an interconnected network where insights build upon each other, and every hour of thinking leaves something behind that makes future thinking easier.  
-This project manages multiple Obsidian vaults, each combining **Johnny Decimal** for structural organization with **Zettelkasten** for emergent meaning through connections. Vault maintenance is augmented by AI librarian agents, and the vault serves as a **persistent memory engine (AGNT system)** for four agent CLIs: **Claude Code**, **Codex CLI**, **Gemini CLI**, and **OpenCode**. All four share the same Obsidian MCP backend, [`jabez007/obsidian-vault-mcp`](https://github.com/jabez007/obsidian-vault-mcp) v2, published to npm as `@jabez007/obsidian-vault-mcp`. Each harness's setup script installs that backend in its own host while repo-specific agent behavior stays in this template.
+This project manages multiple Obsidian vaults, each combining **Johnny Decimal** for structural organization with **Zettelkasten** for emergent meaning through connections. AI librarian agents in four agent CLIs (**Claude Code**, **Codex CLI**, **Gemini CLI**, and **OpenCode**) can search the vault, cite it, and propose additions that you approve. All four share the same Obsidian MCP backend, [`jabez007/obsidian-vault-mcp`](https://github.com/jabez007/obsidian-vault-mcp) v2, published to npm as `@jabez007/obsidian-vault-mcp`. Each harness's setup script installs that backend in its own host while repo-specific agent behavior stays in this template.
 
-> **Upgrading from an earlier version of this template?** The backend was renamed from `gemini-obsidian` to `obsidian-vault-mcp` in v2, and a one-time RAG index rebuild is required. See **[MIGRATION.md](MIGRATION.md)**. Your vault conventions and note content are unaffected.
+> **Upgrading from an earlier version of this template?** Agents no longer keep their memory in the vault, and the session hooks and compiler are gone. The backend was renamed from `gemini-obsidian` to `obsidian-vault-mcp` in v2, which needs a one-time RAG index rebuild. See **[MIGRATION.md](MIGRATION.md)** for both. Pulling the update does not change your notes.
+
+Guides:
+
+- [Use the knowledge vault](docs/knowledge-vault-guide.md): daily use, promotion, and using the vault from other projects.
+- [Run Hindsight alongside the vault](docs/hindsight-coexistence.md): optional agent memory, kept separate from the vault.
+- [Separating the knowledge vault from agent memory](docs/design/knowledge-memory-separation.md): the design note behind the split.
 
 ## **Core Philosophy**
 
@@ -27,16 +33,13 @@ Zettelkasten creates emergent insight through explicit links between notes. Link
 
 The hierarchy handles organization; the association handles insight. The **AI Librarian** bridges the gap by auditing link health, suggesting evergreen extractions, and scaffolding new systems.
 
-### **4\. Agent Memory (Evolution)**
+### **4\. Knowledge, Not Agent Memory**
 
-The vault is not just for you; it is a "World Model" for your AI agents.
-
-- **Procedural Memory**: Agents store behavioral rules and preferences in the `AGNT` system.
-- **Episodic Memory**: Agents log session state in `JRNL/AGNT/`, allowing them to "resume" work across sessions and computers.
+The vault holds what you decided to keep. Agents read it as a reference and add to it only through a proposal you approve. What an agent remembers about past sessions belongs to the agent CLI or to an optional memory provider configured outside this repository, never to the vault.
 
 ## **Quick Start**
 
-Follow these steps to initialize your first vault and enable Agent Memory:
+Follow these steps to initialize your first vault:
 
 1. **Install Obsidian**: Download from [obsidian.md](https://obsidian.md/).
 2. **Install your AI CLI** — any one of:
@@ -90,26 +93,6 @@ See [index snapshot setup](docs/index-snapshots.md) for registration, migration
 of existing tracked databases and CRLF checkouts, hook compatibility, and commit
 policies.
 
-## **The AGNT System (Agent Memory)**
-
-The `AGNT` system is a dedicated Johnny-Decimal system (Prefix: `AGNT`) that separates machine telemetry from human knowledge.
-
-- **`AGNT/10-Procedural_Rules/`**: Stores atomic, declarative rules (e.g., `AGNT.11.01-Pytest-Preference.md`).
-- **`JRNL/AGNT/`**: Stores chronological session logs (`YYYY-MM-DD-HHMM.md`).
-
-### **The Boot/Shutdown Protocol**
-
-The boot context itself is canonical in `scripts/agent-memory-context.sh`; each harness hook wraps that one script in whatever JSON shape it expects.
-
-| Harness | Boot mechanism |
-| :--- | :--- |
-| **Claude Code** | `SessionStart` hook in `.claude/settings.json` → `.claude/hooks/session-start.sh` |
-| **Codex CLI** | `SessionStart` hook in `.codex/config.toml` → `.codex/hooks/session-start.sh` |
-| **Gemini CLI** | Global `SessionStart` hook installed by the setup script into `~/.gemini/hooks/` |
-| **OpenCode** | No command-based session hook; `AGENTS.md` carries the standing rules |
-
-- **Shared workflow**: every harness should restore context from recent `JRNL/AGNT/` logs, query existing procedural rules before acting, and write new durable rules back into `AGNT/` when appropriate.
-
 ## **AI-Assisted Vault Maintenance**
 
 The **Librarian** system works identically across all four harnesses. Every agent follows the same doctrine in `references/librarian/`, and the operating stance is always **Proposal-First** for structural work: analyze first, then make deliberate vault changes with clear rationale.
@@ -148,14 +131,14 @@ For complex tasks, the Librarian delegates to specialized experts. All eight exi
 | **@vault-auditor**       | Link health and graph connections.    | _"Audit links in the example vault"_, _"Find orphans"_      |
 | **@vault-cleaner**       | Hygiene, duplicates, and renames.     | _"Clean up my inbox"_, _"Check for duplicate notes"_        |
 | **@vault-scaffolder**    | Building new JD systems/areas.        | _"Create a new WORK system"_, _"Scaffold Area 20"_          |
-| **@daily-reviewer**      | Journal-to-Evergreen crystallization. | _"Review my daily notes from this week"_                    |
+| **@daily-reviewer**      | Proposes notes from daily notes.      | _"Review my daily notes from this week"_                    |
 | **@vault-synthesizer**   | Knowledge compounding & bridge notes. | _"Synthesize my notes on Topic X"_, _"Any contradictions?"_ |
 | **@source-distiller**    | Processing articles/transcripts.      | _"Process this article into atomic notes"_                  |
 | **@flashcard-generator** | Spaced-repetition card creation.      | _"Generate flashcards for this note"_                       |
 
-### **The Crystallization Principle**
+### **Knowledge Promotion**
 
-Following the **"LLM Wiki"** philosophy, the `@librarian` proactively identifies valuable insights during your CLI sessions and suggests "filing them back" into your vault. This ensures that transient chat context becomes durable, searchable knowledge.
+When a CLI session produces something worth keeping, the agent offers to file it. It follows the [promotion workflow](references/librarian/knowledge-promotion.md): it searches for existing notes, proposes a note with labeled claims, sources, and a check for secrets, and writes only after you approve. Nothing from a session reaches the vault any other way.
 
 ## **System Architecture**
 
@@ -249,8 +232,9 @@ Every evergreen note MUST begin with a strict YAML frontmatter block for the gra
 
 1. **Daily Capture**: Record raw thoughts in `JRNL/YYYY/MM/YYYY-MM-DD.md`.
 2. **Review & Extract**: Run `@daily-reviewer`. When an idea matures, extract it to an evergreen note using the transclusion/embed method (`![[links]]`) to maintain context without duplication.
-3. **Compound & Synthesize**: Use `@vault-synthesizer` to find tensions between notes and create "Bridge Notes" that explore emergent themes.
-4. **Audit & Maintain**: Regularly run `@vault-auditor` and `@vault-cleaner` to keep the "knowledge garden" healthy.
+3. **Promote**: At the end of a working session, ask the agent to promote what it learned. Review the proposal before it is written.
+4. **Compound & Synthesize**: Use `@vault-synthesizer` to find tensions between notes and create "Bridge Notes" that explore emergent themes.
+5. **Audit & Maintain**: Regularly run `@vault-auditor` and `@vault-cleaner` to keep the "knowledge garden" healthy.
 
 ## **Advanced Deployment & Integration**
 
@@ -260,33 +244,15 @@ Every harness reads the same vault config (`~/.obsidian-mcp.config.json`) and th
 
 | Harness | Setup | Reads |
 | :--- | :--- | :--- |
-| **Claude Code** | `./.claude/setup-environment.sh` | `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` |
+| **Claude Code** | `./.claude/setup-environment.sh` | `CLAUDE.md`, `.claude/agents/`, `.claude/skills/` |
 | **Codex CLI** | `./.codex/setup-environment.sh` | `AGENTS.md`, `.codex/agents/`, `.codex/config.toml`, `.agents/skills/` |
-| **Gemini CLI** | `./.gemini/setup-environment.sh` | `.gemini/agents/`, `.gemini/skills/`, global `~/.gemini/hooks/` |
+| **Gemini CLI** | `./.gemini/setup-environment.sh` | `.gemini/agents/`, `.gemini/skills/` |
 | **OpenCode** | `./.opencode/setup-environment.sh` | `AGENTS.md`, `.opencode/agents/`, `opencode.json` |
 
 Notes:
 
 - **Claude Code** and **Codex** install the backend as a plugin from the upstream marketplace. **Gemini** installs it as an extension. **OpenCode** launches it directly from `opencode.json`.
-- On the first Codex run, review and trust the repo-local hooks if prompted via `/hooks`.
-- OpenCode has no command-based `SessionStart` hook, so the Recent Activity Map is not auto-injected there; `AGENTS.md` carries the standing rules and agents can read `JRNL/AGNT/` on demand.
-
-#### **Cross-CLI Session Compilation**
-
-The session compiler reads logs from all four harnesses in one pass — Gemini (`~/.gemini/tmp`), Codex (`~/.codex/sessions`), Claude Code (`~/.claude/projects`), and OpenCode (SQLite at `~/.local/share/opencode/opencode.db`, which requires `sqlite3` on your PATH).
-
-```bash
-# Compile the last 7 days and review with the default host (gemini)
-./scripts/compile-sessions.sh 7
-
-# Compile a date range and review with a specific host
-AI_MEMORY_HOST=claude ./scripts/compile-sessions.sh 2026-08-01 2026-08-06
-
-# Inspect what would be sent, without invoking a model
-AI_MEMORY_DRY_RUN=dump ./scripts/compile-sessions.sh 3
-```
-
-`AI_MEMORY_HOST` accepts `gemini` (default), `codex`, `claude`, or `opencode`. The legacy path under `.gemini/skills/librarian-vault-manager/scripts/compile-sessions.sh` remains as a compatibility wrapper.
+- The Gemini setup removes the global `agent-memory-boot` hook that earlier versions of this template installed.
 
 ### **Dockerized Obsidian**
 
