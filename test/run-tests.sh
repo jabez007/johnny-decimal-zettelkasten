@@ -833,6 +833,31 @@ rc=$?
 cp "$MIG/saved.md" "$ARCHIVED"
 migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after a checksum refusal"
 
+# A manifest path outside the legacy folders stops restore before it reads,
+# copies, or deletes anything. "../victim.md" from the private archive is a
+# file beside it, and following the path would move that file into vaults/.
+migrate "${LOGS[@]}"
+printf 'outside the archive\n' >"$MIG/private/victim.md"
+cp "$PRIV/PRIVATE-MANIFEST.tsv" "$MIG/saved.tsv"
+printf 'file\t%s\ttracked\trequested\t../victim.md\n' \
+  "$(sha256sum "$MIG/private/victim.md" | cut -d' ' -f1)" >>"$PRIV/PRIVATE-MANIFEST.tsv"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply
+rc_private=$?
+cp "$MIG/saved.tsv" "$PRIV/PRIVATE-MANIFEST.tsv"
+GM="$MV/.archive/agent-memory/MANIFEST.tsv"
+cp "$GM" "$MIG/saved.tsv"
+awk -F'\t' -v OFS='\t' '$NF == "JRNL/AGNT/2026-04-23-1000.md" { $NF = "LIFE/2026-04-23-1000.md" } 1' \
+  "$MIG/saved.tsv" >"$GM"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply
+rc_git=$?
+cp "$MIG/saved.tsv" "$GM"
+[ "$rc_private" = 2 ] && [ "$rc_git" = 2 ] && [ -f "$MIG/private/victim.md" ] \
+  && [ ! -e "$MIG/repo/vaults/victim.md" ] && [ ! -e "$MV/JRNL/AGNT" ] && [ ! -e "$MV/LIFE/2026-04-23-1000.md" ] \
+  && pass "restore refuses manifest paths outside the legacy folders" \
+  || fail "restore refuses manifest paths outside the legacy folders" "private $rc_private, git $rc_git"
+rm -f "$MIG/private/victim.md"
+migrate restore --vault "$MV" --private-dir "$PRIV" --apply && at_base || fail "restore after a path refusal"
+
 # A live process holding the lock blocks both commands.
 sleep 30 &
 LIVE=$!

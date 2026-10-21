@@ -473,6 +473,23 @@ manifest_hash() {
   awk -F'\t' -v p="$2" '$1 == "file" && $NF == p { print $2; exit }' "$1"
 }
 
+# Refuse a manifest path outside the legacy roots. archive records only paths
+# under them, so any other path, or one with "." or ".." parts, means someone
+# edited the manifest, and following it could read or delete files elsewhere.
+check_manifest_path() {
+  local rel=$1 root
+  case "/$rel/" in
+    //*|*//*|*/./*|*/../*) ;;
+    *)
+      for root in "${LEGACY_ROOTS[@]}"; do
+        case "$rel" in "$root"|"$root"/*) return 0 ;; esac
+      done
+      ;;
+  esac
+  echo "Refused: manifest path '$rel' is outside the legacy folders. Check the manifest for edits." >&2
+  exit 2
+}
+
 # SHA-256 of a file, or nothing when it does not exist.
 hash_if_present() {
   if [ -e "$1" ]; then sha256 "$1"; fi
@@ -770,6 +787,7 @@ cmd_restore() {
   if [ "$have_git" = "1" ]; then
     while IFS=$'\t' read -r kind hash path; do
       [ "$kind" = "file" ] || continue
+      check_manifest_path "$path"
       where=$(locate "$hash" "$VAULT/$path" "$dest/$path")
       case "$where" in
         archived) git_moves+=("$path"); to_move=$((to_move + 1))
@@ -783,6 +801,7 @@ cmd_restore() {
   if [ "$have_private" = "1" ]; then
     while IFS=$'\t' read -r kind hash state reason path; do
       [ "$kind" = "file" ] || continue
+      check_manifest_path "$path"
       where=$(locate "$hash" "$VAULT/$path" "$PRIVATE_DIR/$path")
       case "$where" in
         archived) private_moves+=("$path"); to_move=$((to_move + 1))
