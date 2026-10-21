@@ -64,14 +64,16 @@ seeds a new bank from Git history (`autoSeed`), and surveys the codebase
 (`codebaseSurvey`). Turn all of that off for the repository that holds your
 vault. Pick one of these options in `~/.hindsight/coding-agent.json`.
 
-To turn memory off for the vault repository, disable its bank. The bank ID is
-`coding-agent::` followed by the repository folder name, and the session banner
-shows it:
+To turn memory off for the vault repository, disable its bank. Copy the bank ID
+from the session banner that appears when a session starts in the vault
+repository. Take the whole ID from the banner, because a custom
+`bankIdTemplate` changes it. Exit that first session without working in it, or
+use opt-in mode below, which needs no bank ID.
 
 ```jsonc
 {
   "banks": {
-    "coding-agent::my-vault": { "disabled": true }
+    "<bank ID from the session banner>": { "disabled": true }
   }
 }
 ```
@@ -94,7 +96,7 @@ ingestion settings for its bank:
 ```jsonc
 {
   "banks": {
-    "coding-agent::my-vault": {
+    "<bank ID from the session banner>": {
       "retainSessions": false,
       "gitIngest": "none",
       "autoSeed": false,
