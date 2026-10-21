@@ -18,7 +18,7 @@ commands with `sudo`.
 
 ### Without Docker
 
-The suite runs on any machine with Node.js 20 or later, `git`, `jq`, `sqlite3`,
+The suite runs on any machine with Node.js 20 or later, `git`, `jq`,
 `git-lfs`, `shellcheck`, and Python 3.11 or later. Point it at a throwaway HOME so it
 cannot touch your real vault config or plugin state:
 
@@ -74,10 +74,10 @@ nearly all of it npm fetching onnxruntime.
 
 - The repository mounts **read-only**; the suite works on a copy at
   `/work/repo`, so a run cannot modify your working tree.
-- The container has its own `HOME`, so `~/.obsidian-mcp.config.json`, plugin
-  registrations, and session logs stay inside the container.
-- No vault note content is modified. The one file the suite writes into the
-  example vault (a synthetic session log) is removed afterwards.
+- The container has its own `HOME`, so `~/.obsidian-mcp.config.json` and plugin
+  registrations stay inside the container.
+- No vault note content is modified. Migration tests build their own
+  throwaway vault in a temporary Git repository.
 
 ## What it covers
 
@@ -86,9 +86,9 @@ nearly all of it npm fetching onnxruntime.
 | 1. Static | shellcheck across all scripts; JSON and TOML parse; 8 agents registered in `.codex/config.toml` |
 | 2. Generation | `sync-assets.sh` runs, is idempotent, and matches what is committed (the CI drift gate); doctrine identical across harnesses; correct MCP prefix per harness; no unsubstituted `{{MCP_PREFIX}}` |
 | 3. MCP server | `obsidian_set_vault` writes the config; `obsidian_list_notes` reads the vault; `obsidian_rag_index --force_reindex` builds an index under `.obsidian-vault-mcp/`; `obsidian_rag_query` returns results with a rendered relevance score |
-| 4. Agent memory | Context emits SOPs and the Recent Activity Map; goal extraction for **both** the inline `**Goal:**` and `## Goal` heading forms; both session hooks emit valid `SessionStart` JSON |
-| 5. Session compiler | Extracts Claude Code turns and filters `tool_result` noise; extracts OpenCode SQLite turns; handles an empty log set; rejects an unknown `AI_MEMORY_HOST` |
-| 6. Migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
+| 4. Agent memory is retired | Retired hooks, context script, and compiler are gone; no harness registers a `SessionStart` hook; no agent asset asks for session logging or references a memory provider; `legacy-hooks` removes only the old Gemini hook; `migrate-agent-memory.sh` inventories, refuses unsafe archives, archives by scope with `git mv`, leaves journals and curated notes untouched, and restores the original tree |
+| 5. Harness parity | Every `setup-environment.sh` honours the shared setup contract |
+| 6. v2 migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
 | 7. Setup gates | Each `setup-environment.sh` fails fast when its CLI is missing, tested with a restricted PATH so the result does not depend on what is installed |
 | 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.1.0 export → LFS push/clone → vector and full-text queries without reindexing |
 

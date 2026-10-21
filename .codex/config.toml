@@ -2,9 +2,6 @@
 # Agent entries are generated from .agents/agents/*.md.
 # Regenerate with: ./scripts/sync-assets.sh
 
-[features]
-hooks = true
-
 [agents]
 max_depth = 1
 
@@ -48,12 +45,3 @@ nickname_candidates = ["Grid", "Keystone"]
 description = "Specialist in knowledge compounding and synthesis. Identifies contradictions, synergies, and gaps; proposes \"Bridge\" or \"Synthesis\" notes."
 config_file = "./agents/vault-synthesizer.toml"
 nickname_candidates = ["Hermes", "Bridge"]
-
-[[hooks.SessionStart]]
-matcher = "startup|resume"
-
-[[hooks.SessionStart.hooks]]
-type = "command"
-command = 'bash "$(git rev-parse --show-toplevel)/.codex/hooks/session-start.sh"'
-timeout = 30
-statusMessage = "Loading Agent Memory context"

@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       git \
       git-lfs \
       jq \
-      sqlite3 \
       shellcheck \
       python3-yaml \
       ca-certificates \

@@ -11,8 +11,6 @@ and workflow that apply here.
   source, not the generated copy.
 - The `librarian-vault-manager` skill in `.claude/skills/` is likewise
   generated from `.agents/skills/` and `references/librarian/`.
-- `.claude/settings.json` registers a `SessionStart` hook that restores Agent
-  Memory (procedural rules plus a map of recent `JRNL/AGNT/` sessions).
 - Vault access goes through the `obsidian-vault-mcp` MCP server. Its tools are
   namespaced `mcp__obsidian-vault-mcp__obsidian_*`.
 
