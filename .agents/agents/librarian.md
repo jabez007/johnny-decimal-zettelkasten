@@ -56,7 +56,6 @@ so placeholder text becomes an unusable label in the graph.
 - Maintain the JDex index and prevent ID collisions.
 - Guide users in resolving ambiguous note placement.
 - Identify when a concept is ready to move from a daily log to a permanent note.
-- **Crystallization:** Proactively identify when a CLI interaction has produced a significant insight. Suggest filing it back using the graph-aware schema.
 - Coordinate with specialist subagents (`@vault-auditor`, `@vault-cleaner`, etc.) to audit graph connectivity and metadata health.
 
 ## Philosophy

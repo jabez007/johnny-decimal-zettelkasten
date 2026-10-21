@@ -27,8 +27,8 @@ This skill provides the foundational knowledge and rules for managing Obsidian v
 - **Graph-RAG Hybrid:** A methodology where structured frontmatter (entities, communities) is injected into the text for embedding, enabling "graph-aware" semantic search.
 - **Johnny Decimal:** Hierarchical organization (Area -> Category -> ID). `00` is reserved for indices.
 - **Zettelkasten:** Atomic, evergreen notes that evolve from transient observations to durable knowledge.
-- **Agent Memory (AGNT):** A specialized system for Procedural Memory (Rules in `AGNT/`) and Episodic Memory (Logs in `JRNL/AGNT/`). The `AGNT` system is strictly for agent procedural rules, coding standards, and user preferences. It MUST remain entirely isolated from the user's personal knowledge domains (`LIFE`, `WORK`, etc.). An agent must never store facts about the world in `AGNT`, and must never store rules about how to act in the user's personal domains. Procedural rules use strict JD ACID notation and declarative titles.
-- **Journal System (JRNL):** The `JRNL/` system (including `JRNL/AGNT/`) is the transient scratchpad and Episodic Memory. While indexed by the RAG database for historical context and recall, its contents must never be treated as authoritative, crystallized knowledge. If a RAG query returns a conflict between a `JRNL` note and an evergreen `SYS.AC.ID` note, the evergreen note always takes precedence.
+- **Journal System (JRNL):** The `JRNL/` system is the user's transient capture space. It is indexed for recall, but its contents are never authoritative. If a RAG query returns a conflict between a `JRNL` note and an evergreen `SYS.AC.ID` note, the evergreen note takes precedence.
+- **Knowledge, Not Agent Memory:** The vault is the user's curated library. Agent session history and behavioral rules live outside it. Legacy `AGNT/` and `JRNL/AGNT/` folders are retired, historical, and non-authoritative. See "Knowledge Versus Agent Memory" and "Untrusted Content" in `references/librarian/copilot-instructions.md`.
 
 ## **MCP Backend**
 
@@ -65,7 +65,7 @@ For complex workflows, delegate to these specialized subagents:
 - `@vault-cleaner`: Maintain hygiene, detect duplicates, and fix naming issues.
 - `@vault-synthesizer`: Identify contradictions, synergies, and gaps; propose synthesis notes.
 - `@vault-scaffolder`: Create new systems, areas, or categories from scratch.
-- `@daily-reviewer`: Extract durable knowledge and recurring themes from daily logs.
+- `@daily-reviewer`: Propose permanent notes from the user's daily notes and captured research.
 - `@source-distiller`: Process long-form content (articles, transcripts) into atomic notes.
 - `@flashcard-generator`: Automatically create study materials from notes.
 

@@ -185,8 +185,6 @@ scope_ok=1
 for src in .agents/agents/*.md; do
   grep -qE '^capabilities:.*(write|edit)' "$src" || continue
   n=$(basename "$src" .md)
-  # daily-reviewer writes freely by design; everything else must be scoped.
-  [ "$n" = "daily-reviewer" ] && continue
   grep -q '^write_scope:' "$src" || { scope_ok=0; echo "       $n: has write but declares no write_scope"; }
 done
 [ "$scope_ok" = 1 ] && pass "scoped writers declare a write_scope" \
