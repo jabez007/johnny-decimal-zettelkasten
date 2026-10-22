@@ -63,6 +63,7 @@ SCOPE="all"
 PRIVATE_DIR_ARG=""
 PRIVATE_PATHS=()
 
+# Print the script header as command help to stdout.
 usage() {
   awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print; next } NR > 2 { exit }' "$0"
 }
@@ -90,6 +91,7 @@ done
 case "$FORMAT" in text|tsv) ;; *) echo "Error: --format must be text or tsv." >&2; exit 1 ;; esac
 case "$SCOPE" in all|logs|rules) ;; *) echo "Error: --scope must be all, logs, or rules." >&2; exit 1 ;; esac
 
+# Print a file's SHA-256 digest; return nonzero if hashing fails.
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$1" | awk '{print $1}'
@@ -98,6 +100,10 @@ sha256() {
   fi
 }
 
+# Set VAULT to the physical path from --vault or the first configured vault,
+# trying the Obsidian config before the legacy Gemini config. Unreadable or
+# invalid configs are skipped. Set GIT_ROOT to empty if Git lookup fails.
+# Exit 1 if no vault is found or the selected directory does not exist.
 resolve_vault() {
   local candidate=$VAULT_ARG
   if [ -z "$candidate" ]; then
@@ -124,6 +130,8 @@ resolve_vault() {
 # The private archive must be somewhere Git cannot pick it up: outside the
 # vault and outside every Git work tree. The directory may not exist yet, so
 # the nearest existing ancestor decides.
+# Set PRIVATE_DIR to the absolute argument path, or empty if none was given.
+# Exit 1 for an existing non-directory, or 2 for a location in the vault or Git.
 resolve_private_dir() {
   PRIVATE_DIR=""
   [ -n "$PRIVATE_DIR_ARG" ] || return 0
@@ -179,6 +187,7 @@ present_roots() {
 }
 
 # Normalize --private paths and reject any that name no legacy file.
+# Update PRIVATE_PATHS in place; exit 1 for an empty or unmatched path.
 check_private_paths() {
   local i p all
   all=$(legacy_files)
@@ -200,6 +209,7 @@ check_private_paths() {
 # Refuse a private archive that another vault wrote. Two vaults with the same
 # folder name would otherwise share one, and restore would copy one vault's
 # private files into the other.
+# Accept an absent manifest; exit 2 if an existing one has no matching owner.
 check_private_owner() {
   local pm=$1 owner
   [ -n "$pm" ] && [ -f "$pm" ] || return 0
@@ -214,6 +224,7 @@ check_private_owner() {
 
 # Markdown notes outside the legacy roots and outside hidden paths: the notes
 # a person curates and the MCP indexes.
+# Search errors are ignored and may leave an incomplete list.
 curated_notes() {
   # -mindepth 1 keeps the prune from matching "." itself.
   (cd "$VAULT" && find . -mindepth 1 -name '.*' -prune -o -type f -name '*.md' -print \
@@ -222,6 +233,7 @@ curated_notes() {
     | LC_ALL=C sort) || true
 }
 
+# Print the legacy content category inferred from a vault-relative path.
 kind_of() {
   case "$1" in
     AGNT/00-IDX/*) echo "system-index" ;;
@@ -244,7 +256,10 @@ git_state() {
   fi
 }
 
-# Short description: a session log's goal, otherwise the first heading.
+# Print a Markdown file's goal, falling back to its first level-one heading,
+# or nothing if neither exists. The path is vault-relative. Non-Markdown files
+# yield "-"; descriptions are limited to 100 characters, with CR removed and
+# tabs replaced by spaces. File read failures return nonzero.
 describe() {
   local f="$VAULT/$1"
   case "$1" in *.md) ;; *) echo "-"; return ;; esac
@@ -257,11 +272,15 @@ describe() {
   ' "$f" 2>/dev/null | head -n 1 | tr -d '\r' | tr '\t' ' ' | cut -c1-100
 }
 
+# Check a vault-relative file for credential-shaped text, ignoring case.
+# Return grep's status: 0 for a match, 1 for none, or 2 for a read error.
 is_sensitive() {
   grep -Eiq "$SENSITIVE_REGEX" "$VAULT/$1" 2>/dev/null
 }
 
 # Why a legacy file must stay out of Git, or nothing when Git may keep it.
+# Given a vault-relative path and git_state result, prefer the Git state over
+# "sensitive", then "requested". Credential scan errors count as no match.
 private_reason() {
   local rel=$1 state=$2 p
   case "$state" in no-git|untracked|modified) echo "$state"; return ;; esac
@@ -271,7 +290,8 @@ private_reason() {
   done
 }
 
-# Curated notes that link to or embed the given legacy file.
+# Print CURATED paths containing wikilinks or embeds matching the given
+# vault-relative legacy path or basename. Search errors are ignored.
 inbound_links() {
   local rel=$1 base noext relnoext
   base=$(basename "$rel")
@@ -316,6 +336,9 @@ report_hooks() {
   done
 }
 
+# Report all legacy files without modifying them, regardless of SCOPE or APPLY.
+# FORMAT selects TSV rows or a text summary that also reports legacy hooks.
+# Vault resolution and --private validation errors exit 1.
 cmd_inventory() {
   resolve_vault
   check_private_paths
@@ -435,9 +458,12 @@ cmd_inventory() {
   echo "  3. Apply it:             add --apply to the same command"
 }
 
-# One archive or restore at a time per vault. The lock lives in the Git
-# directory, or as a hidden folder in a vault outside Git, so it never shows
-# up as a vault change. A lock whose process has exited is stale and removed.
+# One archive or restore at a time per Git directory, or per vault outside Git.
+# The lock lives in the Git directory, or as a hidden folder in a vault outside
+# Git, so it never shows up as a vault change. A lock whose process has exited
+# is stale and removed.
+# Set LOCK and remove it on exit. Exit 2 if the lock cannot be acquired;
+# INT and TERM exit 130.
 acquire_lock() {
   if [ -n "$GIT_ROOT" ]; then
     LOCK="$(git -C "$VAULT" rev-parse --absolute-git-dir)/agent-memory-migrate.lock"
@@ -476,6 +502,7 @@ manifest_hash() {
 # Refuse a manifest path outside the legacy roots. archive records only paths
 # under them, so any other path, or one with "." or ".." parts, means someone
 # edited the manifest, and following it could read or delete files elsewhere.
+# Exit 2 for a rejected path.
 check_manifest_path() {
   local rel=$1 root
   case "/$rel/" in
@@ -496,6 +523,7 @@ check_manifest_path() {
 # planning and again just before each write. The lock keeps other runs of
 # this script out. A process that swaps in a link between the last check and
 # the write is beyond what a shell script can prevent.
+# Exit 2 for a linked parent; the final path component is not checked.
 check_no_symlinks() {
   local base=$1 rel=$2 dir="" part parts=()
   [ "$(dirname "$rel")" = "." ] && return 0
@@ -516,6 +544,11 @@ hash_if_present() {
 
 # Copy a file so the destination is either absent or complete: write to a
 # temporary name, check it, then rename it into place.
+# Arguments are source, destination, expected SHA-256, and destination base.
+# Create parent directories and preserve source mode and timestamps. Exit 1
+# for a checksum mismatch or 2 for a linked parent. Directory creation, copy,
+# and rename failures propagate their status. An existing destination is
+# replaced only after verification.
 copy_verified() {
   local src=$1 dst=$2 want=$3 base=$4
   local tmp
@@ -533,12 +566,21 @@ copy_verified() {
 }
 
 # A partial copy is never the only copy, so leftovers are safe to delete.
+# Delete hidden *.agent-memory-partial files under the given directory;
+# ignore cleanup errors.
 remove_partials() {
   if [ -d "$1" ]; then
     find "$1" -type f -name '.*.agent-memory-partial' -delete 2>/dev/null || true
   fi
 }
 
+# Preview legacy files selected by SCOPE, or move them when APPLY=1. Stage Git
+# archive moves and their manifest; private moves remove originals and stage
+# removals of tracked files. Private moves require ASSUME_YES=1 or a typed yes.
+# Exit 1 for an invalid vault, private directory, or --private path, or checksum
+# verification failure. Exit 2 for refused paths, ownership, locks, conflicts,
+# inbound links without ALLOW_INBOUND=1, or missing confirmation. Git move and
+# file copy failures propagate.
 # archive is safe to re-run. After an interruption, running the same command
 # finishes the job: files already moved are skipped, a private copy that
 # matches its original is reused, and a private original whose copy is
@@ -785,6 +827,13 @@ locate() {
 # restore checks every archived file against its checksum before it moves
 # anything, and it is safe to re-run: files already back in the vault are
 # skipped. It also undoes an interrupted archive.
+# Preview both manifests regardless of SCOPE, or restore when APPLY=1. Stage
+# Git archive moves and manifest removal; leave private files unstaged and
+# remove archive copies and manifests after restoring them.
+# Exit 1 for an invalid vault or private directory, or a copy checksum mismatch;
+# exit 2 for refused paths, ownership, locks, missing Git for a Git archive,
+# or missing, changed, or conflicting copies. Git move and file copy failures
+# propagate.
 cmd_restore() {
   resolve_vault
   resolve_private_dir
@@ -898,6 +947,10 @@ cmd_restore() {
   fi
 }
 
+# Preview retired Gemini hooks under HOME, or remove them when APPLY=1.
+# Back up settings.json before removing named registrations; delete hook files
+# only when they carry the old template's markers. Missing or invalid settings
+# count as no registration. Backup and hook deletion failures propagate.
 cmd_legacy_hooks() {
   local settings="$HOME/.gemini/settings.json"
   local hooks_dir="$HOME/.gemini/hooks"
