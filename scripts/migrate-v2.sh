@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.2.0"
+MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.3.0"
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"
 ASSUME_YES=0
@@ -161,7 +161,7 @@ else
     VAULT_ID_ARGS=()
     [ -n "${VAULT_ID:-}" ] && VAULT_ID_ARGS=(--vault_id "$VAULT_ID")
     $MCP_CMD obsidian_rag_index \
-      --path "$VAULT_PATH" \
+      --vault_path "$VAULT_PATH" \
       --workspace_path "${WORKSPACE_PATH:-$REPO_ROOT}" \
       "${VAULT_ID_ARGS[@]}" \
       --force_reindex true

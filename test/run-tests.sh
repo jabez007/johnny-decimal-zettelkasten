@@ -10,7 +10,7 @@ set -uo pipefail
 
 REPO_SRC=${REPO_SRC:-/repo}
 WORK_DIR=${WORK_DIR:-/work/repo}
-MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.2.0"
+MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.3.0"
 
 PASS=0
 FAIL=0
@@ -70,7 +70,7 @@ check "shellcheck (${#SH_FILES[@]} scripts)" shellcheck --severity=warning "${SH
 check "valid JSON: opencode.json" jq -e . opencode.json
 
 check "opencode.json registers obsidian-vault-mcp" \
-  jq -e '.mcp["obsidian-vault-mcp"].command | index("@jabez007/obsidian-vault-mcp@2.2.0")' opencode.json
+  jq -e '.mcp["obsidian-vault-mcp"].command | index("@jabez007/obsidian-vault-mcp@2.3.0")' opencode.json
 
 # Codex finds each .codex/agents/*.toml by its name field, with no registry.
 python3 - <<'PY' && pass "Codex agent files parse and match their filenames" || fail "Codex agent files parse and match their filenames"
@@ -334,7 +334,7 @@ else
 fi
 
 check "obsidian_list_notes reads the vault" \
-  $MCP_CMD obsidian_list_notes --path "$VAULT" --workspace_path "$WORK_DIR" --vault_id test_example
+  $MCP_CMD obsidian_list_notes --vault_path "$VAULT"
 
 # Ask the running server what it actually exposes, then confirm every tool the
 # agent policies grant still exists. This is what catches a tool being renamed
@@ -409,7 +409,7 @@ else
   echo "  (indexing downloads the embedding model on first run; this is slow)"
   INDEX_LOG=$(mktemp); QUERY_LOG=$(mktemp)
   trap 'rm -f "$INDEX_LOG" "$QUERY_LOG"' EXIT
-  if $MCP_CMD obsidian_rag_index --path "$VAULT" --workspace_path "$WORK_DIR" \
+  if $MCP_CMD obsidian_rag_index --vault_path "$VAULT" --workspace_path "$WORK_DIR" \
        --vault_id test_example --force_reindex true >"$INDEX_LOG" 2>&1; then
     pass "obsidian_rag_index --force_reindex true"
     if [ -d "$WORK_DIR/.obsidian-vault-mcp" ]; then
@@ -418,7 +418,7 @@ else
       fail "index written to .obsidian-vault-mcp/ (v2 storage name)" \
            "found: $(find "$WORK_DIR" -maxdepth 1 -name '.*obsidian*' -printf '%f ' 2>/dev/null)"
     fi
-    if $MCP_CMD obsidian_rag_query --query "Johnny Decimal index" --path "$VAULT" \
+    if $MCP_CMD obsidian_rag_query --query "Johnny Decimal index" --vault_path "$VAULT" \
          --workspace_path "$WORK_DIR" --vault_id test_example >"$QUERY_LOG" 2>&1; then
       pass "obsidian_rag_query returns results"
       if grep -q 'undefined' "$QUERY_LOG"; then
@@ -463,7 +463,7 @@ else
       promo_wait 3 || exit
     } | $MCP_CMD 2>/dev/null >"$PROMO_LOG" || true
 
-    PROMO_HIT=$($MCP_CMD obsidian_rag_query --query "quokka-lighthouse fixture" --path "$VAULT" \
+    PROMO_HIT=$($MCP_CMD obsidian_rag_query --query "quokka-lighthouse fixture" --vault_path "$VAULT" \
                   --workspace_path "$WORK_DIR" --vault_id test_example 2>/dev/null | grep '^File:' | head -1)
     if jq -se 'any(.[]; .id==2 and .result.isError != true)' "$PROMO_LOG" >/dev/null 2>&1 \
        && cmp -s <(printf '%s' "$PROMO_BODY") "$VAULT/$PROMO" \
@@ -1030,7 +1030,7 @@ rm -rf "$STUB_BIN"
 
 section "8. Index snapshot hooks"
 if [ -z "${MCP_SNAPSHOT_RELEASE:-}" ]; then
-  MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.2.0 -c 'command -v obsidian-vault-mcp')
+  MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.3.0 -c 'command -v obsidian-vault-mcp')
   MCP_SNAPSHOT_RELEASE=$(node -e 'const fs = require("fs"), p = require("path"); console.log(p.dirname(p.dirname(fs.realpathSync(process.argv[1]))))' "$MCP_EXECUTABLE")
 fi
 if [ -f "$MCP_SNAPSHOT_RELEASE/package.json" ]; then
