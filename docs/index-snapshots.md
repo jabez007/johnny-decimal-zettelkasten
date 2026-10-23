@@ -1,6 +1,6 @@
 # Sharing index snapshots through Git LFS
 
-The pre-commit hook uses MCP **2.1.0** to prepare and validate an immutable
+The pre-commit hook uses MCP **2.2.0** to prepare and validate an immutable
 LanceDB export after incremental indexing. It publishes one snapshot per
 registered vault in
 `.obsidian-vault-mcp/shared/<vault-id>/`. Receiving machines install that
@@ -159,7 +159,7 @@ tracked live storage in the same Git index transaction. It keeps local live
 files on the publishing machine. Other clones pulling the removals should
 install the new shared snapshot before restarting their MCP sessions. Legacy
 `.gemini-obsidian/vaults/<id>/` entries with the same ID are also untracked;
-a usable v2.1.0 live index must already exist before migration.
+a usable v2.2.0 live index must already exist before migration.
 
 For separately tracked model downloads or scratch files reported by setup,
 remove each exact path from tracking while retaining the local copy:
@@ -300,7 +300,19 @@ Git indexes are rejected for publication. Use `git add` followed by `git commit`
 when a command is rejected. Register each vault separately for commits affecting
 multiple vaults.
 
-The adapter pins `@jabez007/obsidian-vault-mcp@2.1.0`, schema 3, and LanceDB
+The hook passes the staged copy of a vault's optional `.obsidian-mcpignore`
+file to the MCP, which rejects the commit when the staged rules differ from the
+rules on disk. Stage the whole file before committing. A commit that changes
+only the ignore file still republishes the snapshot. Installation requires
+every note in the snapshot, so publication fails while the rules exclude any
+note.
+
+MCP 2.2.0 refuses to export an index built by 2.1.0 until one whole-vault
+`obsidian_rag_index` scan records the rules. With the default
+`obsidian.snapshotAutoIndex=true`, the next commit runs that scan and reuses
+unchanged embeddings.
+
+The adapter pins `@jabez007/obsidian-vault-mcp@2.2.0`, schema 3, and LanceDB
 0.27.2. Harness plugins should run a compatible MCP version. For a preinstalled
 or offline CLI, set `OBSIDIAN_SNAPSHOT_MCP` to a single executable launcher
 path; the adapter passes CLI arguments directly, without shell evaluation.

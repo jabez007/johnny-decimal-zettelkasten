@@ -661,6 +661,45 @@ class IndexHooksTest(unittest.TestCase):
         self.engine('prepare')
         self.assertEqual(json.loads(log.read_text())['operation'], 'obsidian_prepare_index_snapshot')
 
+    def test_commit_checks_staged_ignore_rules_and_republishes_rule_changes(self):
+        log = self.base / 'calls.jsonl'
+        self.env['SNAPSHOT_FIXTURE_LOG'] = str(log)
+        self.baseline()
+        self.assertEqual(json.loads(log.read_text().splitlines()[-1])['rules_text'], '')
+        manifest = '.obsidian-vault-mcp/shared/shared-example/snapshot.json'
+        before = self.git('show', f'HEAD:{manifest}').stdout
+        # A rules-only change republishes, even when the rules exclude no note.
+        self.write('vaults/example/.obsidian-mcpignore', 'drafts/\n')
+        self.git('add', '-A')
+        self.git('commit', '-qm', 'add ignore rules')
+        self.assertEqual(json.loads(log.read_text().splitlines()[-1])['rules_text'], 'drafts/\n')
+        self.assertNotEqual(self.git('show', f'HEAD:{manifest}').stdout, before)
+        self.assertEqual(self.git('status', '--porcelain').stdout, '')
+
+    def test_ignore_rules_that_exclude_notes_block_publication(self):
+        self.baseline()
+        self.write('vaults/example/private.md', 'Kept out of the shared index.')
+        self.write('vaults/example/.obsidian-mcpignore', 'private.md\n')
+        self.git('add', '-A')
+        before, shared = self.tree(), self.inventory('.obsidian-vault-mcp/shared')
+        failed = self.git('commit', '-qm', 'ignore a note', ok=False)
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertIn('Shared snapshots cannot exclude notes yet', failed.stdout)
+        self.assertEqual(self.tree(), before)
+        self.assertEqual(self.inventory('.obsidian-vault-mcp/shared'), shared)
+
+    def test_unstaged_ignore_rules_block_commit_without_changing_staging(self):
+        self.baseline()
+        self.write('vaults/example/.obsidian-mcpignore', 'note.md\n')
+        self.git('add', 'vaults/example/.obsidian-mcpignore')
+        self.write('vaults/example/.obsidian-mcpignore', '')
+        before, shared = self.tree(), self.inventory('.obsidian-vault-mcp/shared')
+        failed = self.git('commit', '-qm', 'unstaged rules', ok=False)
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertIn('ignore rules differ', failed.stdout)
+        self.assertEqual(self.tree(), before)
+        self.assertEqual(self.inventory('.obsidian-vault-mcp/shared'), shared)
+
     def test_indexing_failure_blocks_commit_without_changing_staging(self):
         self.baseline()
         self.write('vaults/example/note.md', 'new text')
@@ -806,7 +845,7 @@ class IndexHooksTest(unittest.TestCase):
     def test_published_mcp_release_survives_lfs_push_clone_and_install(self):
         release = Path(RELEASE).resolve()
         package = json.loads((release / 'package.json').read_text())
-        self.assertEqual(package['version'], '2.1.0')
+        self.assertEqual(package['version'], '2.2.0')
         self.assertEqual(package['dependencies']['@lancedb/lancedb'], '0.27.2')
         runner = self.base / 'real-mcp'
         runner.write_text('#!/usr/bin/env python3\nimport os,sys\nos.execvp("node", ["node", '+repr(str(release / 'dist/index.js'))+']+sys.argv[1:])\n')
@@ -849,7 +888,8 @@ class IndexHooksTest(unittest.TestCase):
                               extra_env={'OBSIDIAN_VAULT_PATH': str(receiver / 'vaults/example'),
                                          'OBSIDIAN_WORKSPACE_PATH': str(receiver), 'OBSIDIAN_VAULT_ID': 'shared-example'})
         self.assertIn('no changes detected', result.stdout)
-        self.assertEqual(metadata.read_bytes(), before)
+        # MCP 2.2.0 rewrites the file in its own JSON layout without changing any value.
+        self.assertEqual(json.loads(metadata.read_bytes()), json.loads(before))
         code = '''const {createRequire}=require('node:module'); const r=createRequire(process.argv[1]+'/package.json');
         (async()=>{const db=await r('@lancedb/lancedb').connect(process.argv[2]);const table=await db.openTable('notes');
         const rows=await table.query().toArray();const fts=await table.search('Snapshotmarker','fts').toArray();
