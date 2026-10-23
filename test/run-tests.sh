@@ -73,17 +73,16 @@ check "opencode.json registers obsidian-vault-mcp" \
   jq -e '.mcp["obsidian-vault-mcp"].command | index("@jabez007/obsidian-vault-mcp@2.2.0")' opencode.json
 
 # Codex finds each .codex/agents/*.toml by its name field, with no registry.
-python3 - <<'PY' && pass "Codex agent files parse and name eight agents" || fail "Codex agent files parse and name eight agents"
+python3 - <<'PY' && pass "Codex agent files parse and match their filenames" || fail "Codex agent files parse and match their filenames"
 import tomllib, glob, os, sys
 root = os.environ.get("WORK_DIR", "/work/repo")
 try:
-    names = set()
     for f in glob.glob(os.path.join(root, ".codex/agents/*.toml")):
         agent = tomllib.load(open(f, "rb"))
         for key in ("name", "description", "developer_instructions"):
             assert agent.get(key), f"{os.path.basename(f)} has no {key}"
-        names.add(agent["name"])
-    assert len(names) == 8, f"expected 8 agents, got {len(names)}"
+        stem = os.path.basename(f)[:-len(".toml")]
+        assert agent["name"] == stem, f"{stem}.toml names {agent['name']}"
 except Exception as e:
     print(e); sys.exit(1)
 PY
@@ -130,10 +129,29 @@ done
 [ "$promo_ok" = 1 ] && pass "promotion doctrine is referenced from every entry point" \
   || fail "promotion doctrine is referenced from every entry point"
 
-for d in .claude/agents .gemini/agents .opencode/agents .codex/agents; do
-  n=$(find "$d" -type f | wc -l)
-  [ "$n" = 8 ] && pass "$d has 8 agents" || fail "$d has 8 agents" "found $n"
+# AGENTS.md promises the same eight specialists in every harness. OpenCode
+# names an agent by its filename; the others read a name field.
+EXPECTED_AGENTS="daily-reviewer
+flashcard-generator
+librarian
+source-distiller
+vault-auditor
+vault-cleaner
+vault-scaffolder
+vault-synthesizer"
+for d in .agents/agents .claude/agents .gemini/agents .opencode/agents .codex/agents; do
+  found=$(find "$d" -type f -exec basename {} \; | sed 's/\.[^.]*$//' | sort)
+  [ "$found" = "$EXPECTED_AGENTS" ] && pass "$d holds the eight specialists" \
+    || fail "$d holds the eight specialists" "found: $(tr '\n' ' ' <<<"$found")"
 done
+
+name_ok=1
+for f in .agents/agents/*.md .claude/agents/*.md .gemini/agents/*.md; do
+  [ "$(sed -n 's/^name: //p' "$f" | head -1)" = "$(basename "$f" .md)" ] \
+    || { name_ok=0; echo "       $f has a name field that differs from its filename"; }
+done
+[ "$name_ok" = 1 ] && pass "agent name fields match their filenames" \
+  || fail "agent name fields match their filenames"
 
 if grep -rq '{{MCP_PREFIX}}' .claude .gemini .opencode .codex 2>/dev/null; then
   fail "no unsubstituted {{MCP_PREFIX}} in generated output"
@@ -362,13 +380,23 @@ MCP_RAW="https://raw.githubusercontent.com/jabez007/obsidian-vault-mcp/v$MCP_VER
 if CLAUDE_PLUGIN=$(curl -fsSL "$MCP_RAW/.claude-plugin/plugin.json") \
    && GEMINI_EXT=$(curl -fsSL "$MCP_RAW/gemini-extension.json"); then
   claude_server=$(jq -r '.mcpServers | keys[0]' <<<"$CLAUDE_PLUGIN")
-  want_claude="mcp__plugin_$(jq -r .name <<<"$CLAUDE_PLUGIN")_${claude_server}__obsidian_read_note"
-  want_gemini="mcp_$(jq -r '.mcpServers | keys[0]' <<<"$GEMINI_EXT")_obsidian_read_note"
-  want_opencode="$(jq -r '.mcp | keys[0]' opencode.json)_obsidian_read_note"
+  claude_prefix="mcp__plugin_$(jq -r .name <<<"$CLAUDE_PLUGIN")_${claude_server}__"
+  gemini_prefix="mcp_$(jq -r '.mcpServers | keys[0]' <<<"$GEMINI_EXT")_"
+  opencode_prefix="$(jq -r '.mcp | keys[0]' opencode.json)_"
   prefix_ok=1
-  grep -q "^tools:.*$want_claude" .claude/agents/librarian.md || { prefix_ok=0; echo "       Claude agents lack $want_claude"; }
-  grep -q "^  - $want_gemini$" .gemini/agents/librarian.md || { prefix_ok=0; echo "       Gemini agents lack $want_gemini"; }
-  grep -q "\"$want_opencode\": allow" .opencode/agents/librarian.md || { prefix_ok=0; echo "       OpenCode agents lack $want_opencode"; }
+  # Every agent must keep every MCP tool its canonical policy grants.
+  for src in .agents/agents/*.md; do
+    n=$(basename "$src" .md)
+    claude_tools=$(sed -n 's/^tools: //p' ".claude/agents/$n.md" | tr ',' '\n' | sed 's/^ *//')
+    for tool in $(sed -n 's/^mcp_tools: \[\(.*\)\]/\1/p' "$src" | tr -d ','); do
+      grep -qxF "$claude_prefix$tool" <<<"$claude_tools" \
+        || { prefix_ok=0; echo "       .claude/agents/$n.md lacks $claude_prefix$tool"; }
+      grep -qxF "  - $gemini_prefix$tool" ".gemini/agents/$n.md" \
+        || { prefix_ok=0; echo "       .gemini/agents/$n.md lacks $gemini_prefix$tool"; }
+      grep -qF "\"$opencode_prefix$tool\": allow" ".opencode/agents/$n.md" \
+        || { prefix_ok=0; echo "       .opencode/agents/$n.md lacks $opencode_prefix$tool"; }
+    done
+  done
   [ "$prefix_ok" = 1 ] && pass "generated MCP tool names match each harness's install" \
     || fail "generated MCP tool names match each harness's install"
 else
