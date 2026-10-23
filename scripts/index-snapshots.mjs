@@ -10,7 +10,7 @@ const CONFIG = '.obsidian-indexes.json';
 const STORAGE = '.obsidian-vault-mcp';
 const COMPANIONS = ['file-hashes.json', 'schema-version.json', 'index-metadata.json'];
 const PAYLOAD = ['lancedb', ...COMPANIONS];
-const PACKAGE = '@jabez007/obsidian-vault-mcp@2.1.0';
+const PACKAGE = '@jabez007/obsidian-vault-mcp@2.2.0';
 let root;
 
 function run(command, args, options = {}) {
@@ -148,6 +148,14 @@ function stagedNotes(vault, entries) {
   notes.forEach((entry, i) => { hashes[entry.name.slice(vault.path.length + 1)] = digest(requireLf(contents[i], `staged ${entry.name}`).toString('utf8'), 'md5'); });
   return hashes;
 }
+// The MCP checks these staged rules against the rules its index was built under.
+function stagedRules(vault, entries) {
+  const name = `${vault.path}/.obsidian-mcpignore`;
+  const entry = entries.find(item => item.name === name);
+  if (!entry) return '';
+  if (entry.stage !== '0' || !['100644', '100755'].includes(entry.mode)) throw new Error(`Unmerged or unsupported ignore file: ${name}`);
+  return blobs([entry])[0].toString('utf8');
+}
 function validatePayload(directory, files) {
   if (!Array.isArray(files)) throw new Error('Snapshot file inventory is missing');
   const expected = new Set();
@@ -187,9 +195,9 @@ function acquire(file) {
   fs.closeSync(fd);
   return () => { if (exists(file)) fs.unlinkSync(file); };
 }
-function invokeMcp(vault, operation) {
+function invokeMcp(vault, operation, extra = []) {
   const command = process.env.OBSIDIAN_SNAPSHOT_MCP;
-  const args = [operation, '--vault_path', safe(vault.path), '--workspace_path', root, '--vault_id', vault.id];
+  const args = [operation, '--vault_path', safe(vault.path), '--workspace_path', root, '--vault_id', vault.id, ...extra];
   const output = run(command || 'npx', command ? args : ['--yes', PACKAGE, ...args], {
     env: { ...process.env, OBSIDIAN_VAULT_PATH: safe(vault.path), OBSIDIAN_WORKSPACE_PATH: root, OBSIDIAN_VAULT_ID: vault.id },
     timeout: operation === 'obsidian_rag_index' ? 30 * 60 * 1000 : 10 * 60 * 1000,
@@ -199,13 +207,16 @@ function invokeMcp(vault, operation) {
   if (result.success !== true) throw new Error(`${operation}: ${result.message || 'MCP reported failure'}`);
   return result;
 }
-function childMcp(vault) {
-  const result = invokeMcp(vault, 'obsidian_prepare_index_snapshot');
-  if (result.success !== true || !/^[a-f0-9]{64}$/.test(result.sourceFingerprint)) throw new Error('MCP did not return a successful snapshot');
+function childMcp(vault, rules) {
+  // The --key=value form keeps empty rules and rules that begin with --.
+  const result = invokeMcp(vault, 'obsidian_prepare_index_snapshot', [`--rules_text=${rules}`]);
+  if (result.success !== true || !/^[a-f0-9]{64}$/.test(result.sourceFingerprint) ||
+      !/^[a-f0-9]{64}$/.test(result.rulesFingerprint)) throw new Error('MCP did not return a successful snapshot');
   const expected = safe(`${live(vault)}/snapshots/${result.sourceFingerprint}`);
   if (path.resolve(result.snapshotPath) !== expected) throw new Error('MCP returned a snapshot outside the registered vault cache');
   const manifest = readJson(path.join(expected, 'snapshot.json'));
-  if (manifest.policyVersion !== 1 || manifest.result?.sourceFingerprint !== result.sourceFingerprint ||
+  if (manifest.policyVersion !== 2 || manifest.rulesFingerprint !== result.rulesFingerprint ||
+      manifest.result?.rulesFingerprint !== result.rulesFingerprint || manifest.result?.sourceFingerprint !== result.sourceFingerprint ||
       manifest.result?.success !== true || !result.validation?.vectorQuery || !result.validation?.fullTextQuery) throw new Error('Invalid MCP snapshot manifest');
   compatibility(result.compatibility);
   validatePayload(expected, manifest.files);
@@ -290,6 +301,7 @@ function publish(vaults, migrate = false, fromHook = false) {
     // Check every vault before any indexing starts.
     const checked = vaults.map(vault => {
       const hashes = stagedNotes(vault, entries);
+      const rules = stagedRules(vault, entries);
       if (!same(hashes, workingNotes(vault).hashes)) throw new Error(`Stage all Markdown changes in ${vault.path}, including new and deleted notes, before publishing`);
       checkLfAttributes([CONFIG, ...Object.keys(hashes).map(name => `${vault.path}/${name}`),
         ...[...COMPANIONS, 'snapshot.json'].map(name => `${shared(vault)}/${name}`)]);
@@ -297,17 +309,25 @@ function publish(vaults, migrate = false, fromHook = false) {
       if (trackedLive.length && !migrate) throw new Error(`Live database is still tracked for ${vault.path}. Run: node scripts/index-snapshots.mjs migrate --vault ${vault.path}`);
       git(['diff', '--quiet', '--', shared(vault)]);
       if (git(['ls-files', '--others', '--exclude-standard', '-z', '--', shared(vault)]).length) throw new Error(`Untracked files exist in ${shared(vault)}; move them aside before publishing`);
-      return { vault, hashes, trackedLive };
+      return { vault, hashes, rules, trackedLive };
     });
     const selected = [];
-    for (const { vault, hashes, trackedLive } of checked) {
+    for (const { vault, hashes, rules, trackedLive } of checked) {
       if (autoIndex === 'true') {
         console.error(`Updating the index for ${vault.path} incrementally...`);
         invokeMcp(vault, 'obsidian_rag_index');
       }
       if (!same(hashes, workingNotes(vault).hashes)) throw new Error(`Notes changed during indexing in ${vault.path}; stage them and retry`);
-      const snapshot = childMcp(vault);
-      if (!same(hashes, readJson(path.join(snapshot.directory, 'file-hashes.json')))) throw new Error(`Snapshot notes do not match the staged commit for ${vault.path}`);
+      const snapshot = childMcp(vault, rules);
+      const exported = readJson(path.join(snapshot.directory, 'file-hashes.json'));
+      if (!same(hashes, exported)) {
+        // Installation requires every note in the export, so excluded notes cannot be shared yet.
+        const excluded = Object.keys(hashes).filter(name => !(name in exported));
+        if (excluded.length && Object.entries(exported).every(([name, hash]) => hashes[name] === hash)) {
+          throw new Error(`${vault.path}/.obsidian-mcpignore excludes ${excluded.length} note(s), such as ${excluded[0]}. Shared snapshots cannot exclude notes yet; remove those rules or set obsidian.snapshotPolicy=off.`);
+        }
+        throw new Error(`Snapshot notes do not match the staged commit for ${vault.path}`);
+      }
       const manifest = {
         version: 1, vaultPath: vault.path, vaultId: vault.id, sourceFingerprint: snapshot.result.sourceFingerprint,
         compatibility: snapshot.result.compatibility, validation: snapshot.result.validation, files: snapshot.files,
@@ -553,7 +573,8 @@ function main() {
     checkChangedAttributes(config.vaults, entries, changed);
     const contentChanges = changed.filter(name => path.posix.basename(name) !== '.gitattributes');
     const affected = config.vaults.filter(vault => contentChanges.some(file => file === CONFIG ||
-      (file.startsWith(`${vault.path}/`) && eligible(file.slice(vault.path.length + 1))) || file.startsWith(`${shared(vault)}/`) || file.startsWith(`${live(vault)}/`)));
+      (file.startsWith(`${vault.path}/`) && eligible(file.slice(vault.path.length + 1))) || file === `${vault.path}/.obsidian-mcpignore` ||
+      file.startsWith(`${shared(vault)}/`) || file.startsWith(`${live(vault)}/`)));
     if (affected.length) publish(affected, false, true);
     else if (changed.some(file => /^(\.obsidian-vault-mcp|\.gemini-obsidian)\/vaults\//.test(file))) throw new Error('Register and migrate the tracked live index before committing it');
     return;

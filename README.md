@@ -59,7 +59,7 @@ Follow these steps to initialize your first vault:
    config. Each targets a vault inside `vaults/<vault-name>/` (default:
    `vaults/example/`) and persists the selection to `~/.obsidian-mcp.config.json`.
    The shared setup uses the published npm package,
-   `npx -y @jabez007/obsidian-vault-mcp@2.1.0`.
+   `npx -y @jabez007/obsidian-vault-mcp@2.2.0`.
 4. **Initialize the actual vault in Obsidian**:
    - Open `vaults/<vault-name>/` as the Obsidian vault, not the repository root.
    - Enable **Bases** and **Backlinks** core plugins.
@@ -76,7 +76,7 @@ Follow these steps to initialize your first vault:
 
 ## Sharing the search index
 
-Setup installs a pre-commit hook that uses MCP 2.1.0 to publish a validated
+Setup installs a pre-commit hook that uses MCP 2.2.0 to publish a validated
 LanceDB snapshot for each registered vault after incremental indexing. Database files use Git LFS;
 matching metadata and stable vault IDs use ordinary Git. Live databases and
 export history stay local.
