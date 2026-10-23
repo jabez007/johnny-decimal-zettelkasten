@@ -1,6 +1,6 @@
 # Knowledge lifecycle and proposal review
 
-Status: draft v0.4, not implemented. Date: 2026-10-23.
+Status: v0.5. Phase 1 is implemented; phases 2 and 3 are not. Date: 2026-10-23.
 
 Targets: `jabez007/johnny-decimal-zettelkasten` and
 `jabez007/obsidian-vault-mcp`.
@@ -8,22 +8,23 @@ Targets: `jabez007/johnny-decimal-zettelkasten` and
 Baseline: PR #14, "Separate the knowledge vault from agent memory", released
 as v3.0.0, and `obsidian-vault-mcp` v2.2.0.
 
-## Changes from v0.3
+## Changes from v0.4
 
-- Proposal storage is decided. Proposals are Markdown files with YAML
-  frontmatter (Option A). Section 4 gives the reasons, and the Git branch
-  option is gone from the rest of the spec.
-- The baseline moves to `obsidian-vault-mcp` v2.2.0, which ships the ignore
-  file (MCP-1) and most of MCP-2. Sections 2, 5, and 9 describe what shipped
-  and what is still open.
-- Open decisions 2 and 3 are settled by what 2.2.0 shipped: the `ignore`
-  library's gitignore matching, and the vault-root `.obsidian-mcpignore` as
-  the only configuration source.
-- JD-2 now includes a template change. The template's snapshot hook refuses to
-  publish a snapshot when the ignore rules exclude any note, so the visible
-  folders need that fixed first.
-- The comparison table corrects the enforcement row for Git branches. Branch
-  protection does not stop an agent that uses the owner's GitHub login.
+- Phase 1 is implemented.
+  [`references/librarian/proposal-queue.md`](../../references/librarian/proposal-queue.md)
+  defines the records, states, and checks. `scripts/proposal-queue.mjs` lists
+  and checks the queue, and six agents gained queue duties.
+- Source records drop `content_sha256`. A claim cites only an excerpt stored
+  in the record, and Git versions the record.
+- Proposal records drop `base_sha256`. The agents that write proposals have no
+  shell to compute a hash, so each edit names the exact text it replaces, and
+  that text must occur once in the target.
+- Closed proposals stay in `.proposals/` with a terminal state. The `closed/`
+  folder is gone.
+- The review Base moves to phase 2, because Obsidian does not show
+  dot-folders.
+- Section 6 defines how an agent finds queued proposals.
+- Section 7 defines the approval record the phase 3 publisher needs.
 
 ## 1. Decision
 
@@ -91,7 +92,9 @@ authority to change it.
 - Index metadata and snapshot manifests record a fingerprint of the ignore
   rules. Section 5 lists what is still open.
 
-The template moves to 2.2.0 in
+Phase 1 works the same on v2.1.0 and v2.2.0: both read and write hidden
+paths by name and leave them out of listings and search. The template moves
+to 2.2.0 in
 [PR #15](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/15).
 Its snapshot hook passes the staged ignore file to the MCP server and
 republishes a vault's snapshot when only the ignore file changes. It refuses
@@ -175,10 +178,10 @@ also smaller than it looks, as the table shows.
 
 | Need | Proposal files | Git branches |
 |---|---|---|
-| Base drift | `base_sha256` field, publisher compares | Merge conflict |
-| Revisions | `revision` field, digest per revision | Commits on the branch |
+| Base drift | Each edit's replaced text must occur once in the target | Merge conflict |
+| Revisions | `revision` field, plus a digest per revision in phase 3 | Commits on the branch |
 | Approval bound to exact content | Digest the publisher checks | The owner merges a specific commit |
-| Closed and rejected proposals | `closed/` folder | Merged or deleted branches |
+| Closed and rejected proposals | Terminal states, files stay in place | Merged or deleted branches |
 | Enforced mode | Separate publisher identity | Branch protection and a merge identity the agent cannot use. An agent with the owner's GitHub login can merge or change the rule. |
 | Review in Obsidian | Yes | No, Obsidian shows one checkout |
 | Many small proposals at once | Easy | Branch switching is clumsy |
@@ -196,50 +199,56 @@ prescribes. Phase 1 uses hidden folders, which the MCP server always skips:
 vaults/<vault-name>/
 ├── .sources/                  # captured sources (phase 1)
 │   └── S-<id>.md
-├── .proposals/                # pending proposals (phase 1)
-│   ├── P-<id>.md
-│   └── closed/P-<id>.md
+├── .proposals/                # open and closed proposals (phase 1)
+│   └── P-<id>.md
 ├── .archive/agent-memory/     # existing, from PR #14
 ├── JRNL/YYYY/MM/YYYY-MM-DD.md # existing owner journals, also sources
 ├── _SYS/
-│   ├── REVIEW.base            # review queue
+│   ├── REVIEW.base            # review queue (phase 2)
 │   └── log.md                 # existing operations log
 ├── LIFE/  TECH/  WORK/        # curated notes
 └── 00.00.md
 ```
 
-Obsidian hides dot-folders, so in phase 1 the owner reviews in an editor or
+Obsidian hides dot-folders, so in phase 1 the owner lists the queue with
+`node scripts/proposal-queue.mjs list` and reads proposals in an editor or
 with `git diff`. In phase 2 the folders move to visible `_SOURCES/` and
-`_PROPOSALS/`, and the ignore file keeps them out of search. Neither is a
+`_PROPOSALS/`, the ignore file keeps them out of search, and
+`_SYS/REVIEW.base` shows open proposals in Obsidian. Neither is a
 Johnny Decimal system, and neither uses ACID IDs.
 
 ### Source records
 
-A source record holds an ID, a URL or original file, the capture date, the
-kind of source, a useful excerpt or anchor, and a checksum only if the content
-was actually captured. Screen for private or sensitive content before the
-source enters Git or Git LFS.
+A source record holds the passages a proposal relies on, with an ID, the kind
+of source, its URL if it has one, and the capture date. A claim can cite only
+an excerpt stored in a record, so the record shows exactly what was reviewed,
+even after the page behind the URL changes. Git versions the record, which
+replaces the checksum earlier drafts carried: the phase 3 publisher detects a
+changed source by hashing the record file. Screen for private or sensitive
+content before the source enters Git.
 
 ```yaml
 ---
 record_type: knowledge-source
 source_id: S-20261022-8F3D
-source_url: https://example.org/article
-captured_at: 2026-10-22
 source_kind: article
-content_sha256: null
+source_url: 'https://example.org/article'
+captured_at: '2026-10-22'
 ---
 ```
 
-Agents do not create a proposal for every source. Journals stay ordinary
-journal notes and do not take this format.
+The body holds the excerpts as quotations and notes on where they appear.
+Agents do not create a proposal for every source. Journals and existing notes
+stay where they are, and a proposal cites them by path.
 
 ### Proposal records
 
-One proposal changes one target note. It has a stable ID, the target, a hash
-of the target's current content, the cited sources, and the full proposed
-content or a patch that applies cleanly. The template's librarian and
-publisher read this metadata. The MCP server does not.
+One proposal changes one target note. It has a stable ID, the target, the
+cited sources, and the change: the complete note for a create, or exact-text
+replacements for an update. The
+[proposal queue doctrine](../../references/librarian/proposal-queue.md)
+defines the body. The template's librarian, checker, and publisher read this
+metadata. The MCP server does not.
 
 ```yaml
 ---
@@ -248,21 +257,29 @@ proposal_id: P-20261022-A91B
 state: pending
 revision: 1
 operation: update
-target_path: TECH/20-Architecture/21-Patterns/TECH.21.04-Example.md
-base_sha256: '<hash of the current target>'
+target_path: TECH/20-Architecture/21-Patterns/TECH.21.04.md
 source_ids: [S-20261022-8F3D]
-created_at: 2026-10-22
+created_at: '2026-10-22'
+updated_at: '2026-10-22'
 ---
 ```
 
 The body holds the proposed change, its justification, the claims each source
 supports, conflicts with existing notes, a sensitivity check, affected links,
-the planned `_SYS/log.md` entry, and open questions.
+the planned `_SYS/log.md` entry, open questions, and a log of review
+decisions.
 
-The publisher computes a digest over the target path, operation, proposed
-content, and the source and base hashes. Any edit to an approved proposal
-invalidates the approval. A `state: approved` field is a display value, not a
-security token.
+Phase 1 stores no hash of the target. The agents that write proposals have no
+shell, and the MCP server returns no content hash, so they cannot compute one.
+Instead, each replacement names the exact text it replaces, and that text must
+occur exactly once in the target. An edit to that part of the note fails the
+check, and the proposal needs a new revision. Edits elsewhere in the note do
+not block it, the same tolerance a patch has.
+
+In phase 3 the publisher computes a digest over the target path, operation,
+change, and the hashes of the target and the cited source records. Any edit to
+an approved proposal invalidates the approval. A `state: approved` field is a
+display value, not a security token.
 
 ### Curated notes
 
@@ -330,10 +347,21 @@ journals.
 Excluded files never enter the index, so the server never filters a mixed
 top-K list after the fact, and ranking stays as good as it is today.
 
-A proposal lists its source IDs and paths, so a reviewer or the librarian
-reads them by path. `obsidian_list_notes` does not list excluded folders, so
-an agent finds pending proposals with its file tools, and the owner uses an
-Obsidian Base or a folder listing. Explicit reads do not index anything. The
+A proposal lists its source IDs, so a reviewer or the librarian reads each
+source by path. `obsidian_list_notes` and `obsidian_search_notes` never return
+hidden or ignored files, so an empty result from them says nothing about the
+queue. The doctrine defines how an agent finds queued proposals:
+
+- An agent with a glob or directory listing tool lists
+  `vaults/<vault>/.proposals/` by that explicit path.
+- An agent without one reads a proposal by the ID the owner gives, with
+  `obsidian_read_note` and the path `.proposals/<ID>.md`.
+- Some listing tools skip hidden folders, so an empty listing does not prove
+  the queue is empty. The agent says so and asks the owner to run
+  `node scripts/proposal-queue.mjs list`, which reads the folder directly.
+
+In phase 2 the same rules apply to `_PROPOSALS/`, and the owner can also use
+`_SYS/REVIEW.base` in Obsidian. Explicit reads do not index anything. The
 first version does not offer full-text or semantic search across excluded
 sources and proposals. If that turns out to be needed, it should be a generic
 MCP feature, such as named index profiles, with nothing lifecycle-specific in
@@ -358,15 +386,17 @@ Capture a source (optional)
                           └── blocked until corrected or reviewed again
 ```
 
-Each proposal survives a restart. Closing a proposal moves it to the
-`closed/` folder and keeps the evidence. An applied proposal links to the
-note it changed.
+Each proposal survives a restart. Closing a proposal sets a terminal state,
+`applied`, `rejected`, or `superseded`, and leaves the file and its evidence
+in place. An applied proposal names the note it changed in `target_path`, and
+records are never deleted.
 
 ### Two levels
 
 **Workflow only.** The librarian asks the owner for specific approval in the
 conversation and records the proposal. This is a procedure, not a security
-boundary, while the agent still has write tools or shell access.
+boundary, while the agent still has write tools or shell access. Phase 1
+implements this level.
 
 **Enforced publication.** A separate publisher that the owner controls applies
 an exact proposal revision. The proposing agent cannot forge or edit the
@@ -375,6 +405,14 @@ target, base and source hashes, the payload digest, ID collisions, note
 structure, links, sensitivity, and the reviewed diff. It publishes
 idempotently, updates the audit state and `_SYS/log.md`, re-indexes, reads
 the result back, and leaves commits to the owner.
+
+The publisher needs an approval record that the proposing agent cannot write.
+The record holds the proposal ID, the approved revision, the digest the owner
+approved, who approved it, and when. It lives where only the owner or the
+publisher identity can write, such as a file outside the agents' writable
+paths or a signed commit; open decision 5 chooses the place. The publisher
+compares the record's digest with the proposal as it stands. The `state`
+field in a proposal file stays a display value at both levels.
 
 The MCP server never gets `publish_proposal`, `approve_note`, ACID validators,
 or similar commands. A generic read-only path rule might be useful to other
@@ -421,17 +459,19 @@ tests and documentation use generic folders such as `drafts/` and
 
 ### `johnny-decimal-zettelkasten`
 
-- **JD-1: proposal queue.** Source and proposal templates, the hidden
-  folders, the review Base, lifecycle transitions, evidence checks, and
-  policy changes in `references/librarian/`. It works with plain Markdown
-  and Obsidian alone. The librarian checks `base_sha256` against the target
-  before asking for approval.
+- **JD-1: proposal queue.** Done.
+  `references/librarian/proposal-queue.md` defines source and proposal
+  records, states, and the checks. `scripts/proposal-queue.mjs` lists and
+  checks the queue, the agent definitions carry the queue duties, and
+  `test/run-tests.sh` drives a proposal through the MCP server. The librarian
+  checks each replaced text against the target before asking for approval.
 - **JD-2: visible folders.** Change `scripts/index-snapshots.mjs` so a
   snapshot can leave out notes the ignore rules exclude. Publication records
   the excluded paths in `snapshot.json`. Installation accepts working notes
   equal to the exported notes plus the excluded ones, and computes
   `fileCount` and `latestMtimeMs` from the exported notes only. Then move the
-  queue to `_SOURCES/` and `_PROPOSALS/` and ship the sample ignore file.
+  queue to `_SOURCES/` and `_PROPOSALS/`, add `_SYS/REVIEW.base`, and ship
+  the sample ignore file.
 - **JD-3: enforced publisher (later).** Digest-bound approval and
   validation. Agent write limits come from deployment permissions, not only
   prompts. Interrupted publications can be retried safely.
@@ -443,7 +483,7 @@ tests and documentation use generic folders such as `drafts/` and
 | Phase | Work | Depends on | Status |
 |---|---|---|---|
 | 0 | Decide proposal storage | Nothing | Done: proposal files |
-| 1 | JD-1 in hidden folders, approval in conversation only | Phase 0 | Next |
+| 1 | JD-1 in hidden folders, approval in conversation only | Phase 0 | Done |
 | 1 | MCP-1 and MCP-2 | Nothing, runs in parallel | v2.2.0, except the install check |
 | 2 | JD-2: snapshot change, visible folders, and sample ignore file | Phase 1 and PR #15 | Not started |
 | 3 | JD-3: enforced publisher, then bypass attempts through other tools and the shell | Phase 2 | Later |
@@ -473,7 +513,8 @@ install half of criterion 5.
 
 ### Phase 1: proposal queue
 
-8. Sources and proposals can be created, kept across sessions, listed, and
+8. Sources and proposals can be created, kept across sessions, listed with
+   `node scripts/proposal-queue.mjs list` or an agent's listing tool, and
    reviewed, and they never appear in default RAG or keyword results.
 9. An agent can research curated notes, cite exact sources, and propose a
    precise change without publishing it.
@@ -496,8 +537,8 @@ install half of criterion 5.
 
 ### Phase 3: enforced publication
 
-16. Stale targets, ID collisions, changed sources, and forbidden paths block
-    publication.
+16. Stale targets, ID collisions, changed source records, and forbidden
+    paths block publication.
 17. An agent cannot get around the publisher through other write tools or the
     shell in the supported deployment.
 
@@ -533,8 +574,10 @@ earlier references still work.
 4. **Journal visibility.** Keep `/JRNL/` in default search, which is today's
    behavior, or exclude it. Excluding it changes the answer to "what do I know
    about X" for anything written only in journals.
-5. **Review interface.** An owner-run CLI or Obsidian, and how to protect the
-   approval step from the proposing agent.
+5. **Review interface.** Phase 1 lists the queue with an owner-run CLI and
+   takes decisions in the conversation. Still open: whether later review
+   happens in Obsidian or a CLI, and where the approval record lives so the
+   proposing agent cannot write it.
 6. **Research search.** Whether path reads and Bases are enough, or a generic
    named-index feature becomes worth building.
 7. **Private sources.** Track source excerpts in Git, or keep sensitive
@@ -547,6 +590,7 @@ earlier references still work.
 - [PR #15: Move the template to obsidian-vault-mcp 2.2.0](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/15)
 - [Knowledge and memory separation design](knowledge-memory-separation.md)
 - [Knowledge promotion policy](../../references/librarian/knowledge-promotion.md)
+- [Proposal queue policy](../../references/librarian/proposal-queue.md)
 - [Knowledge vault guide](../knowledge-vault-guide.md)
 - [Hindsight coexistence](../hindsight-coexistence.md)
 - [obsidian-vault-mcp v2.2.0 README](https://github.com/jabez007/obsidian-vault-mcp/blob/v2.2.0/README.md)

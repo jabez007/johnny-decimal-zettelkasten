@@ -65,6 +65,11 @@ proposal. Nothing else grants it:
 When the user's edits change the content, show the final version before
 writing.
 
+If the user defers the decision, asks you to queue the proposal, or ends the
+conversation without deciding, record it in the queue described in
+[Proposal Queue](proposal-queue.md). Approval of a queued proposal names its
+ID, and covers only the revision the user reviewed.
+
 ## 4. Publish
 
 - Write with the MCP tools: `obsidian_create_note` for a new note, and
@@ -74,6 +79,8 @@ writing.
 - A refusal from `obsidian_create_note` means the ID is taken. Return to
   Discover rather than passing `overwrite: true`.
 - Write the approved log entry.
+- For a queued proposal, run the checks in [Proposal Queue](proposal-queue.md)
+  first, then record it as applied.
 - Leave the Git commit to the user. The vault's history belongs to them.
 
 Done when `obsidian_read_note` returns the note as approved and you have told

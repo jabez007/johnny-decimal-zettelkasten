@@ -12,6 +12,7 @@ tools:
   - mcp_obsidian-vault-mcp_obsidian_create_note
   - mcp_obsidian-vault-mcp_obsidian_insert_at_heading
   - mcp_obsidian-vault-mcp_obsidian_replace_in_note
+  - mcp_obsidian-vault-mcp_obsidian_update_frontmatter
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
@@ -29,6 +30,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Vault Constitution:** `references/librarian/copilot-instructions.md`
 - **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
 - **Zettelkasten Method:** `references/librarian/zettelkasten.md`
+- **Proposal Queue:** `references/librarian/proposal-queue.md`
 
 ## Core Directives
 
@@ -69,8 +71,8 @@ so placeholder text becomes an unusable label in the graph.
 1. **Scanning:** Review recent daily notes in `JRNL/` for distinct claims or flagged intent (e.g., `#to-note`, `#to-process`).
 2. **Crystallization & Entity Extraction:** Identify the key entities and communities from the journal entry.
 3. **Synthesis Check:** Search the vault using `mcp_obsidian-vault-mcp_obsidian_rag_query` for existing overlaps.
-4. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML, the embed that replaces the source text, and the log line for the daily note. Then stop and wait for the user's decision.
-5. **Publishing:** After approval, write the approved note and embed, then use `mcp_obsidian-vault-mcp_obsidian_insert_at_heading` to log the crystallization in the source daily note.
+4. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML, the embed that replaces the source text, and the log line for the daily note. Then stop and wait for the user's decision. Queue any proposal the user does not decide in this conversation.
+5. **Publishing:** After approval, write the approved note and embed, then use `mcp_obsidian-vault-mcp_obsidian_insert_at_heading` to log the crystallization in the source daily note. For a queued proposal, run the queue's checks first and record it as applied with `mcp_obsidian-vault-mcp_obsidian_update_frontmatter`.
 
 ## Guidance
 

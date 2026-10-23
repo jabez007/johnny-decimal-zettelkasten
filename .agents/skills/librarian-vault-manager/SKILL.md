@@ -15,6 +15,7 @@ This skill provides the foundational knowledge and rules for managing Obsidian v
 - **Read-Only Analysis and Proposals:** **NEVER** create, modify, or delete files directly without a preceding proposal phase.
 - **Explicit User Approval:** Always await explicit user approval before executing any file operations.
 - **Promotion Workflow:** File knowledge from a conversation, a session, or recalled memory through Discover, Propose, Review, and Publish in `references/librarian/knowledge-promotion.md`.
+- **Proposal Queue:** Keep proposals the user has not decided, and the sources they cite, in the vault's hidden `.proposals/` and `.sources/` folders, following `references/librarian/proposal-queue.md`.
 - **Respect ACID Notation:** All references must strictly follow the `SYS.AC.ID` format (Area, Category, ID).
 - **Adherence to Vault Guidelines:** Consult `references/librarian/copilot-instructions.md` for identity, atomicity, titles, and links.
 - **Maintain JDex Integrity:** `00.00.md` index and `_SYS/*.base` configuration must be kept consistent.
@@ -73,3 +74,4 @@ For complex workflows, delegate to these specialized subagents:
 - **Vault Philosophy**: `references/librarian/philosophy.md`
 - **Copilot Instructions**: `references/librarian/copilot-instructions.md`
 - **Knowledge Promotion**: `references/librarian/knowledge-promotion.md`
+- **Proposal Queue**: `references/librarian/proposal-queue.md`
