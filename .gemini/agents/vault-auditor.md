@@ -4,7 +4,7 @@ description: Specialized in auditing Obsidian vault link health, identifying orp
 tools:
   - read_file
   - grep_search
-  - list_directory
+  - glob
   - mcp_obsidian-vault-mcp_obsidian_get_broken_links
   - mcp_obsidian-vault-mcp_obsidian_get_backlinks
   - mcp_obsidian-vault-mcp_obsidian_rag_query

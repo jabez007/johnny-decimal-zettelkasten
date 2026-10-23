@@ -3,7 +3,7 @@ name: vault-synthesizer
 description: Specialist in knowledge compounding and synthesis. Identifies contradictions, synergies, and gaps; proposes "Bridge" or "Synthesis" notes.
 tools:
   - read_file
-  - list_directory
+  - glob
   - mcp_obsidian-vault-mcp_obsidian_rag_query
   - mcp_obsidian-vault-mcp_obsidian_read_note
   - mcp_obsidian-vault-mcp_obsidian_create_note

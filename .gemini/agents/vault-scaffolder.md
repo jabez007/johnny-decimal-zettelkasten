@@ -3,7 +3,7 @@ name: vault-scaffolder
 description: Expert in constructing new Johnny-Decimal structures. Guides the creation of systems, areas, and categories.
 tools:
   - read_file
-  - list_directory
+  - glob
   - write_file
   - mcp_obsidian-vault-mcp_obsidian_list_notes
   - mcp_obsidian-vault-mcp_obsidian_read_note

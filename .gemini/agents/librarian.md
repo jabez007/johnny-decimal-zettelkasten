@@ -4,7 +4,7 @@ description: General knowledge steward for Johnny-Decimal/Zettelkasten Obsidian 
 tools:
   - read_file
   - grep_search
-  - list_directory
+  - glob
   - mcp_obsidian-vault-mcp_obsidian_search_notes
   - mcp_obsidian-vault-mcp_obsidian_read_note
 ---

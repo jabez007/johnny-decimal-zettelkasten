@@ -30,7 +30,11 @@ else
 fi
 
 if claude plugin list 2>/dev/null | grep -q "$PLUGIN_NAME"; then
-  echo "Plugin '$PLUGIN_NAME' already installed."
+  # An installed plugin stays at its version until it is updated, so a
+  # refreshed marketplace alone would leave an older server running.
+  echo "Plugin '$PLUGIN_NAME' already installed. Updating..."
+  claude plugin update "$PLUGIN_NAME@$MARKETPLACE_NAME" || \
+    echo "Note: update skipped or already current."
 else
   claude plugin install "$PLUGIN_NAME@$MARKETPLACE_NAME"
 fi

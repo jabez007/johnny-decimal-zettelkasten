@@ -1,7 +1,7 @@
 ---
 name: flashcard-generator
 description: Generates spaced-repetition flashcards (Q&A or Cloze) for Obsidian notes.
-tools: Read, mcp__obsidian-vault-mcp__obsidian_read_note
+tools: Read, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_read_note
 model: inherit
 ---
 

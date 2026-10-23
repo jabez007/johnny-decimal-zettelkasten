@@ -64,10 +64,7 @@ pass "isolated working copy at $WORK_DIR"
 # --- 1. Static checks -------------------------------------------------------
 section "1. Static checks"
 
-mapfile -t SH_FILES < <(find . -name '*.sh' \
-  -not -path './.claude/skills/*' \
-  -not -path './.gemini/skills/*' \
-  -not -path './config/*')
+mapfile -t SH_FILES < <(find . -name '*.sh' -not -path './config/*')
 check "shellcheck (${#SH_FILES[@]} scripts)" shellcheck --severity=warning "${SH_FILES[@]}"
 
 check "valid JSON: opencode.json" jq -e . opencode.json
@@ -75,20 +72,27 @@ check "valid JSON: opencode.json" jq -e . opencode.json
 check "opencode.json registers obsidian-vault-mcp" \
   jq -e '.mcp["obsidian-vault-mcp"].command | index("@jabez007/obsidian-vault-mcp@2.2.0")' opencode.json
 
-python3 - <<'PY' && pass "all .codex TOML parses" || fail "all .codex TOML parses"
+# Codex finds each .codex/agents/*.toml by its name field, with no registry.
+python3 - <<'PY' && pass "Codex agent files parse and name eight agents" || fail "Codex agent files parse and name eight agents"
 import tomllib, glob, os, sys
 root = os.environ.get("WORK_DIR", "/work/repo")
 try:
-    cfg_path = os.path.join(root, ".codex/config.toml")
-    for f in [cfg_path] + glob.glob(os.path.join(root, ".codex/agents/*.toml")):
-        tomllib.load(open(f, "rb"))
-    cfg = tomllib.load(open(cfg_path, "rb"))
-    agents = [k for k in cfg["agents"] if k != "max_depth"]
-    assert len(agents) == 8, f"expected 8 agents, got {len(agents)}"
-    assert "hooks" not in cfg, "Codex config still registers hooks"
+    names = set()
+    for f in glob.glob(os.path.join(root, ".codex/agents/*.toml")):
+        agent = tomllib.load(open(f, "rb"))
+        for key in ("name", "description", "developer_instructions"):
+            assert agent.get(key), f"{os.path.basename(f)} has no {key}"
+        names.add(agent["name"])
+    assert len(names) == 8, f"expected 8 agents, got {len(names)}"
 except Exception as e:
     print(e); sys.exit(1)
 PY
+
+# Claude Code reads CLAUDE.md instead of AGENTS.md, and Gemini CLI reads
+# GEMINI.md unless its settings name another file. Both must load AGENTS.md.
+check "CLAUDE.md imports AGENTS.md" grep -qx '@AGENTS.md' CLAUDE.md
+check "Gemini settings load AGENTS.md" \
+  jq -e '.context.fileName | index("AGENTS.md")' .gemini/settings.json
 
 # --- 2. Asset generation ----------------------------------------------------
 section "2. Asset generation"
@@ -107,13 +111,14 @@ else
        "$(git diff --name-only | tr '\n' ' ')"
 fi
 
-for h in claude gemini; do
-  ok=1
-  for f in references/librarian/*.md; do
-    cmp -s "$f" ".$h/skills/librarian-vault-manager/references/$(basename "$f")" || ok=0
-  done
-  [ "$ok" = 1 ] && pass "doctrine identical in .$h/skills/" || fail "doctrine identical in .$h/skills/"
-done
+# Claude Code is the one harness that does not read .agents/skills/. Its copy
+# is the canonical skill plus a banner and a blank line after the frontmatter.
+if cmp -s <(cat -s .agents/skills/librarian-vault-manager/SKILL.md) \
+     <(sed '/^<!-- GENERATED FILE/,/-->$/d' .claude/skills/librarian-vault-manager/SKILL.md | cat -s); then
+  pass "Claude skill copy matches the canonical skill"
+else
+  fail "Claude skill copy matches the canonical skill"
+fi
 
 # Promotion is the only route from a session into the vault, so every entry
 # point that can file knowledge must point at it.
@@ -136,10 +141,6 @@ else
   pass "no unsubstituted {{MCP_PREFIX}} in generated output"
 fi
 
-check "Claude agents use mcp__ prefix" \
-  grep -q 'mcp__obsidian-vault-mcp__obsidian_read_note' .claude/agents/librarian.md
-check "Gemini agents use mcp_ prefix" \
-  grep -q 'mcp_obsidian-vault-mcp_obsidian_read_note' .gemini/agents/librarian.md
 
 # OpenCode has no tool allowlist, so each agent must deny the MCP namespace
 # and re-allow only its own tools. Without this an agent inherits every tool
@@ -353,6 +354,27 @@ else
 fi
 rm -f "$TOOLS_JSON"
 
+# A harness drops a granted tool whose name it does not recognize, so each
+# generated prefix must match the name the harness gives the server's tools.
+# The manifests that set those names ship in the MCP repository, not on npm.
+MCP_VERSION=${MCP_CMD##*@}
+MCP_RAW="https://raw.githubusercontent.com/jabez007/obsidian-vault-mcp/v$MCP_VERSION"
+if CLAUDE_PLUGIN=$(curl -fsSL "$MCP_RAW/.claude-plugin/plugin.json") \
+   && GEMINI_EXT=$(curl -fsSL "$MCP_RAW/gemini-extension.json"); then
+  claude_server=$(jq -r '.mcpServers | keys[0]' <<<"$CLAUDE_PLUGIN")
+  want_claude="mcp__plugin_$(jq -r .name <<<"$CLAUDE_PLUGIN")_${claude_server}__obsidian_read_note"
+  want_gemini="mcp_$(jq -r '.mcpServers | keys[0]' <<<"$GEMINI_EXT")_obsidian_read_note"
+  want_opencode="$(jq -r '.mcp | keys[0]' opencode.json)_obsidian_read_note"
+  prefix_ok=1
+  grep -q "^tools:.*$want_claude" .claude/agents/librarian.md || { prefix_ok=0; echo "       Claude agents lack $want_claude"; }
+  grep -q "^  - $want_gemini$" .gemini/agents/librarian.md || { prefix_ok=0; echo "       Gemini agents lack $want_gemini"; }
+  grep -q "\"$want_opencode\": allow" .opencode/agents/librarian.md || { prefix_ok=0; echo "       OpenCode agents lack $want_opencode"; }
+  [ "$prefix_ok" = 1 ] && pass "generated MCP tool names match each harness's install" \
+    || fail "generated MCP tool names match each harness's install"
+else
+  fail "generated MCP tool names match each harness's install" "cannot fetch manifests at v$MCP_VERSION"
+fi
+
 if [ -n "${SKIP_RAG_INDEX:-}" ]; then
   echo "  SKIP RAG indexing (SKIP_RAG_INDEX set)"
 else
@@ -455,7 +477,7 @@ else
   fail "Claude Code has no SessionStart hook"
 fi
 
-if grep -q 'hooks' .codex/config.toml; then
+if grep -qs 'hooks' .codex/config.toml; then
   fail "Codex config has no hooks"
 else
   pass "Codex config has no hooks"

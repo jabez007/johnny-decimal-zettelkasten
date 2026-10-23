@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # sync-assets.sh
-# Generates per-harness copies of the shared librarian doctrine, skill, and
-# agent policies.
+# Generates the Claude Code copy of the librarian skill and each harness's
+# agent definitions.
 #
 # Canonical sources (edit these):
 #   references/librarian/*.md                          - shared doctrine
@@ -10,15 +10,16 @@
 #   .agents/agents/*.md                                - agent policies
 #
 # Generated copies (never edit by hand — this script overwrites them):
-#   .claude/skills/librarian-vault-manager/   .claude/agents/*.md
-#   .gemini/skills/librarian-vault-manager/   .gemini/agents/*.md
-#                                             .opencode/agents/*.md
-#                                             .codex/agents/*.toml
-#                                             .codex/config.toml
+#   .claude/skills/librarian-vault-manager/SKILL.md
+#   .claude/agents/*.md  .gemini/agents/*.md  .opencode/agents/*.md
+#   .codex/agents/*.toml
 #
-# Codex reads the canonical .agents/skills/ directory directly, so it needs no
-# generated skill copy. OpenCode discovers skills through Claude Code
-# compatibility and picks up the .claude/skills/ copy.
+# Codex, Gemini CLI, and OpenCode read the skill from .agents/skills/. Claude
+# Code reads only .claude/skills/, so it gets a copy of SKILL.md. The skill
+# names the doctrine by its repo-root path, references/librarian/*.md, so the
+# doctrine is never copied.
+#
+# Codex finds .codex/agents/*.toml without a registry in .codex/config.toml.
 #
 # Agent policies are written once in .agents/agents/ and emitted into each
 # harness's own format. Bodies reference MCP tools through a {{MCP_PREFIX}}
@@ -34,43 +35,31 @@ cd "$REPO_ROOT"
 
 SKILL_NAME="librarian-vault-manager"
 CANONICAL_SKILL=".agents/skills/$SKILL_NAME/SKILL.md"
-CANONICAL_DOCTRINE="references/librarian"
-TARGETS=(".claude/skills/$SKILL_NAME" ".gemini/skills/$SKILL_NAME")
+CLAUDE_SKILL=".claude/skills/$SKILL_NAME"
 
-BANNER="<!-- GENERATED FILE — DO NOT EDIT.
-     Source: $CANONICAL_SKILL
-     Regenerate with: ./scripts/sync-assets.sh -->"
+if [ ! -e "$CANONICAL_SKILL" ]; then
+  echo "Error: canonical source '$CANONICAL_SKILL' is missing."
+  exit 1
+fi
 
-for required in "$CANONICAL_SKILL" "$CANONICAL_DOCTRINE"; do
-  if [ ! -e "$required" ]; then
-    echo "Error: canonical source '$required' is missing."
-    exit 1
-  fi
-done
+rm -rf "$CLAUDE_SKILL"
+mkdir -p "$CLAUDE_SKILL"
 
-for target in "${TARGETS[@]}"; do
-  echo "Generating $target/"
+# The banner goes after the YAML frontmatter, so Claude Code still parses the
+# frontmatter first.
+awk -v src="$CANONICAL_SKILL" '
+  NR == 1 && $0 == "---" { print; in_fm = 1; next }
+  in_fm && $0 == "---" {
+    print; print ""
+    print "<!-- GENERATED FILE — DO NOT EDIT."
+    print "     Source: " src
+    print "     Regenerate with: ./scripts/sync-assets.sh -->"
+    in_fm = 0; next
+  }
+  { print }
+' "$CANONICAL_SKILL" >"$CLAUDE_SKILL/SKILL.md"
 
-  rm -rf "$target"
-  mkdir -p "$target/references"
-
-  # SKILL.md: canonical body with a generated-file banner inserted after the
-  # YAML frontmatter, so harness frontmatter parsing still sees it first.
-  awk -v banner="$BANNER" '
-    NR == 1 && $0 == "---" { print; in_fm = 1; next }
-    in_fm && $0 == "---"   { print; print ""; print banner; in_fm = 0; next }
-    { print }
-  ' "$CANONICAL_SKILL" >"$target/SKILL.md"
-
-  # Doctrine: copied so each harness skill is self-contained. The skill body
-  # refers to these as references/librarian/*.md, which resolves from the repo
-  # root; the bundled copy covers harnesses that sandbox skills to their own
-  # directory.
-  cp "$CANONICAL_DOCTRINE"/*.md "$target/references/"
-done
-
-echo ""
-echo "Synced ${#TARGETS[@]} harness skill copies from $CANONICAL_SKILL."
+echo "Synced $CLAUDE_SKILL/SKILL.md from $CANONICAL_SKILL."
 
 # ---------------------------------------------------------------------------
 # Agent policies
@@ -83,8 +72,11 @@ if [ ! -d "$CANONICAL_AGENTS" ]; then
   exit 1
 fi
 
-# Each harness namespaces MCP tools differently.
-CLAUDE_PREFIX="mcp__obsidian-vault-mcp__"
+# Each harness namespaces MCP tools differently. The setup scripts install the
+# server as the obsidian-vault-mcp plugin in Claude Code and as an extension in
+# Gemini CLI, and opencode.json names it obsidian-vault-mcp. Claude Code adds
+# the plugin name to the tool names of a plugin's server.
+CLAUDE_PREFIX="mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__"
 GEMINI_PREFIX="mcp_obsidian-vault-mcp_"
 OPENCODE_PREFIX="obsidian-vault-mcp_"
 
@@ -100,7 +92,7 @@ claude_tool() {
 gemini_tool() {
   case "$1" in
     read) echo "read_file" ;; write) echo "write_file" ;; edit) echo "replace" ;;
-    grep) echo "grep_search" ;; glob) echo "list_directory" ;;
+    grep) echo "grep_search" ;; glob) echo "glob" ;;
     bash) echo "run_shell_command" ;;
     *) echo "" ;;
   esac
@@ -130,7 +122,6 @@ unlist() {
 rm -rf .claude/agents .gemini/agents .opencode/agents .codex/agents
 mkdir -p .claude/agents .gemini/agents .opencode/agents .codex/agents
 
-CODEX_REGISTRY=""
 AGENT_COUNT=0
 
 for src in "$CANONICAL_AGENTS"/*.md; do
@@ -272,24 +263,6 @@ direct write; if it does not match, you are using the wrong tool."
     echo "\"\"\""
     echo "nickname_candidates = [$codex_nicks]"
   } >".codex/agents/$name.toml"
-
-  CODEX_REGISTRY="$CODEX_REGISTRY
-
-[agents.\"$name\"]
-description = \"${description//\"/\\\"}\"
-config_file = \"./agents/$name.toml\"
-nickname_candidates = [$codex_nicks]"
 done
-
-# --- Codex config.toml: generated agent registry ---------------------------
-{
-  echo "# GENERATED FILE — DO NOT EDIT."
-  echo "# Agent entries are generated from $CANONICAL_AGENTS/*.md."
-  echo "# Regenerate with: ./scripts/sync-assets.sh"
-  echo ""
-  echo "[agents]"
-  echo "max_depth = 1"
-  echo "$CODEX_REGISTRY"
-} >".codex/config.toml"
 
 echo "Synced $AGENT_COUNT agent policies into 4 harness formats."

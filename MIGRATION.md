@@ -340,10 +340,9 @@ references/librarian/*.md                        shared doctrine
 **Generated (never edit — `scripts/sync-assets.sh` overwrites them):**
 
 ```text
-.claude/skills/…   .claude/agents/*.md
-.gemini/skills/…   .gemini/agents/*.md
-                   .opencode/agents/*.md
-                   .codex/agents/*.toml   .codex/config.toml
+.claude/skills/librarian-vault-manager/SKILL.md
+.claude/agents/*.md  .gemini/agents/*.md  .opencode/agents/*.md
+.codex/agents/*.toml
 ```
 
 Run `./scripts/sync-assets.sh` after editing any canonical file. CI reruns it
@@ -354,7 +353,7 @@ because each harness namespaces MCP tools differently:
 
 | Harness | Prefix |
 | :--- | :--- |
-| Claude Code | `mcp__obsidian-vault-mcp__` |
+| Claude Code | `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__` |
 | Gemini CLI | `mcp_obsidian-vault-mcp_` |
 | OpenCode | `obsidian-vault-mcp_` |
 | Codex CLI | *(bare — the plugin namespaces at call time)* |

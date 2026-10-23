@@ -1,7 +1,7 @@
 ---
 name: daily-reviewer
 description: Proposes permanent notes from the user's daily notes and captured research. Identifies emerging concepts for the JDex.
-tools: Read, Grep, Glob, mcp__obsidian-vault-mcp__obsidian_search_notes, mcp__obsidian-vault-mcp__obsidian_read_note, mcp__obsidian-vault-mcp__obsidian_get_daily_note, mcp__obsidian-vault-mcp__obsidian_rag_query, mcp__obsidian-vault-mcp__obsidian_create_note, mcp__obsidian-vault-mcp__obsidian_insert_at_heading, mcp__obsidian-vault-mcp__obsidian_replace_in_note
+tools: Read, Grep, Glob, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_search_notes, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_read_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_get_daily_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_insert_at_heading, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_replace_in_note
 model: inherit
 ---
 
@@ -59,9 +59,9 @@ so placeholder text becomes an unusable label in the graph.
 
 1. **Scanning:** Review recent daily notes in `JRNL/` for distinct claims or flagged intent (e.g., `#to-note`, `#to-process`).
 2. **Crystallization & Entity Extraction:** Identify the key entities and communities from the journal entry.
-3. **Synthesis Check:** Search the vault using `mcp__obsidian-vault-mcp__obsidian_rag_query` for existing overlaps.
+3. **Synthesis Check:** Search the vault using `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query` for existing overlaps.
 4. **Proposal:** Suggest a new JDex entry or merging into an existing one. Include the structured YAML, the embed that replaces the source text, and the log line for the daily note. Then stop and wait for the user's decision.
-5. **Publishing:** After approval, write the approved note and embed, then use `mcp__obsidian-vault-mcp__obsidian_insert_at_heading` to log the crystallization in the source daily note.
+5. **Publishing:** After approval, write the approved note and embed, then use `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_insert_at_heading` to log the crystallization in the source daily note.
 
 ## Guidance
 
