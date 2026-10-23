@@ -92,11 +92,8 @@ authority to change it.
 - Index metadata and snapshot manifests record a fingerprint of the ignore
   rules. Section 5 lists what is still open.
 
-Phase 1 works the same on v2.1.0 and v2.2.0: both read and write hidden
-paths by name and leave them out of listings and search. The template moves
-to 2.2.0 in
-[PR #15](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/15).
-Its snapshot hook passes the staged ignore file to the MCP server and
+[PR #15](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/15)
+moved the template to 2.2.0. Its snapshot hook passes the staged ignore file to the MCP server and
 republishes a vault's snapshot when only the ignore file changes. It refuses
 to publish when the rules exclude any note, because snapshot installation
 still requires every working note to be in the snapshot.
@@ -485,7 +482,7 @@ tests and documentation use generic folders such as `drafts/` and
 | 0 | Decide proposal storage | Nothing | Done: proposal files |
 | 1 | JD-1 in hidden folders, approval in conversation only | Phase 0 | Done |
 | 1 | MCP-1 and MCP-2 | Nothing, runs in parallel | v2.2.0, except the install check |
-| 2 | JD-2: snapshot change, visible folders, and sample ignore file | Phase 1 and PR #15 | Not started |
+| 2 | JD-2: snapshot change, visible folders, and sample ignore file | Phase 1 | Not started |
 | 3 | JD-3: enforced publisher, then bypass attempts through other tools and the shell | Phase 2 | Later |
 | 4 | Duplicate detection, batch review, stale-proposal reminders, JD-4 | Real use showing a need | Later |
 
