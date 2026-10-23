@@ -16,6 +16,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Vault Constitution:** `references/librarian/copilot-instructions.md`
 - **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
 - **Zettelkasten Method:** `references/librarian/zettelkasten.md`
+- **Proposal Queue:** `references/librarian/proposal-queue.md`
 
 ## Core Rules
 
@@ -48,6 +49,15 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 ### 4. Emergent Structure
 
 - Detect clusters of 5+ related notes in a category that lack a unifying structure note. A structure note is an ordinary note with a normal ID (`AC.01`-`AC.FF`); `AC.00` is not valid.
+
+### 5. Proposal Queue Health
+
+The MCP listing tools never show the queue. List `.proposals/` and `.sources/` at the vault root by explicit path with your file tools, then report:
+
+- Open proposals that fail the checks in `references/librarian/proposal-queue.md`.
+- Proposals `pending` or `deferred` for more than 30 days.
+- Proposals left at `approved`, which means publishing stopped partway.
+- Source records that no proposal cites.
 
 ## Output Format
 

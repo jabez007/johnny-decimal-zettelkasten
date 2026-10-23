@@ -125,6 +125,28 @@ done
 [ "$promo_ok" = 1 ] && pass "promotion doctrine is referenced from every entry point" \
   || fail "promotion doctrine is referenced from every entry point"
 
+# Proposals that wait for review live in hidden folders that the MCP tools
+# never list, so every entry point must say where the queue is.
+queue_ok=1
+for f in AGENTS.md .agents/skills/librarian-vault-manager/SKILL.md \
+         .agents/agents/librarian.md references/librarian/knowledge-promotion.md \
+         references/librarian/copilot-instructions.md; do
+  grep -q 'proposal-queue.md' "$f" || { queue_ok=0; echo "       $f does not reference proposal-queue.md"; }
+done
+[ "$queue_ok" = 1 ] && pass "proposal queue doctrine is referenced from every entry point" \
+  || fail "proposal queue doctrine is referenced from every entry point"
+
+# An agent that queues proposals writes the record, changes its state, and
+# appends review lines. Those are three different MCP tools.
+writers_ok=1
+for n in source-distiller daily-reviewer vault-synthesizer; do
+  for tool in obsidian_create_note obsidian_update_frontmatter obsidian_insert_at_heading; do
+    grep -qE "^mcp_tools:.*\b$tool\b" ".agents/agents/$n.md" || { writers_ok=0; echo "       $n lacks $tool"; }
+  done
+done
+[ "$writers_ok" = 1 ] && pass "agents that queue proposals hold the queue's write tools" \
+  || fail "agents that queue proposals hold the queue's write tools"
+
 for d in .claude/agents .gemini/agents .opencode/agents .codex/agents; do
   n=$(find "$d" -type f | wc -l)
   [ "$n" = 8 ] && pass "$d has 8 agents" || fail "$d has 8 agents" "found $n"
@@ -429,6 +451,62 @@ else
       fail "promotion refuses to overwrite an existing ID"
     fi
     rm -f "$PROMO_LOG" "${VAULT:?}/${PROMO:?}"
+
+    # Proposals that wait for review live in hidden folders. An agent writes
+    # and updates them with the MCP tools, search never returns them, and the
+    # template's checker reads what the MCP wrote.
+    QUEUED=".proposals/P-20261023-0A0B.md"
+    QUEUED_BODY=$'---\nrecord_type: knowledge-proposal\nproposal_id: P-20261023-0A0B\nstate: pending\nrevision: 1\noperation: update\ntarget_path: LIFE/10-Home/11-Maintenance/LIFE.11.00.md\nsource_ids: []\ncreated_at: \'2026-10-23\'\nupdated_at: \'2026-10-23\'\n---\n# The maintenance index names the narwhal-sextant fixture\n\n## Change\n\n### Replace\n\n~~~~markdown\n# Maintenance\n~~~~\n\n~~~~markdown\n# Maintenance narwhal-sextant\n~~~~\n'
+    for heading in Why Evidence Conflicts 'Sensitivity check' Links 'Log entry' 'Open questions' Review; do
+      QUEUED_BODY+=$'\n'"## $heading"$'\n\nNot applicable.\n'
+    done
+    QUEUE_LOG=$(mktemp)
+    queue_call() {
+      jq -nc --arg n "$1" --argjson a "$2" --arg v "$VAULT" --arg w "$WORK_DIR" \
+        '{jsonrpc:"2.0", id:2, method:"tools/call", params:{name:$n,
+          arguments:($a + {vault_path:$v, workspace_path:$w, vault_id:"test_example"})}}'
+    }
+    # One request per server process, and the input stays open until the
+    # server answers it.
+    queue_session() {
+      {
+        printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"harness","version":"1"}}}'
+        printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+        queue_call "$1" "$2"
+        for _ in $(seq 1 60); do
+          jq -se 'any(.[]; .id==2)' "$QUEUE_LOG" >/dev/null 2>&1 && break
+          sleep 1
+        done
+      } | $MCP_CMD 2>/dev/null >"$QUEUE_LOG" || true
+      jq -se 'any(.[]; .id==2 and .result.isError != true)' "$QUEUE_LOG" >/dev/null 2>&1
+    }
+    if queue_session obsidian_create_note "$(jq -nc --arg p "$QUEUED" --arg c "$QUEUED_BODY" '{file_path:$p, content:$c}')" \
+       && cmp -s <(printf '%s' "$QUEUED_BODY") "$VAULT/$QUEUED"; then
+      pass "an agent can queue a proposal in .proposals/ through MCP"
+    else
+      fail "an agent can queue a proposal in .proposals/ through MCP" "$(tail -c 300 "$QUEUE_LOG")"
+    fi
+    QUEUE_HITS=$($MCP_CMD obsidian_search_notes --query narwhal-sextant --path "$VAULT" \
+                   --workspace_path "$WORK_DIR" --vault_id test_example 2>&1)
+    QUEUE_HITS+=$($MCP_CMD obsidian_rag_query --query "narwhal-sextant fixture" --path "$VAULT" \
+                    --workspace_path "$WORK_DIR" --vault_id test_example 2>&1)
+    QUEUE_HITS+=$($MCP_CMD obsidian_list_notes --path "$VAULT" --workspace_path "$WORK_DIR" \
+                    --vault_id test_example 2>&1)
+    if [[ "$QUEUE_HITS" != *proposals* ]]; then
+      pass "queued proposals stay out of search and note listings"
+    else
+      fail "queued proposals stay out of search and note listings" "$(grep -m1 proposals <<<"$QUEUE_HITS")"
+    fi
+    check "proposal checker accepts the queued proposal" \
+      node scripts/proposal-queue.mjs check --vault vaults/example
+    if queue_session obsidian_update_frontmatter "$(jq -nc --arg p "$QUEUED" '{file_path:$p, key:"state", value:"rejected"}')" \
+       && grep -q '^state: rejected$' "$VAULT/$QUEUED"; then
+      check "proposal checker reads frontmatter the MCP rewrote" \
+        node scripts/proposal-queue.mjs check --vault vaults/example
+    else
+      fail "an agent can record a decision on a queued proposal" "$(tail -c 300 "$QUEUE_LOG")"
+    fi
+    rm -rf "$QUEUE_LOG" "${VAULT:?}/.proposals"
   else
     fail "obsidian_rag_index --force_reindex true" "$(tail -5 "$INDEX_LOG" | tr '\n' ' ')"
   fi
@@ -978,7 +1056,10 @@ check "Codex setup uses marketplace upgrade" \
   grep -q 'codex plugin marketplace upgrade "$MARKETPLACE_NAME"' .codex/setup-environment.sh
 rm -rf "$STUB_BIN"
 
-section "8. Index snapshot hooks"
+section "8. Proposal queue checker"
+check "proposal queue checker cases" python3 test/test-proposal-queue.py
+
+section "9. Index snapshot hooks"
 if [ -z "${MCP_SNAPSHOT_RELEASE:-}" ]; then
   MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.2.0 -c 'command -v obsidian-vault-mcp')
   MCP_SNAPSHOT_RELEASE=$(node -e 'const fs = require("fs"), p = require("path"); console.log(p.dirname(p.dirname(fs.realpathSync(process.argv[1]))))' "$MCP_EXECUTABLE")
