@@ -110,6 +110,22 @@ else
        "$(git diff --name-only | tr '\n' ' ')"
 fi
 
+# An upgrade must preserve the vault selected by the legacy backend. Falling
+# back to the sample vault would write a valid but surprising v2 config.
+mkdir -p "$WORK_DIR/vaults/existing"
+jq -n --arg vault "$WORK_DIR/vaults/existing/" \
+  --arg workspace "$WORK_DIR" \
+  '{vault_path: $vault, workspace_path: $workspace, vault_id: "test_existing"}' \
+  >"$HOME/.gemini-obsidian.config.json"
+out=$(MCP_CMD=true bash scripts/configure-vault.sh </dev/null 2>&1)
+if echo "$out" | grep -q "Vault configured: $WORK_DIR/vaults/existing"; then
+  pass "configure-vault preserves the legacy configured vault by default"
+else
+  fail "configure-vault preserves the legacy configured vault by default" \
+    "$(echo "$out" | tail -3 | tr '\n' ' ')"
+fi
+rm -f "$HOME/.gemini-obsidian.config.json"
+
 # Claude Code is the one harness that does not read .agents/skills/. Its copy
 # is the canonical skill plus a banner and a blank line after the frontmatter.
 if cmp -s <(cat -s .agents/skills/librarian-vault-manager/SKILL.md) \
@@ -989,9 +1005,20 @@ done
 # --- 6. Migration script ----------------------------------------------------
 section "6. v2 migration script"
 
+NO_CONFIG_HOME=$(mktemp -d)
+if out=$(HOME="$NO_CONFIG_HOME" MCP_CMD=true ./scripts/migrate-v2.sh --yes 2>&1); then
+  fail "migrate-v2.sh rejects completion without a RAG rebuild"
+elif echo "$out" | grep -q "Migration incomplete"; then
+  pass "migrate-v2.sh rejects completion without a RAG rebuild"
+else
+  fail "migrate-v2.sh rejects completion without a RAG rebuild" \
+    "$(echo "$out" | tail -3 | tr '\n' ' ')"
+fi
+rm -rf "$NO_CONFIG_HOME"
+
 printf 'legacy\n' >.gitattributes
 echo '.gemini-obsidian/**/*.lance filter=lfs diff=lfs merge=lfs -text' >>.gitattributes
-check "migrate-v2.sh runs non-interactively" bash scripts/migrate-v2.sh --yes
+check "migrate-v2.sh runs directly and non-interactively" ./scripts/migrate-v2.sh --yes
 
 if grep -q '.obsidian-vault-mcp/' .gitattributes && ! grep -q '.gemini-obsidian/' .gitattributes; then
   pass "migrate-v2.sh rewrites LFS globs"
@@ -999,7 +1026,7 @@ else
   fail "migrate-v2.sh rewrites LFS globs" "$(cat .gitattributes | tr '\n' ' ')"
 fi
 
-check "migrate-v2.sh is re-runnable" bash scripts/migrate-v2.sh --yes
+check "migrate-v2.sh is re-runnable" ./scripts/migrate-v2.sh --yes
 
 # --- 7. Setup script dependency gates ---------------------------------------
 section "7. Setup script dependency gates"

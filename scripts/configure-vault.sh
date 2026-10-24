@@ -18,13 +18,27 @@ MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.3.0"}
 
 echo "--- Configuring vault ---"
 
+DEFAULT_VAULT_NAME="example"
+for cfg in "$HOME/.obsidian-mcp.config.json" "$HOME/.gemini-obsidian.config.json"; do
+  if [ -f "$cfg" ] && command -v jq >/dev/null 2>&1; then
+    CONFIGURED_VAULT_PATH=$(jq -r '.vault_path // empty' "$cfg" 2>/dev/null || true)
+    CONFIGURED_VAULT_PATH=${CONFIGURED_VAULT_PATH%/}
+    CONFIGURED_VAULT_NAME=$(basename "$CONFIGURED_VAULT_PATH")
+    if [ "$CONFIGURED_VAULT_PATH" = "$REPO_ROOT/vaults/$CONFIGURED_VAULT_NAME" ] \
+      && [ -d "$CONFIGURED_VAULT_PATH" ]; then
+      DEFAULT_VAULT_NAME="$CONFIGURED_VAULT_NAME"
+      break
+    fi
+  fi
+done
+
 VAULT_NAME_RAW=""
 if [ -t 0 ]; then
-  read -rp "Enter Obsidian vault name [example]: " VAULT_NAME_RAW
+  read -rp "Enter Obsidian vault name [$DEFAULT_VAULT_NAME]: " VAULT_NAME_RAW
 fi
 
 if [ -z "$VAULT_NAME_RAW" ]; then
-  VAULT_NAME_RAW="example"
+  VAULT_NAME_RAW="$DEFAULT_VAULT_NAME"
 fi
 
 # Slugify: lowercase, replace non-alphanumeric with hyphens, collapse, trim ends

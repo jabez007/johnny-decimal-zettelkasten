@@ -13,12 +13,20 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.3.0"
+MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.3.0"}
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"
 ASSUME_YES=0
+REINDEX_COMPLETE=0
 
 [ "${1:-}" = "--yes" ] && ASSUME_YES=1
+
+for cmd in jq node npx; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Error: '$cmd' is required but not installed."
+    exit 1
+  fi
+done
 
 confirm() {
   [ "$ASSUME_YES" = "1" ] && return 0
@@ -165,6 +173,7 @@ else
       --workspace_path "${WORKSPACE_PATH:-$REPO_ROOT}" \
       "${VAULT_ID_ARGS[@]}" \
       --force_reindex true
+    REINDEX_COMPLETE=1
     echo "Index rebuilt."
   else
     echo ""
@@ -182,6 +191,14 @@ echo "--- 8. Regenerating harness assets ---"
 bash "$REPO_ROOT/scripts/sync-assets.sh"
 
 echo ""
+if [ "$REINDEX_COMPLETE" != "1" ]; then
+  echo "======================================================="
+  echo " Migration incomplete: the required RAG rebuild did not run."
+  echo " Complete the rebuild, then re-run this script."
+  echo "======================================================="
+  exit 1
+fi
+
 echo "======================================================="
 echo " Migration complete."
 echo ""
