@@ -6,7 +6,7 @@ Targets: `jabez007/johnny-decimal-zettelkasten` and
 `jabez007/obsidian-vault-mcp`.
 
 Baseline: PR #14, "Separate the knowledge vault from agent memory", released
-as v3.0.0, and `obsidian-vault-mcp` v2.2.0.
+as v3.0.0, and `obsidian-vault-mcp` v2.3.0.
 
 ## Changes from v0.4
 
@@ -79,7 +79,7 @@ PR #14 made the vault a reference library instead of agent memory.
 Review, Publish. Hindsight is optional, lives outside the vault, and never has
 authority to change it.
 
-`obsidian-vault-mcp` v2.2.0 facts this design depends on:
+Facts about `obsidian-vault-mcp` v2.2.0 and later that this design depends on:
 
 - Search indexes lowercase `.md` files outside hidden files and directories.
   An optional `.obsidian-mcpignore` at the vault root narrows that set
@@ -93,7 +93,9 @@ authority to change it.
   rules. Section 5 lists what is still open.
 
 [PR #15](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/15)
-moved the template to 2.2.0. Its snapshot hook passes the staged ignore file to the MCP server and
+moved the template to 2.2.0, and
+[PR #18](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/18)
+moved it to 2.3.0. The snapshot hook passes the staged ignore file to the MCP server and
 republishes a vault's snapshot when only the ignore file changes. It refuses
 to publish when the rules exclude any note, because snapshot installation
 still requires every working note to be in the snapshot.
@@ -585,6 +587,7 @@ earlier references still work.
 
 - [PR #14: Separate the knowledge vault from agent memory](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/14)
 - [PR #15: Move the template to obsidian-vault-mcp 2.2.0](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/15)
+- [PR #18: Move the template to obsidian-vault-mcp 2.3.0](https://github.com/jabez007/johnny-decimal-zettelkasten/pull/18)
 - [Knowledge and memory separation design](knowledge-memory-separation.md)
 - [Knowledge promotion policy](../../references/librarian/knowledge-promotion.md)
 - [Proposal queue policy](../../references/librarian/proposal-queue.md)

@@ -10,7 +10,7 @@ const CONFIG = '.obsidian-indexes.json';
 const STORAGE = '.obsidian-vault-mcp';
 const COMPANIONS = ['file-hashes.json', 'schema-version.json', 'index-metadata.json'];
 const PAYLOAD = ['lancedb', ...COMPANIONS];
-const PACKAGE = '@jabez007/obsidian-vault-mcp@2.2.0';
+const PACKAGE = '@jabez007/obsidian-vault-mcp@2.3.0';
 let root;
 
 function run(command, args, options = {}) {

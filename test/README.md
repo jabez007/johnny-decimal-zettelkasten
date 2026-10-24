@@ -49,7 +49,7 @@ staged rules differing from working rules, and removal of LFS filters. Valid
 attribute changes must pass without the MCP or changes to unstaged notes.
 
 To also test a real release, set `MCP_SNAPSHOT_RELEASE` to the unpacked MCP
-2.2.0 package directory with its dependencies installed:
+2.3.0 package directory with its dependencies installed:
 
 ```bash
 MCP_SNAPSHOT_RELEASE=/path/to/package python3 test/test-index-hooks.py
@@ -83,14 +83,14 @@ nearly all of it npm fetching onnxruntime.
 
 | Section | Checks |
 | :--- | :--- |
-| 1. Static | shellcheck across all scripts; JSON and TOML parse; 8 agents registered in `.codex/config.toml` |
-| 2. Generation | `sync-assets.sh` runs, is idempotent, and matches what is committed (the CI drift gate); doctrine identical across harnesses; the promotion doctrine is referenced from every entry point; correct MCP prefix per harness; no unsubstituted `{{MCP_PREFIX}}` |
-| 3. MCP server | `obsidian_set_vault` writes the config; `obsidian_list_notes` reads the vault; `obsidian_rag_index --force_reindex` builds an index under `.obsidian-vault-mcp/`; `obsidian_rag_query` returns results with a rendered relevance score; a promoted note created over MCP stdio is ranked first by the next query, and a second create at the same ID is refused |
+| 1. Static | shellcheck across all scripts; JSON and TOML parse; each `.codex/agents/*.toml` file sets the name its filename gives; `CLAUDE.md` imports `AGENTS.md` and `.gemini/settings.json` loads it |
+| 2. Generation | `sync-assets.sh` runs, is idempotent, and matches what is committed (the CI drift gate); the Claude skill copy matches the canonical skill; the promotion doctrine is referenced from every entry point; every agent folder holds the same eight specialists, with name fields that match their filenames; no unsubstituted `{{MCP_PREFIX}}` |
+| 3. MCP server | every agent keeps each canonical MCP tool under the name the plugin and extension manifests at the pinned MCP tag give it; `obsidian_set_vault` writes the config; `obsidian_list_notes` reads the vault; `obsidian_rag_index --force_reindex` builds an index under `.obsidian-vault-mcp/`; `obsidian_rag_query` returns results with a rendered relevance score; a promoted note created over MCP stdio is ranked first by the next query, and a second create at the same ID is refused |
 | 4. Agent memory is retired | Retired hooks, context script, and compiler are gone; the sample vault has no agent-memory content; no harness registers a `SessionStart` hook; no agent asset asks for session logging or references a memory provider; `legacy-hooks` removes only the old Gemini hook; `migrate-agent-memory.sh` inventories, refuses unsafe archives, archives by scope with `git mv`, leaves journals and curated notes untouched, and restores the original tree |
 | 5. Harness parity | Every `setup-environment.sh` honours the shared setup contract |
 | 6. v2 migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
 | 7. Setup gates | Each `setup-environment.sh` fails fast when its CLI is missing, tested with a restricted PATH so the result does not depend on what is installed |
-| 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.2.0 export → LFS push/clone → vector and full-text queries without reindexing |
+| 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.3.0 export → LFS push/clone → vector and full-text queries without reindexing |
 
 ## What it does not cover
 

@@ -1,7 +1,7 @@
 ---
 name: source-distiller
 description: Processes long-form sources (articles, transcripts) into atomic, concept-oriented permanent notes.
-tools: Read, mcp__obsidian-vault-mcp__obsidian_rag_query, mcp__obsidian-vault-mcp__obsidian_create_note, mcp__obsidian-vault-mcp__obsidian_read_note, mcp__obsidian-vault-mcp__obsidian_insert_at_heading, mcp__obsidian-vault-mcp__obsidian_replace_in_note, mcp__obsidian-vault-mcp__obsidian_update_frontmatter
+tools: Read, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_read_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_insert_at_heading, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_replace_in_note, mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_update_frontmatter
 model: inherit
 ---
 
@@ -55,16 +55,16 @@ so placeholder text becomes an unusable label in the graph.
 
 1. **Analyze:** Read the provided text. Identify core claims and evidence.
 2. **Extract Entities:** Identify the key entities (nodes) and communities (clusters).
-3. **Synthesis Search:** Search the vault using `mcp__obsidian-vault-mcp__obsidian_rag_query` for existing themes and overlapping notes. Filter on the `entities` you extracted in step 2 to find exact prior coverage before falling back to an unfiltered semantic query.
+3. **Synthesis Search:** Search the vault using `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query` for existing themes and overlapping notes. Filter on the `entities` you extracted in step 2 to find exact prior coverage before falling back to an unfiltered semantic query.
 4. **Draft:** Draft the note using Zettelkasten principles (atomic, clear, self-contained).
 5. **Graph:** Populate the YAML frontmatter accurately. Ensure inline wikilinks in the body explain relationships to other notes.
 6. **Ripple:** Use the identified `entities` to search the vault. Draft specific edits to existing notes that integrate the new insight.
 7. **Propose:** Present each new note and each edit as a Knowledge Promotion proposal, then stop for the user's decision. Queue the proposals the user does not decide, with source records for the passages they cite.
-8. **Publish:** After approval, write new notes with `mcp__obsidian-vault-mcp__obsidian_create_note` and apply edits with `mcp__obsidian-vault-mcp__obsidian_replace_in_note` or `mcp__obsidian-vault-mcp__obsidian_insert_at_heading`. For a queued proposal, run the queue's checks first and record it as applied with `mcp__obsidian-vault-mcp__obsidian_update_frontmatter`.
+8. **Publish:** After approval, write new notes with `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_create_note` and apply edits with `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_replace_in_note` or `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_insert_at_heading`. For a queued proposal, run the queue's checks first and record it as applied with `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_update_frontmatter`.
 
 ## Graph-Aware Querying
 
-`mcp__obsidian-vault-mcp__obsidian_rag_query` accepts `entities` and `communities` filter
+`mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_rag_query` accepts `entities` and `communities` filter
 parameters. These match frontmatter labels exactly and are case-sensitive. When
 you are looking for notes related to a known entity or cluster, pass the filter
 rather than relying on semantic similarity to surface them — the filter is exact,

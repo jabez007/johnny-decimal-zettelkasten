@@ -845,7 +845,7 @@ class IndexHooksTest(unittest.TestCase):
     def test_published_mcp_release_survives_lfs_push_clone_and_install(self):
         release = Path(RELEASE).resolve()
         package = json.loads((release / 'package.json').read_text())
-        self.assertEqual(package['version'], '2.2.0')
+        self.assertEqual(package['version'], '2.3.0')
         self.assertEqual(package['dependencies']['@lancedb/lancedb'], '0.27.2')
         runner = self.base / 'real-mcp'
         runner.write_text('#!/usr/bin/env python3\nimport os,sys\nos.execvp("node", ["node", '+repr(str(release / 'dist/index.js'))+']+sys.argv[1:])\n')
@@ -888,8 +888,9 @@ class IndexHooksTest(unittest.TestCase):
                               extra_env={'OBSIDIAN_VAULT_PATH': str(receiver / 'vaults/example'),
                                          'OBSIDIAN_WORKSPACE_PATH': str(receiver), 'OBSIDIAN_VAULT_ID': 'shared-example'})
         self.assertIn('no changes detected', result.stdout)
-        # MCP 2.2.0 rewrites the file in its own JSON layout without changing any value.
-        self.assertEqual(json.loads(metadata.read_bytes()), json.loads(before))
+        # An unchanged scan leaves the installed metadata file byte for byte. MCP
+        # 2.2.0 rewrote it in its own JSON layout.
+        self.assertEqual(metadata.read_bytes(), before)
         code = '''const {createRequire}=require('node:module'); const r=createRequire(process.argv[1]+'/package.json');
         (async()=>{const db=await r('@lancedb/lancedb').connect(process.argv[2]);const table=await db.openTable('notes');
         const rows=await table.query().toArray();const fts=await table.search('Snapshotmarker','fts').toArray();

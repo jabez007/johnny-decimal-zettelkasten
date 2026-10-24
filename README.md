@@ -59,7 +59,7 @@ Follow these steps to initialize your first vault:
    config. Each targets a vault inside `vaults/<vault-name>/` (default:
    `vaults/example/`) and persists the selection to `~/.obsidian-mcp.config.json`.
    The shared setup uses the published npm package,
-   `npx -y @jabez007/obsidian-vault-mcp@2.2.0`.
+   `npx -y @jabez007/obsidian-vault-mcp@2.3.0`.
 4. **Initialize the actual vault in Obsidian**:
    - Open `vaults/<vault-name>/` as the Obsidian vault, not the repository root.
    - Enable **Bases** and **Backlinks** core plugins.
@@ -76,7 +76,7 @@ Follow these steps to initialize your first vault:
 
 ## Sharing the search index
 
-Setup installs a pre-commit hook that uses MCP 2.2.0 to publish a validated
+Setup installs a pre-commit hook that uses MCP 2.3.0 to publish a validated
 LanceDB snapshot for each registered vault after incremental indexing. Database files use Git LFS;
 matching metadata and stable vault IDs use ordinary Git. Live databases and
 export history stay local.
@@ -111,7 +111,7 @@ Agent policies and doctrine are written **once** and generated into each harness
 
 **Generated — never edit by hand:**
 
-`.claude/agents/` · `.claude/skills/` · `.gemini/agents/` · `.gemini/skills/` · `.opencode/agents/` · `.codex/agents/` · `.codex/config.toml`
+`.claude/agents/` · `.claude/skills/` · `.gemini/agents/` · `.opencode/agents/` · `.codex/agents/`
 
 ```bash
 ./scripts/sync-assets.sh   # regenerate after editing any canonical file
@@ -119,7 +119,7 @@ Agent policies and doctrine are written **once** and generated into each harness
 
 CI reruns the generator and fails the build if generated files drift, so the copies cannot silently diverge.
 
-Agent bodies reference MCP tools through a `{{MCP_PREFIX}}` placeholder, since each harness namespaces MCP tools differently — `mcp__obsidian-vault-mcp__` for Claude Code, `mcp_obsidian-vault-mcp_` for Gemini, `obsidian-vault-mcp_` for OpenCode, and bare names for Codex.
+Agent bodies reference MCP tools through a `{{MCP_PREFIX}}` placeholder, since each harness namespaces MCP tools differently — `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__` for Claude Code, `mcp_obsidian-vault-mcp_` for Gemini, `obsidian-vault-mcp_` for OpenCode, and bare names for Codex.
 
 ### **Specialized Subagents**
 
@@ -244,15 +244,16 @@ Every harness reads the same vault config (`~/.obsidian-mcp.config.json`) and th
 
 | Harness | Setup | Reads |
 | :--- | :--- | :--- |
-| **Claude Code** | `./.claude/setup-environment.sh` | `CLAUDE.md`, `.claude/agents/`, `.claude/skills/` |
-| **Codex CLI** | `./.codex/setup-environment.sh` | `AGENTS.md`, `.codex/agents/`, `.codex/config.toml`, `.agents/skills/` |
-| **Gemini CLI** | `./.gemini/setup-environment.sh` | `.gemini/agents/`, `.gemini/skills/` |
-| **OpenCode** | `./.opencode/setup-environment.sh` | `AGENTS.md`, `.opencode/agents/`, `opencode.json` |
+| **Claude Code** | `./.claude/setup-environment.sh` | `CLAUDE.md` (which imports `AGENTS.md`), `.claude/agents/`, `.claude/skills/` |
+| **Codex CLI** | `./.codex/setup-environment.sh` | `AGENTS.md`, `.codex/agents/`, `.agents/skills/` |
+| **Gemini CLI** | `./.gemini/setup-environment.sh` | `AGENTS.md` (through `.gemini/settings.json`), `.gemini/agents/`, `.agents/skills/` |
+| **OpenCode** | `./.opencode/setup-environment.sh` | `AGENTS.md`, `.opencode/agents/`, `.agents/skills/`, `opencode.json` |
 
 Notes:
 
 - **Claude Code** and **Codex** install the backend as a plugin from the upstream marketplace. **Gemini** installs it as an extension. **OpenCode** launches it directly from `opencode.json`.
 - The Gemini setup removes the global `agent-memory-boot` hook that earlier versions of this template installed.
+- Codex reads `.codex/agents/` only in a project you have trusted. Its custom agents inherit every MCP tool, so an agent's tool list is enforced in Claude Code, Gemini, and OpenCode but is only an instruction in Codex.
 
 ### **Dockerized Obsidian**
 

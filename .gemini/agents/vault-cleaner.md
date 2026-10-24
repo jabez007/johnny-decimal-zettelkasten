@@ -4,7 +4,7 @@ description: Specialist in vault hygiene. Detects duplicates, misplaced notes, a
 tools:
   - read_file
   - grep_search
-  - list_directory
+  - glob
   - mcp_obsidian-vault-mcp_obsidian_rag_query
   - mcp_obsidian-vault-mcp_obsidian_read_note
   - mcp_obsidian-vault-mcp_obsidian_get_backlinks

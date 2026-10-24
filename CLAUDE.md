@@ -1,7 +1,9 @@
 # Claude Code Guidance
 
-The repository guidance for every harness lives in [`AGENTS.md`](AGENTS.md).
-Read it first — it defines the repo scope, vault rules, permanent-note format,
+@AGENTS.md
+
+The import above loads [`AGENTS.md`](AGENTS.md), the repository guidance every
+harness shares. It defines the repo scope, vault rules, permanent-note format,
 and workflow that apply here.
 
 ## Claude-specific notes
@@ -10,9 +12,9 @@ and workflow that apply here.
   `.agents/agents/*.md` by `./scripts/sync-assets.sh` — edit the canonical
   source, not the generated copy.
 - The `librarian-vault-manager` skill in `.claude/skills/` is likewise
-  generated from `.agents/skills/` and `references/librarian/`.
-- Vault access goes through the `obsidian-vault-mcp` MCP server. Its tools are
-  namespaced `mcp__obsidian-vault-mcp__obsidian_*`.
+  generated from `.agents/skills/`.
+- Vault access goes through the `obsidian-vault-mcp` plugin. Claude Code names
+  its tools `mcp__plugin_obsidian-vault-mcp_obsidian-vault-mcp__obsidian_*`.
 
 Run `./.claude/setup-environment.sh` to install the MCP plugin and configure a
 vault.
