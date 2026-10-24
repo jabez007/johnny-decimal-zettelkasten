@@ -27,7 +27,7 @@ echo "Required commands found."
 echo "--- 2. Removing legacy gemini-obsidian install, if present ---"
 if codex plugin list --json 2>/dev/null | jq -e --arg n "$LEGACY_PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
   echo "Removing legacy plugin '$LEGACY_PLUGIN_NAME'..."
-  codex plugin remove "$LEGACY_PLUGIN_NAME" >/dev/null || true
+  codex plugin remove "$LEGACY_PLUGIN_NAME@$LEGACY_MARKETPLACE_NAME" >/dev/null || true
 fi
 if codex plugin marketplace list --json 2>/dev/null | jq -e --arg n "$LEGACY_MARKETPLACE_NAME" '.marketplaces[]? | select(.name == $n)' >/dev/null; then
   echo "Removing legacy marketplace '$LEGACY_MARKETPLACE_NAME'..."
@@ -46,7 +46,7 @@ fi
 
 if codex plugin list --json 2>/dev/null | jq -e --arg n "$PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
   echo "Refreshing installed plugin '$PLUGIN_NAME'..."
-  codex plugin remove "$PLUGIN_NAME" >/dev/null
+  codex plugin remove "$PLUGIN_NAME@$MARKETPLACE_NAME" >/dev/null
 fi
 codex plugin add "$PLUGIN_NAME@$MARKETPLACE_NAME" >/dev/null
 echo "Installed Codex plugin '$PLUGIN_NAME'."
