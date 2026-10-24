@@ -16,6 +16,9 @@ Capture a source record when a queued proposal relies on material from outside
 the vault, such as an article, a paper, a transcript, or a file. Journal notes
 and existing vault notes are already in the vault; cite them by path.
 
+Writing a queue record needs no approval. It changes no curated note, and
+nothing is published from it until the user approves it in a conversation.
+
 ## Folders
 
 Both folders sit at the vault root. The MCP server never indexes or lists
@@ -171,9 +174,10 @@ an empty result from them says nothing about the queue.
 Run these checks when you present a queued proposal, and again just before
 you publish it:
 
-- For an update, the target exists and each text to replace occurs in it
-  exactly once. If not, the note changed since the proposal was written:
-  revise the proposal instead of publishing it.
+- For an update, the target exists, and applying the `### Replace`
+  subsections in order finds each text to replace exactly once. If not, the
+  note changed since the proposal was written, or one replacement removes the
+  text of a later one: revise the proposal instead of publishing it.
 - For a create, nothing exists at the target path yet.
 - Every ID in `source_ids` has a record in `.sources/`.
 
@@ -187,5 +191,10 @@ Follow the Publish step of Knowledge Promotion. Apply each `### Replace` with
 `obsidian_create_note`. Then set `state: applied` and `applied_at`, and add the
 Review line.
 
-If publishing stops partway, leave the state at `approved`, tell the user
-which edits landed, and re-run the checks before you continue.
+If publishing stops partway, leave the state at `approved` and tell the user
+which edits landed. To continue, re-run the checks. For each edit whose text
+to replace is gone and whose replacement occurs once, the checker cannot tell
+whether this proposal put the replacement there. Read the note and confirm
+that the edit landed where the proposal intended. Skip the confirmed edits,
+apply the rest, then record `applied`. If you cannot confirm an edit, ask the
+user.

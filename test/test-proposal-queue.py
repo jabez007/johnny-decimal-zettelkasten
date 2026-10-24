@@ -163,12 +163,38 @@ class ProposalQueueTest(unittest.TestCase):
         self.write(TARGET, NOTE + '\nClean the gutters every spring and autumn.\n')
         self.assert_problem('occurs 2 times')
 
-    def test_an_interrupted_publication_reports_landed_edits(self):
+    def test_an_interrupted_publication_needs_confirmation(self):
+        # The replacement text can appear for other reasons, so the checker
+        # cannot prove the edit landed. Someone has to confirm it.
         self.write('.proposals/P-20261023-A91B.md', proposal(state='approved'))
         self.write(TARGET, NOTE.replace('every spring and autumn', 'every autumn'))
-        code, out = self.queue('check')
-        self.assertEqual(code, 0, out)
-        self.assertIn('1 edit(s) already landed', out)
+        self.assert_problem('Replace 1: the text to replace is gone and its replacement occurs once')
+        code, out = self.queue('list')
+        self.assertIn('1 problem(s), run check', out)
+
+    def test_overlapping_replacements_are_checked_in_order(self):
+        change = """### Replace
+
+~~~~markdown
+every spring
+~~~~
+
+~~~~markdown
+every year
+~~~~
+
+### Replace
+
+~~~~markdown
+spring and autumn
+~~~~
+
+~~~~markdown
+autumn
+~~~~
+"""
+        self.write('.proposals/P-20261023-A91B.md', proposal(change=change))
+        self.assert_problem('Replace 2: an earlier replacement in this proposal removes the text to replace')
 
     def test_a_create_refuses_an_existing_target(self):
         change = f"### New note\n\n~~~~markdown\n{NOTE}~~~~\n"
@@ -221,6 +247,28 @@ class ProposalQueueTest(unittest.TestCase):
         code, out = self.queue('check', '--vault', 'vaults/demo', 'P-20261023-0002')
         self.assertEqual(code, 1, out)
         self.assertIn('no proposal P-20261023-0002', out)
+
+    def test_an_id_in_one_vault_is_not_missing_from_another(self):
+        self.write('.proposals/P-20261023-A91B.md', proposal())
+        (self.root / 'vaults/other').mkdir()
+        code, out = self.queue('check', 'P-20261023-A91B')
+        self.assertEqual(code, 0, out)
+        code, out = self.queue('check', 'P-20261023-0002')
+        self.assertEqual(code, 1, out)
+        self.assertEqual(out.count('no proposal P-20261023-0002'), 1, out)
+
+    def test_list_shows_a_proposal_with_an_invalid_state(self):
+        self.write('.proposals/P-20261023-A91B.md', proposal(state='done'))
+        code, out = self.queue('list')
+        self.assertIn('vaults/demo: 1 open, 0 closed', out)
+        self.assertIn('P-20261023-A91B  done r1', out)
+
+    def test_naming_a_proposal_checks_its_sources(self):
+        self.write('.proposals/P-20261023-A91B.md', proposal())
+        self.write('.sources/S-20261023-8F3D.md', SOURCE_RECORD.replace('record_type: knowledge-source', 'record_type: note'))
+        code, out = self.queue('check', 'P-20261023-A91B')
+        self.assertEqual(code, 1, out)
+        self.assertIn('S-20261023-8F3D.md: record_type must be knowledge-source', out)
 
     def test_bad_arguments_print_usage(self):
         code, out = self.queue('publish')

@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 const USAGE = 'Usage: node scripts/proposal-queue.mjs list|check [--vault vaults/name] [P-YYYYMMDD-XXXX ...]';
 const STATES = ['pending', 'deferred', 'approved', 'applied', 'rejected', 'superseded'];
 const OPEN = ['pending', 'deferred', 'approved'];
+const CLOSED = STATES.filter(state => !OPEN.includes(state));
 const SECTIONS = ['Change', 'Why', 'Evidence', 'Conflicts', 'Sensitivity check', 'Links', 'Log entry', 'Open questions', 'Review'];
 const SOURCE_ID = /^S-\d{8}-[0-9A-F]{4}$/;
 const PROPOSAL_ID = /^P-\d{8}-[0-9A-F]{4}$/;
@@ -158,16 +159,25 @@ function checkProposal(proposal, vault, sourceIds, proposalIds) {
   if (meta.operation === 'create' && exists) problems.push(`${meta.target_path} already exists`);
   if (meta.operation !== 'update') return;
   if (!exists) { problems.push(`${meta.target_path} does not exist`); return; }
-  const text = fs.readFileSync(target, 'utf8');
+  // Apply the replacements in order to a copy, the way publishing will, so
+  // an earlier edit that removes a later edit's text is caught.
+  const original = fs.readFileSync(target, 'utf8');
+  let text = original;
   replaces.forEach((part, index) => {
     const [before, after] = part.blocks;
     if (before === undefined) return;
     if (before.trim() === '') { problems.push(`Replace ${index + 1}: the text to replace is empty`); return; }
     const count = occurrences(text, before);
-    if (count === 1) return;
-    // Publishing may have stopped partway, after some edits landed.
+    if (count === 1) { text = text.replace(before, () => after ?? ''); return; }
+    // Publishing may have stopped partway. Matching replacement text does
+    // not prove which edit put it there, so someone has to confirm it.
     if (count === 0 && meta.state === 'approved' && after && occurrences(text, after) === 1) {
-      proposal.landed = (proposal.landed ?? 0) + 1;
+      problems.push(`Replace ${index + 1}: the text to replace is gone and its replacement occurs once. ` +
+        'If publishing stopped partway, confirm in the note that this edit landed and skip it');
+      return;
+    }
+    if (count === 0 && occurrences(original, before) === 1) {
+      problems.push(`Replace ${index + 1}: an earlier replacement in this proposal removes the text to replace`);
       return;
     }
     problems.push(count === 0
@@ -205,26 +215,30 @@ function main() {
   if (selected && !fs.statSync(vaults[0], { throwIfNoEntry: false })?.isDirectory()) throw new Error(`No vault at ${selected}`);
 
   let problems = 0;
+  const found = new Set();
   for (const { label, sources, proposals } of vaults.map(vault => loadVault(vault, root))) {
     const chosen = ids.length ? proposals.filter(proposal => ids.includes(proposal.id)) : proposals;
-    for (const id of ids) if (!proposals.some(proposal => proposal.id === id)) { console.log(`${label}: no proposal ${id}`); problems++; }
+    chosen.forEach(proposal => found.add(proposal.id));
     if (command === 'list') {
-      const open = chosen.filter(proposal => OPEN.includes(proposal.meta?.state) || !proposal.meta);
+      // A record with a missing or invalid state still needs attention.
+      const open = chosen.filter(proposal => !CLOSED.includes(proposal.meta?.state));
       console.log(`${label}: ${open.length} open, ${chosen.length - open.length} closed`);
       for (const proposal of open) {
         const { state = '?', revision = '?', operation = '?', target_path: target = '?' } = proposal.meta ?? {};
-        const status = proposal.problems.length ? `${proposal.problems.length} problem(s), run check` : proposal.landed ? `${proposal.landed} edit(s) already landed` : 'ok';
+        const status = proposal.problems.length ? `${proposal.problems.length} problem(s), run check` : 'ok';
         console.log(`  ${proposal.id}  ${state} r${revision}  ${operation} ${target}  ${status}`);
       }
       continue;
     }
-    const records = ids.length ? chosen : [...sources, ...chosen];
+    // A named proposal is checked with the source records it cites.
+    const cited = new Set(chosen.flatMap(proposal => Array.isArray(proposal.meta?.source_ids) ? proposal.meta.source_ids : []));
+    const records = ids.length ? [...sources.filter(source => cited.has(source.id)), ...chosen] : [...sources, ...chosen];
     for (const record of records) {
       for (const problem of record.problems) console.log(`${path.relative(root, record.file)}: ${problem}`);
       problems += record.problems.length;
-      if (record.landed) console.log(`${path.relative(root, record.file)}: ${record.landed} edit(s) already landed; finish publishing before changing the proposal`);
     }
   }
+  for (const id of ids) if (!found.has(id)) { console.log(`no proposal ${id} in ${selected ?? 'any vault'}`); problems++; }
   if (command === 'check') console.log(problems ? `${problems} problem(s) found.` : 'The proposal queue is consistent.');
   if (problems) process.exitCode = 1;
 }

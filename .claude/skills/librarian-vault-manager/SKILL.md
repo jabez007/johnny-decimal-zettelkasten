@@ -17,7 +17,7 @@ This skill provides the foundational knowledge and rules for managing Obsidian v
 
 - **Graph-Aware Metadata:** **CRITICAL.** Every permanent note MUST include YAML frontmatter with required core fields `entities`, `communities`, and `status`. Add `aliases` and `tags` when they improve discoverability or actionable intent.
 - **Read-Only Analysis and Proposals:** **NEVER** create, modify, or delete files directly without a preceding proposal phase.
-- **Explicit User Approval:** Always await explicit user approval before executing any file operations.
+- **Explicit User Approval:** Always await explicit user approval before executing any file operations, except writing records to the proposal queue.
 - **Promotion Workflow:** File knowledge from a conversation, a session, or recalled memory through Discover, Propose, Review, and Publish in `references/librarian/knowledge-promotion.md`.
 - **Proposal Queue:** Keep proposals the user has not decided, and the sources they cite, in the vault's hidden `.proposals/` and `.sources/` folders, following `references/librarian/proposal-queue.md`.
 - **Respect ACID Notation:** All references must strictly follow the `SYS.AC.ID` format (Area, Category, ID).

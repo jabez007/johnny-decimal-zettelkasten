@@ -58,7 +58,7 @@ The MCP listing tools never show the queue. List `.proposals/` and `.sources/` a
 
 - Open proposals that fail the checks in `references/librarian/proposal-queue.md`.
 - Proposals `pending` or `deferred` for more than 30 days.
-- Proposals left at `approved`, which means publishing stopped partway.
+- Proposals left at `approved`. Publishing has not started or stopped partway, and `check` reports edits that may have landed.
 - Source records that no proposal cites.
 
 ## Output Format

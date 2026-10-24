@@ -80,7 +80,8 @@ node scripts/proposal-queue.mjs check --vault vaults/<vault>
 ```
 
 `check` reports a proposal whose target note changed since it was written, a
-cited source with no record, and a missing section. To decide, tell the agent
+cited source with no record, a missing section, and an edit that may have
+landed when publishing stopped partway. To decide, tell the agent
 the proposal ID, for example "Approve P-20261023-A91B" or "Reject
 P-20261023-A91B". The agent runs the same checks, publishes an approved
 proposal, and records the decision in the file. A proposal that no longer
