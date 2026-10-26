@@ -40,8 +40,12 @@ if [ -t 0 ]; then
   read -rp "Enter Obsidian vault name [$DEFAULT_VAULT_NAME]: " VAULT_NAME_RAW
 fi
 
+# The default names an existing directory, so it keeps its exact name. Only a
+# typed name becomes a new slugified directory.
+VAULT_DIR_NAME=""
 if [ -z "$VAULT_NAME_RAW" ]; then
   VAULT_NAME_RAW="$DEFAULT_VAULT_NAME"
+  VAULT_DIR_NAME="$DEFAULT_VAULT_NAME"
 fi
 
 # Slugify: lowercase, replace non-alphanumeric with hyphens, collapse, trim ends
@@ -52,7 +56,7 @@ if [ -z "$VAULT_SLUG" ]; then
   exit 1
 fi
 
-VAULT_PATH="$REPO_ROOT/vaults/$VAULT_SLUG"
+VAULT_PATH="$REPO_ROOT/vaults/${VAULT_DIR_NAME:-$VAULT_SLUG}"
 VAULT_ID="$(basename "$REPO_ROOT")_${VAULT_SLUG}"
 
 if [ ! -d "$VAULT_PATH" ]; then

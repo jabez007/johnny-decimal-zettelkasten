@@ -113,18 +113,20 @@ fi
 # An upgrade must preserve the vault selected by the legacy backend. Falling
 # back to the sample vault would write a valid but surprising v2 config.
 #
-# configure_with_legacy_vault inside|outside runs configure-vault.sh with no
-# input, in a fresh HOME whose legacy config names a vault inside or outside
-# vaults/. Setup registers the vault and installs Git hooks, so it runs in a
-# scratch copy that later sections never see.
+# configure_with_legacy_vault NAME|outside runs configure-vault.sh with no
+# input, in a fresh HOME whose legacy config names vaults/NAME or a vault
+# outside vaults/. Setup registers the vault and installs Git hooks, so it runs
+# in a scratch copy that later sections never see. Snapshot installation is off
+# there, so another vault's committed snapshot (#20) cannot fail the check.
 configure_with_legacy_vault() {
   local scratch vault
   scratch=$(mktemp -d)
   cp -r "$WORK_DIR" "$scratch/repo"
-  mkdir -p "$scratch/home" "$scratch/repo/vaults/existing" "$scratch/outside"
+  git -C "$scratch/repo" config obsidian.snapshotInstall off
+  mkdir -p "$scratch/home" "$scratch/outside"
   case $1 in
-    inside) vault="$scratch/repo/vaults/existing/" ;;
     outside) vault="$scratch/outside" ;;
+    *) vault="$scratch/repo/vaults/$1/"; mkdir -p "$vault" ;;
   esac
   jq -n --arg vault "$vault" --arg workspace "$scratch/repo" \
     '{vault_path: $vault, workspace_path: $workspace, vault_id: "test_existing"}' \
@@ -133,8 +135,9 @@ configure_with_legacy_vault() {
   rm -rf "$scratch"
 }
 
-out=$(configure_with_legacy_vault inside)
-if echo "$out" | grep -q "Vault configured: .*/repo/vaults/existing "; then
+# The name is not a slug, so slugifying it would select a new vaults/my-vault.
+out=$(configure_with_legacy_vault My_Vault)
+if echo "$out" | grep -q "Vault configured: .*/repo/vaults/My_Vault "; then
   pass "configure-vault preserves the legacy configured vault by default"
 else
   fail "configure-vault preserves the legacy configured vault by default" \
@@ -1029,12 +1032,12 @@ done
 # --- 6. Migration script ----------------------------------------------------
 section "6. v2 migration script"
 
-# expect_incomplete NAME HOME [ARGS] runs the migration with no input and
-# expects it to refuse to report success.
+# expect_incomplete NAME HOME MCP_CMD [ARGS] runs the migration with no input
+# and expects it to refuse to report success. It leaves the output in $out.
 expect_incomplete() {
-  local name=$1 home=$2 out
-  shift 2
-  if out=$(HOME="$home" MCP_CMD=true ./scripts/migrate-v2.sh "$@" </dev/null 2>&1); then
+  local name=$1 home=$2 mcp_cmd=$3
+  shift 3
+  if out=$(HOME="$home" MCP_CMD="$mcp_cmd" ./scripts/migrate-v2.sh "$@" </dev/null 2>&1); then
     fail "$name" "exited 0"
   elif echo "$out" | grep -q "Migration incomplete"; then
     pass "$name"
@@ -1044,24 +1047,39 @@ expect_incomplete() {
 }
 
 MIGRATE_HOME=$(mktemp -d)
-expect_incomplete "migrate-v2.sh reports a missing config as incomplete" "$MIGRATE_HOME" --yes
+expect_incomplete "migrate-v2.sh reports a missing config as incomplete" "$MIGRATE_HOME" true --yes
 jq -n --arg vault "$WORK_DIR/vaults/example" --arg workspace "$WORK_DIR" \
   '{vault_path: $vault, workspace_path: $workspace}' >"$MIGRATE_HOME/.obsidian-mcp.config.json"
-expect_incomplete "migrate-v2.sh reports a declined rebuild as incomplete" "$MIGRATE_HOME"
+expect_incomplete "migrate-v2.sh reports a declined rebuild as incomplete" "$MIGRATE_HOME" true
 
-# Without jq, config detection would fail as though no config existed.
-NO_JQ_BIN=$(mktemp -d)
-for tool in git node npx; do
-  ln -sf "$(command -v "$tool")" "$NO_JQ_BIN/$tool"
-done
-if out=$(env -i PATH="$NO_JQ_BIN" HOME="$MIGRATE_HOME" ./scripts/migrate-v2.sh --yes 2>&1); then
+expect_incomplete "migrate-v2.sh reports a failed rebuild as incomplete" "$MIGRATE_HOME" false --yes
+if echo "$out" | grep -q "The rebuild failed" \
+  && echo "$out" | grep -q -- "--- 8. Regenerating harness assets ---"; then
+  pass "migrate-v2.sh finishes the migration after a failed rebuild"
+else
+  fail "migrate-v2.sh finishes the migration after a failed rebuild" \
+    "$(echo "$out" | tail -3 | tr '\n' ' ')"
+fi
+
+# Without jq, config detection would fail as though no config existed. A
+# custom MCP_CMD needs neither node nor npx.
+STUB_BIN=$(mktemp -d)
+ln -sf "$(command -v git)" "$STUB_BIN/git"
+if out=$(env -i PATH="$STUB_BIN" HOME="$MIGRATE_HOME" ./scripts/migrate-v2.sh --yes 2>&1); then
   fail "migrate-v2.sh requires jq" "exited 0"
 elif echo "$out" | grep -q "'jq' is required"; then
   pass "migrate-v2.sh requires jq"
 else
   fail "migrate-v2.sh requires jq" "$(echo "$out" | tail -3 | tr '\n' ' ')"
 fi
-rm -rf "$MIGRATE_HOME" "$NO_JQ_BIN"
+ln -sf "$(command -v jq)" "$STUB_BIN/jq"
+out=$(env -i PATH="$STUB_BIN" HOME="$MIGRATE_HOME" MCP_CMD=false ./scripts/migrate-v2.sh --yes 2>&1)
+if echo "$out" | grep -q "is required but not installed"; then
+  fail "migrate-v2.sh needs only jq with a custom MCP_CMD" "$(echo "$out" | grep 'is required')"
+else
+  pass "migrate-v2.sh needs only jq with a custom MCP_CMD"
+fi
+rm -rf "$MIGRATE_HOME" "$STUB_BIN"
 
 printf 'legacy\n' >.gitattributes
 echo '.gemini-obsidian/**/*.lance filter=lfs diff=lfs merge=lfs -text' >>.gitattributes

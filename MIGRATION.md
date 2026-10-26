@@ -306,6 +306,7 @@ npx -y @jabez007/obsidian-vault-mcp@2 obsidian_rag_index --force_reindex true
 
 Each step checks current state first, so the script is safe to re-run. It
 needs `jq`, `node`, and `npx`, and stops before step 1 when one is missing.
+With `MCP_CMD` set to another server command, it needs only `jq`.
 
 1. Removes the legacy Codex plugin `gemini-obsidian` and its
    `gemini-obsidian-repo` marketplace.
@@ -318,8 +319,8 @@ needs `jq`, `node`, and `npx`, and stops before step 1 when one is missing.
    on first access, preserving indexes and file hashes).
 6. Reports on your vault configuration file.
 7. Offers to run the mandatory `--force_reindex` rebuild. If the rebuild does
-   not run, the script still finishes step 8, then reports the migration as
-   incomplete and exits with status 1.
+   not run or fails, the script still finishes step 8, then reports the
+   migration as incomplete and exits with status 1.
 8. Regenerates the per-harness assets via `scripts/sync-assets.sh`.
 
 It never modifies vault note content.

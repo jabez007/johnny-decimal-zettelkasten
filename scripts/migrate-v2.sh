@@ -13,7 +13,12 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.3.0"}
+# The default MCP command runs through npx, so it needs node and npx as well.
+REQUIRED_CMDS=(jq)
+if [ -z "${MCP_CMD:-}" ]; then
+  MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.3.0"
+  REQUIRED_CMDS+=(node npx)
+fi
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"
 ASSUME_YES=0
@@ -21,7 +26,7 @@ REINDEX_COMPLETE=0
 
 [ "${1:-}" = "--yes" ] && ASSUME_YES=1
 
-for cmd in jq node npx; do
+for cmd in "${REQUIRED_CMDS[@]}"; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Error: '$cmd' is required but not installed."
     exit 1
@@ -168,13 +173,21 @@ else
     # target the wrong index and defeat the rebuild.
     VAULT_ID_ARGS=()
     [ -n "${VAULT_ID:-}" ] && VAULT_ID_ARGS=(--vault_id "$VAULT_ID")
-    $MCP_CMD obsidian_rag_index \
+    # A failed rebuild must still reach step 8 and the incomplete banner.
+    if $MCP_CMD obsidian_rag_index \
       --vault_path "$VAULT_PATH" \
       --workspace_path "${WORKSPACE_PATH:-$REPO_ROOT}" \
       "${VAULT_ID_ARGS[@]}" \
-      --force_reindex true
-    REINDEX_COMPLETE=1
-    echo "Index rebuilt."
+      --force_reindex true; then
+      REINDEX_COMPLETE=1
+      echo "Index rebuilt."
+    else
+      echo ""
+      echo "The rebuild failed. Fix the error above, then run:"
+      echo ""
+      echo "  $MCP_CMD obsidian_rag_index --force_reindex true"
+      echo ""
+    fi
   else
     echo ""
     echo "SKIPPED. Your index is now in a mixed state. Run this before relying"
