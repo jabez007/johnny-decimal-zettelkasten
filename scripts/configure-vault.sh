@@ -22,6 +22,7 @@ DEFAULT_VAULT_NAME="example"
 for cfg in "$HOME/.obsidian-mcp.config.json" "$HOME/.gemini-obsidian.config.json"; do
   if [ -f "$cfg" ] && command -v jq >/dev/null 2>&1; then
     CONFIGURED_VAULT_PATH=$(jq -r '.vault_path // empty' "$cfg" 2>/dev/null || true)
+    [ -n "$CONFIGURED_VAULT_PATH" ] || continue
     CONFIGURED_VAULT_PATH=${CONFIGURED_VAULT_PATH%/}
     CONFIGURED_VAULT_NAME=$(basename "$CONFIGURED_VAULT_PATH")
     if [ "$CONFIGURED_VAULT_PATH" = "$REPO_ROOT/vaults/$CONFIGURED_VAULT_NAME" ] \
@@ -29,6 +30,8 @@ for cfg in "$HOME/.obsidian-mcp.config.json" "$HOME/.gemini-obsidian.config.json
       DEFAULT_VAULT_NAME="$CONFIGURED_VAULT_NAME"
       break
     fi
+    # Say so, or an upgrade quietly retargets the configured vault.
+    echo "Not offering $CONFIGURED_VAULT_PATH from $cfg: it is not a directory under $REPO_ROOT/vaults/."
   fi
 done
 

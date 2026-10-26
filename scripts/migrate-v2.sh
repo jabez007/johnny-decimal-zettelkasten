@@ -194,7 +194,8 @@ echo ""
 if [ "$REINDEX_COMPLETE" != "1" ]; then
   echo "======================================================="
   echo " Migration incomplete: the required RAG rebuild did not run."
-  echo " Complete the rebuild, then re-run this script."
+  echo " Run the rebuild command shown above, or re-run this script and"
+  echo " accept the rebuild."
   echo "======================================================="
   exit 1
 fi
