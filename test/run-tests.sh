@@ -144,6 +144,15 @@ else
     "$(echo "$out" | tail -3 | tr '\n' ' ')"
 fi
 
+# This name has no ASCII letter or digit, so it slugifies to nothing.
+out=$(configure_with_legacy_vault 日本)
+if echo "$out" | grep -q "Vault configured: .*/repo/vaults/日本 (id: repo_vault-[0-9]*)"; then
+  pass "configure-vault keeps a configured vault whose name has no slug"
+else
+  fail "configure-vault keeps a configured vault whose name has no slug" \
+    "$(echo "$out" | tail -3 | tr '\n' ' ')"
+fi
+
 out=$(configure_with_legacy_vault outside)
 if echo "$out" | grep -q "Not offering .*/outside from .*gemini-obsidian.config.json" \
   && echo "$out" | grep -q "Vault configured: .*/repo/vaults/example "; then

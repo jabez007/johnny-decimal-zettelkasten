@@ -52,8 +52,13 @@ fi
 VAULT_SLUG=$(echo "$VAULT_NAME_RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\{1,\}/-/g' | sed 's/^-//;s/-$//')
 
 if [ -z "$VAULT_SLUG" ]; then
-  echo "Error: '$VAULT_NAME_RAW' slugified to an empty name. Use at least one letter or digit."
-  exit 1
+  if [ -z "$VAULT_DIR_NAME" ]; then
+    echo "Error: '$VAULT_NAME_RAW' slugified to an empty name. Use at least one letter or digit."
+    exit 1
+  fi
+  # A configured directory with no ASCII letter or digit, such as vaults/日本,
+  # still needs an ID the index registry accepts. Its checksum is stable.
+  VAULT_SLUG="vault-$(printf '%s' "$VAULT_DIR_NAME" | cksum | cut -d' ' -f1)"
 fi
 
 VAULT_PATH="$REPO_ROOT/vaults/${VAULT_DIR_NAME:-$VAULT_SLUG}"
