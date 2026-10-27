@@ -49,7 +49,7 @@ staged rules differing from working rules, and removal of LFS filters. Valid
 attribute changes must pass without the MCP or changes to unstaged notes.
 
 To also test a real release, set `MCP_SNAPSHOT_RELEASE` to the unpacked MCP
-2.3.0 package directory with its dependencies installed:
+2.4.0 package directory with its dependencies installed:
 
 ```bash
 MCP_SNAPSHOT_RELEASE=/path/to/package python3 test/test-index-hooks.py
@@ -90,7 +90,7 @@ nearly all of it npm fetching onnxruntime.
 | 5. Harness parity | Every `setup-environment.sh` honours the shared setup contract |
 | 6. v2 migration | `migrate-v2.sh` runs non-interactively, rewrites LFS globs, and is re-runnable |
 | 7. Setup gates | Each `setup-environment.sh` fails fast when its CLI is missing, tested with a restricted PATH so the result does not depend on what is installed |
-| 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.3.0 export → LFS push/clone → vector and full-text queries without reindexing |
+| 8. Snapshot hooks | Publication and rollback with real Git/LFS; incremental indexing; automatic installation after pull, rebase, and branch switch; migration; published MCP 2.4.0 export → LFS push/clone → vector and full-text queries without reindexing |
 
 ## What it does not cover
 

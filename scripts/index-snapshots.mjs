@@ -10,7 +10,7 @@ const CONFIG = '.obsidian-indexes.json';
 const STORAGE = '.obsidian-vault-mcp';
 const COMPANIONS = ['file-hashes.json', 'schema-version.json', 'index-metadata.json'];
 const PAYLOAD = ['lancedb', ...COMPANIONS];
-const PACKAGE = '@jabez007/obsidian-vault-mcp@2.3.0';
+const PACKAGE = '@jabez007/obsidian-vault-mcp@2.4.0';
 let root;
 
 function run(command, args, options = {}) {
@@ -215,7 +215,9 @@ function childMcp(vault, rules) {
   const expected = safe(`${live(vault)}/snapshots/${result.sourceFingerprint}`);
   if (path.resolve(result.snapshotPath) !== expected) throw new Error('MCP returned a snapshot outside the registered vault cache');
   const manifest = readJson(path.join(expected, 'snapshot.json'));
-  if (manifest.policyVersion !== 2 || manifest.rulesFingerprint !== result.rulesFingerprint ||
+  // Policy 3 removes unreferenced Lance files that policy 2 exports kept.
+  if (manifest.policyVersion !== 3) throw new Error(`MCP snapshot policy ${manifest.policyVersion} is not supported; use ${PACKAGE}`);
+  if (manifest.rulesFingerprint !== result.rulesFingerprint ||
       manifest.result?.rulesFingerprint !== result.rulesFingerprint || manifest.result?.sourceFingerprint !== result.sourceFingerprint ||
       manifest.result?.success !== true || !result.validation?.vectorQuery || !result.validation?.fullTextQuery) throw new Error('Invalid MCP snapshot manifest');
   compatibility(result.compatibility);
