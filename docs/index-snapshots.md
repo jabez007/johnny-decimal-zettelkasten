@@ -1,6 +1,6 @@
 # Sharing index snapshots through Git LFS
 
-The pre-commit hook uses MCP **2.3.0** to prepare and validate an immutable
+The pre-commit hook uses MCP **2.4.0** to prepare and validate an immutable
 LanceDB export after incremental indexing. It publishes one snapshot per
 registered vault in
 `.obsidian-vault-mcp/shared/<vault-id>/`. Receiving machines install that
@@ -312,8 +312,10 @@ MCP 2.2.0 and later refuse to export an index built by 2.1.0 until one whole-vau
 `obsidian.snapshotAutoIndex=true`, the next commit runs that scan and reuses
 unchanged embeddings.
 
-The adapter pins `@jabez007/obsidian-vault-mcp@2.3.0`, schema 3, and LanceDB
-0.27.2. Harness plugins should run a compatible MCP version. For a preinstalled
+The adapter pins `@jabez007/obsidian-vault-mcp@2.4.0`, schema 3, and LanceDB
+0.27.2. It accepts only exports with snapshot policy 3, which MCP 2.4.0 writes.
+An older MCP fails with an error that names the required package. Harness
+plugins should run a compatible MCP version. For a preinstalled
 or offline CLI, set `OBSIDIAN_SNAPSHOT_MCP` to a single executable launcher
 path; the adapter passes CLI arguments directly, without shell evaluation.
 
