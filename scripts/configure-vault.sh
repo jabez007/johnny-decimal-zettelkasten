@@ -14,7 +14,7 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.3.0"}
+MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.4.0"}
 
 echo "--- Configuring vault ---"
 
