@@ -20,7 +20,8 @@ if [ -z "${MCP_CMD:-}" ]; then
   MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.0"
   REQUIRED_CMDS+=(node npx)
 else
-  REQUIRED_CMDS+=("${MCP_CMD%% *}")
+  read -r MCP_EXECUTABLE _ <<<"$MCP_CMD"
+  REQUIRED_CMDS+=("$MCP_EXECUTABLE")
 fi
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"

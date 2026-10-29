@@ -1096,6 +1096,9 @@ elif echo "$out" | grep -q "'$STUB_BIN/missing-mcp' is required" && ! echo "$out
 else
   fail "migrate-v2.sh checks a custom MCP_CMD before it starts" "$(echo "$out" | tail -3 | tr '\n' ' ')"
 fi
+# Step 7 runs MCP_CMD unquoted, so the check must split it the same way. The
+# declined rebuild ends the run as incomplete once the check passes.
+expect_incomplete "migrate-v2.sh splits a custom MCP_CMD as step 7 does" "$MIGRATE_HOME" $' true\t--flag'
 rm -rf "$MIGRATE_HOME" "$STUB_BIN"
 
 printf 'legacy\n' >.gitattributes
