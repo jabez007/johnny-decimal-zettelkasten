@@ -14,10 +14,13 @@ set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # The default MCP command runs through npx, so it needs node and npx as well.
+# A custom MCP_CMD needs its first word, which step 7 runs.
 REQUIRED_CMDS=(jq)
 if [ -z "${MCP_CMD:-}" ]; then
   MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.0"
   REQUIRED_CMDS+=(node npx)
+else
+  REQUIRED_CMDS+=("${MCP_CMD%% *}")
 fi
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"

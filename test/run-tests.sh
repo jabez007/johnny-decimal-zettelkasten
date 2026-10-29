@@ -1088,6 +1088,14 @@ if echo "$out" | grep -q "is required but not installed"; then
 else
   pass "migrate-v2.sh needs only jq with a custom MCP_CMD"
 fi
+# A missing custom command must stop the migration before step 1 changes anything.
+if out=$(HOME="$MIGRATE_HOME" MCP_CMD="$STUB_BIN/missing-mcp --flag" ./scripts/migrate-v2.sh --yes 2>&1); then
+  fail "migrate-v2.sh checks a custom MCP_CMD before it starts" "exited 0"
+elif echo "$out" | grep -q "'$STUB_BIN/missing-mcp' is required" && ! echo "$out" | grep -q -- "--- 1\."; then
+  pass "migrate-v2.sh checks a custom MCP_CMD before it starts"
+else
+  fail "migrate-v2.sh checks a custom MCP_CMD before it starts" "$(echo "$out" | tail -3 | tr '\n' ' ')"
+fi
 rm -rf "$MIGRATE_HOME" "$STUB_BIN"
 
 printf 'legacy\n' >.gitattributes

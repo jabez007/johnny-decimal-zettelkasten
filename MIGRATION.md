@@ -306,7 +306,8 @@ npx -y @jabez007/obsidian-vault-mcp@2 obsidian_rag_index --force_reindex true
 
 Each step checks current state first, so the script is safe to re-run. It
 needs `jq`, `node`, and `npx`, and stops before step 1 when one is missing.
-With `MCP_CMD` set to a custom command, it needs only `jq`.
+With `MCP_CMD` set to a custom command, it needs `jq` and the command's first
+word instead.
 
 1. Removes the legacy Codex plugin `gemini-obsidian` and its
    `gemini-obsidian-repo` marketplace.
