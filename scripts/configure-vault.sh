@@ -18,24 +18,50 @@ MCP_CMD=${MCP_CMD:-"npx -y @jabez007/obsidian-vault-mcp@2.4.0"}
 
 echo "--- Configuring vault ---"
 
+DEFAULT_VAULT_NAME="example"
+for cfg in "$HOME/.obsidian-mcp.config.json" "$HOME/.gemini-obsidian.config.json"; do
+  if [ -f "$cfg" ] && command -v jq >/dev/null 2>&1; then
+    CONFIGURED_VAULT_PATH=$(jq -r '.vault_path // empty' "$cfg" 2>/dev/null || true)
+    [ -n "$CONFIGURED_VAULT_PATH" ] || continue
+    CONFIGURED_VAULT_PATH=${CONFIGURED_VAULT_PATH%/}
+    CONFIGURED_VAULT_NAME=$(basename "$CONFIGURED_VAULT_PATH")
+    if [ "$CONFIGURED_VAULT_PATH" = "$REPO_ROOT/vaults/$CONFIGURED_VAULT_NAME" ] \
+      && [ -d "$CONFIGURED_VAULT_PATH" ]; then
+      DEFAULT_VAULT_NAME="$CONFIGURED_VAULT_NAME"
+      break
+    fi
+    # Say so, or an upgrade quietly retargets the configured vault.
+    echo "Not offering $CONFIGURED_VAULT_PATH from $cfg: it is not a directory under $REPO_ROOT/vaults/."
+  fi
+done
+
 VAULT_NAME_RAW=""
 if [ -t 0 ]; then
-  read -rp "Enter Obsidian vault name [example]: " VAULT_NAME_RAW
+  read -rp "Enter Obsidian vault name [$DEFAULT_VAULT_NAME]: " VAULT_NAME_RAW
 fi
 
+# The default names an existing directory, so it keeps its exact name. Only a
+# typed name becomes a new slugified directory.
+VAULT_DIR_NAME=""
 if [ -z "$VAULT_NAME_RAW" ]; then
-  VAULT_NAME_RAW="example"
+  VAULT_NAME_RAW="$DEFAULT_VAULT_NAME"
+  VAULT_DIR_NAME="$DEFAULT_VAULT_NAME"
 fi
 
 # Slugify: lowercase, replace non-alphanumeric with hyphens, collapse, trim ends
 VAULT_SLUG=$(echo "$VAULT_NAME_RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\{1,\}/-/g' | sed 's/^-//;s/-$//')
 
 if [ -z "$VAULT_SLUG" ]; then
-  echo "Error: '$VAULT_NAME_RAW' slugified to an empty name. Use at least one letter or digit."
-  exit 1
+  if [ -z "$VAULT_DIR_NAME" ]; then
+    echo "Error: '$VAULT_NAME_RAW' slugified to an empty name. Use at least one letter or digit."
+    exit 1
+  fi
+  # A configured directory with no ASCII letter or digit, such as vaults/日本,
+  # still needs an ID the index registry accepts. Its checksum is stable.
+  VAULT_SLUG="vault-$(printf '%s' "$VAULT_DIR_NAME" | cksum | cut -d' ' -f1)"
 fi
 
-VAULT_PATH="$REPO_ROOT/vaults/$VAULT_SLUG"
+VAULT_PATH="$REPO_ROOT/vaults/${VAULT_DIR_NAME:-$VAULT_SLUG}"
 VAULT_ID="$(basename "$REPO_ROOT")_${VAULT_SLUG}"
 
 if [ ! -d "$VAULT_PATH" ]; then

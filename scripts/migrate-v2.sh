@@ -13,12 +13,29 @@
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.0"
+# The default MCP command runs through npx, so it needs node and npx as well.
+# A custom MCP_CMD needs its first word, which step 7 runs.
+REQUIRED_CMDS=(jq)
+if [ -z "${MCP_CMD:-}" ]; then
+  MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.0"
+  REQUIRED_CMDS+=(node npx)
+else
+  read -r MCP_EXECUTABLE _ <<<"$MCP_CMD"
+  REQUIRED_CMDS+=("$MCP_EXECUTABLE")
+fi
 CONFIG_PRIMARY="$HOME/.obsidian-mcp.config.json"
 CONFIG_LEGACY="$HOME/.gemini-obsidian.config.json"
 ASSUME_YES=0
+REINDEX_COMPLETE=0
 
 [ "${1:-}" = "--yes" ] && ASSUME_YES=1
+
+for cmd in "${REQUIRED_CMDS[@]}"; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Error: '$cmd' is required but not installed."
+    exit 1
+  fi
+done
 
 confirm() {
   [ "$ASSUME_YES" = "1" ] && return 0
@@ -160,12 +177,21 @@ else
     # target the wrong index and defeat the rebuild.
     VAULT_ID_ARGS=()
     [ -n "${VAULT_ID:-}" ] && VAULT_ID_ARGS=(--vault_id "$VAULT_ID")
-    $MCP_CMD obsidian_rag_index \
+    # A failed rebuild must still reach step 8 and the incomplete banner.
+    if $MCP_CMD obsidian_rag_index \
       --vault_path "$VAULT_PATH" \
       --workspace_path "${WORKSPACE_PATH:-$REPO_ROOT}" \
       "${VAULT_ID_ARGS[@]}" \
-      --force_reindex true
-    echo "Index rebuilt."
+      --force_reindex true; then
+      REINDEX_COMPLETE=1
+      echo "Index rebuilt."
+    else
+      echo ""
+      echo "The rebuild failed. Fix the error above, then run:"
+      echo ""
+      echo "  $MCP_CMD obsidian_rag_index --force_reindex true"
+      echo ""
+    fi
   else
     echo ""
     echo "SKIPPED. Your index is now in a mixed state. Run this before relying"
@@ -182,6 +208,15 @@ echo "--- 8. Regenerating harness assets ---"
 bash "$REPO_ROOT/scripts/sync-assets.sh"
 
 echo ""
+if [ "$REINDEX_COMPLETE" != "1" ]; then
+  echo "======================================================="
+  echo " Migration incomplete: the required RAG rebuild did not run."
+  echo " Run the rebuild command shown above, or re-run this script and"
+  echo " accept the rebuild."
+  echo "======================================================="
+  exit 1
+fi
+
 echo "======================================================="
 echo " Migration complete."
 echo ""
