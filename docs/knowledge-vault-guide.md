@@ -63,6 +63,34 @@ follows the [knowledge promotion workflow](../references/librarian/knowledge-pro
 Promotion is the only way session knowledge reaches the vault. Agents do not
 log sessions, write behavioral rules, or add reports to your daily notes.
 
+### Review queued proposals
+
+When you defer a proposal, or a session ends before you decide, the agent saves
+it in the vault's `.proposals/` folder instead of dropping it. The excerpts it
+cites go in `.sources/`. Obsidian and the MCP search tools hide both folders,
+so queued proposals never show up as notes. The
+[proposal queue doctrine](../references/librarian/proposal-queue.md) defines
+the record format.
+
+List open proposals and check that each one still applies:
+
+```bash
+node scripts/proposal-queue.mjs list --vault vaults/<vault>
+node scripts/proposal-queue.mjs check --vault vaults/<vault>
+```
+
+`check` reports a proposal whose target note changed since it was written, a
+cited source with no record, a missing section, and an edit that may have
+landed when publishing stopped partway. To decide, tell the agent
+the proposal ID, for example "Approve P-20261023-A91B" or "Reject
+P-20261023-A91B". The agent runs the same checks, publishes an approved
+proposal, and records the decision in the file. A proposal that no longer
+applies goes back to you as a new revision.
+
+The `state` field in a proposal file records a decision; it does not grant
+one. Agents publish only after you approve in the conversation, so editing a
+file to say `approved` publishes nothing.
+
 ### Maintain
 
 Run `@vault-auditor` for link health and orphans, `@vault-cleaner` for
@@ -126,6 +154,8 @@ The vault is a Git repository, so anything you commit stays in its history.
 - Keep credentials, tokens, keys, client data, and conversation transcripts out
   of notes. The promotion workflow checks every proposal for them. Check your
   own edits the same way.
+- Queued proposals and source records in `.proposals/` and `.sources/` are
+  committed with the vault. The same check applies to them.
 - Keep client or employer notes in a separate vault when they must not mix with
   personal notes. Each vault lives in its own folder under `vaults/`, and agents
   ask which one to use when the target is unclear.
