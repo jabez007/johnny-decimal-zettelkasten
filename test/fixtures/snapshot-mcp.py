@@ -67,6 +67,6 @@ result = {
     'compatibility': {'notesTableSchemaVersion': 3, 'lanceDbVersion': '0.27.2'},
     'validation': {'rows': len(hashes), 'vectorQuery': True, 'fullTextQuery': True},
 }
-policy = int(os.environ.get('SNAPSHOT_FIXTURE_POLICY', '3'))
+policy = int(os.environ.get('SNAPSHOT_FIXTURE_POLICY', '4'))
 (target / 'snapshot.json').write_text(json.dumps({'policyVersion': policy, 'rulesFingerprint': rules_fingerprint, 'files': files, 'result': result}))
 print(json.dumps(result))
