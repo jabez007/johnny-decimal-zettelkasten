@@ -10,7 +10,7 @@ set -uo pipefail
 
 REPO_SRC=${REPO_SRC:-/repo}
 WORK_DIR=${WORK_DIR:-/work/repo}
-MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.0"
+MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.1"
 
 PASS=0
 FAIL=0
@@ -70,7 +70,7 @@ check "shellcheck (${#SH_FILES[@]} scripts)" shellcheck --severity=warning "${SH
 check "valid JSON: opencode.json" jq -e . opencode.json
 
 check "opencode.json registers obsidian-vault-mcp" \
-  jq -e '.mcp["obsidian-vault-mcp"].command | index("@jabez007/obsidian-vault-mcp@2.4.0")' opencode.json
+  jq -e '.mcp["obsidian-vault-mcp"].command | index("@jabez007/obsidian-vault-mcp@2.4.1")' opencode.json
 
 # Codex finds each .codex/agents/*.toml by its name field, with no registry.
 python3 - <<'PY' && pass "Codex agent files parse and match their filenames" || fail "Codex agent files parse and match their filenames"
@@ -1142,7 +1142,7 @@ rm -rf "$STUB_BIN"
 
 section "8. Index snapshot hooks"
 if [ -z "${MCP_SNAPSHOT_RELEASE:-}" ]; then
-  MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.4.0 -c 'command -v obsidian-vault-mcp')
+  MCP_EXECUTABLE=$(npx --yes --package=@jabez007/obsidian-vault-mcp@2.4.1 -c 'command -v obsidian-vault-mcp')
   MCP_SNAPSHOT_RELEASE=$(node -e 'const fs = require("fs"), p = require("path"); console.log(p.dirname(p.dirname(fs.realpathSync(process.argv[1]))))' "$MCP_EXECUTABLE")
 fi
 if [ -f "$MCP_SNAPSHOT_RELEASE/package.json" ]; then

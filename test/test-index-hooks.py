@@ -636,12 +636,12 @@ class IndexHooksTest(unittest.TestCase):
         self.assertIn('Stage the current', self.engine('prepare', ok=False).stdout)
 
     def test_prepare_rejects_an_older_snapshot_policy(self):
-        # MCP 2.3.0 and earlier write policy 2, which keeps unreferenced files.
+        # MCP 2.4.0 writes policy 3, which can keep data duplicated by compaction.
         self.register()
         self.write('vaults/example/note.md')
         self.git('add', '-A')
-        result = self.engine('prepare', ok=False, extra_env={'SNAPSHOT_FIXTURE_POLICY': '2'})
-        self.assertIn('MCP snapshot policy 2 is not supported; use @jabez007/obsidian-vault-mcp@2.4.0', result.stdout)
+        result = self.engine('prepare', ok=False, extra_env={'SNAPSHOT_FIXTURE_POLICY': '3'})
+        self.assertIn('MCP snapshot policy 3 is not supported; use @jabez007/obsidian-vault-mcp@2.4.1', result.stdout)
         self.assertEqual(self.inventory('.obsidian-vault-mcp/shared'), {})
         self.engine('prepare')
 
@@ -855,7 +855,7 @@ class IndexHooksTest(unittest.TestCase):
     def test_published_mcp_release_survives_lfs_push_clone_and_install(self):
         release = Path(RELEASE).resolve()
         package = json.loads((release / 'package.json').read_text())
-        self.assertEqual(package['version'], '2.4.0')
+        self.assertEqual(package['version'], '2.4.1')
         self.assertEqual(package['dependencies']['@lancedb/lancedb'], '0.27.2')
         runner = self.base / 'real-mcp'
         runner.write_text('#!/usr/bin/env python3\nimport os,sys\nos.execvp("node", ["node", '+repr(str(release / 'dist/index.js'))+']+sys.argv[1:])\n')

@@ -17,7 +17,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # A custom MCP_CMD needs its first word, which step 7 runs.
 REQUIRED_CMDS=(jq)
 if [ -z "${MCP_CMD:-}" ]; then
-  MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.0"
+  MCP_CMD="npx -y @jabez007/obsidian-vault-mcp@2.4.1"
   REQUIRED_CMDS+=(node npx)
 else
   read -r MCP_EXECUTABLE _ <<<"$MCP_CMD"
