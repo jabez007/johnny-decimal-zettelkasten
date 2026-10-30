@@ -1141,7 +1141,8 @@ check "Codex setup uses marketplace upgrade" \
 
 # codex-cli 0.154.0 rejects `codex plugin remove` with a bare plugin name (#19).
 # The stub enforces that rule and reports both plugins as installed, so a re-run
-# must remove each one as PLUGIN@MARKETPLACE and still reach the vault step.
+# must remove each one as PLUGIN@MARKETPLACE, reinstall the plugin and reach the
+# vault step.
 CODEX_HOME=$(mktemp -d)
 cat >"$STUB_BIN/codex" <<'STUB'
 #!/bin/bash
@@ -1161,11 +1162,12 @@ chmod +x "$STUB_BIN/codex"
 out=$(env -i PATH="$STUB_BIN" HOME="$CODEX_HOME" bash .codex/setup-environment.sh </dev/null 2>&1)
 if echo "$out" | grep -q -- "--- 4. Configuring vault ---" \
   && grep -qx "plugin remove obsidian-vault-mcp@obsidian-vault-mcp-repo" "$CODEX_HOME/codex-calls" \
-  && grep -qx "plugin remove gemini-obsidian@gemini-obsidian-repo" "$CODEX_HOME/codex-calls"; then
+  && grep -qx "plugin remove gemini-obsidian@gemini-obsidian-repo" "$CODEX_HOME/codex-calls" \
+  && grep -qx "plugin add obsidian-vault-mcp@obsidian-vault-mcp-repo" "$CODEX_HOME/codex-calls"; then
   pass "Codex setup re-runs over installed plugins"
 else
   fail "Codex setup re-runs over installed plugins" \
-       "$(grep '^plugin remove' "$CODEX_HOME/codex-calls" | tr '\n' ';') $(echo "$out" | grep -m1 '^Error')"
+       "$(grep -E '^plugin (remove|add)' "$CODEX_HOME/codex-calls" | tr '\n' ';') $(echo "$out" | grep -m1 '^Error')"
 fi
 rm -rf "$STUB_BIN" "$CODEX_HOME"
 
