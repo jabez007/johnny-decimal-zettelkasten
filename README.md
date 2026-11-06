@@ -138,7 +138,7 @@ For complex tasks, the Librarian delegates to specialized experts. All eight exi
 
 ### **Knowledge Promotion**
 
-When a CLI session produces something worth keeping, the agent offers to file it. It follows the [promotion workflow](references/librarian/knowledge-promotion.md): it searches for existing notes, proposes a note with labeled claims, sources, and a check for secrets, and writes only after you approve. Nothing from a session reaches the vault any other way.
+When a CLI session produces something worth keeping, the agent offers to file it. It follows the [promotion workflow](references/librarian/knowledge-promotion.md): it searches for existing notes, proposes a note with labeled claims, sources, and a check for secrets, and writes only after you approve. Nothing from a session reaches the vault any other way. A proposal you defer waits in the vault's hidden `.proposals/` folder; `node scripts/proposal-queue.mjs list` shows what is waiting.
 
 ## **System Architecture**
 

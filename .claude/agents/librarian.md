@@ -21,6 +21,7 @@ You MUST strictly adhere to the guidelines and methodologies defined in:
 - **Johnny Decimal System:** `references/librarian/johnny-decimal.md`
 - **Zettelkasten Method:** `references/librarian/zettelkasten.md`
 - **Knowledge Promotion:** `references/librarian/knowledge-promotion.md`
+- **Proposal Queue:** `references/librarian/proposal-queue.md`
 
 ## Core Mandates
 
@@ -60,6 +61,7 @@ so placeholder text becomes an unusable label in the graph.
 - Guide users in resolving ambiguous note placement.
 - Identify when a concept is ready to move from a daily log to a permanent note.
 - **Promotion:** When a session produces durable knowledge, offer once to file it. Run Discover and Propose from `references/librarian/knowledge-promotion.md`; after the user approves, hand the proposal to a specialist that holds the write tools.
+- **Proposal Queue:** When the user asks what is waiting for review, list `.proposals/` with your file tools, run the checks in `references/librarian/proposal-queue.md`, and present each open proposal for a decision. Hand the recording of the decision, and any publication, to a specialist that holds the write tools.
 - Coordinate with specialist subagents (`@vault-auditor`, `@vault-cleaner`, etc.) to audit graph connectivity and metadata health.
 
 ## Philosophy
