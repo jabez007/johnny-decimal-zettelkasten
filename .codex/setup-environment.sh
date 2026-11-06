@@ -24,11 +24,20 @@ for cmd in git jq node npx codex; do
 done
 echo "Required commands found."
 
+# installed_plugins NAME prints the PLUGIN@MARKETPLACE ID of each installed copy
+# of NAME. codex plugin remove rejects a bare plugin name, and it accepts an
+# unknown marketplace without removing anything, so use the ID Codex reports.
+installed_plugins() {
+  codex plugin list --json 2>/dev/null |
+    jq -r --arg n "$1" '.installed[]? | select(.name == $n) | .pluginId'
+}
+
 echo "--- 2. Removing legacy gemini-obsidian install, if present ---"
-if codex plugin list --json 2>/dev/null | jq -e --arg n "$LEGACY_PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
-  echo "Removing legacy plugin '$LEGACY_PLUGIN_NAME'..."
-  codex plugin remove "$LEGACY_PLUGIN_NAME" >/dev/null || true
-fi
+for plugin in $(installed_plugins "$LEGACY_PLUGIN_NAME"); do
+  echo "Removing legacy plugin '$plugin'..."
+  codex plugin remove "$plugin" >/dev/null ||
+    echo "Warning: could not remove '$plugin'. Run: codex plugin remove $plugin"
+done
 if codex plugin marketplace list --json 2>/dev/null | jq -e --arg n "$LEGACY_MARKETPLACE_NAME" '.marketplaces[]? | select(.name == $n)' >/dev/null; then
   echo "Removing legacy marketplace '$LEGACY_MARKETPLACE_NAME'..."
   codex plugin marketplace remove "$LEGACY_MARKETPLACE_NAME" >/dev/null || true
@@ -44,10 +53,10 @@ else
   codex plugin marketplace add "$MARKETPLACE_SOURCE" >/dev/null
 fi
 
-if codex plugin list --json 2>/dev/null | jq -e --arg n "$PLUGIN_NAME" '.installed[]? | select(.name == $n)' >/dev/null; then
-  echo "Refreshing installed plugin '$PLUGIN_NAME'..."
-  codex plugin remove "$PLUGIN_NAME" >/dev/null
-fi
+for plugin in $(installed_plugins "$PLUGIN_NAME"); do
+  echo "Refreshing installed plugin '$plugin'..."
+  codex plugin remove "$plugin" >/dev/null
+done
 codex plugin add "$PLUGIN_NAME@$MARKETPLACE_NAME" >/dev/null
 echo "Installed Codex plugin '$PLUGIN_NAME'."
 
